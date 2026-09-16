@@ -1,154 +1,144 @@
-# Classroom → GitHub Issues (DMI y PWA)
+# Classroom API → GitHub Issues (DMI y PWA)
 
-Automatización self-hosted para detectar nuevas actividades de Google Classroom en Gmail, consultar el estado del repositorio, generar un plan validado de Issues y crearlas de forma idempotente. Empieza en `dry-run`; no modifica código, branches, commits, PRs, merges ni tags.
-
-Estado de la investigación: **15 de septiembre de 2026**.
-
-## Decisión ejecutiva
-
-La arquitectura propuesta puede operar con **$0 MXN obligatorios al mes** si se ejecuta en una computadora existente y se mantiene dentro de las capas gratuitas. No requiere VPS, n8n Cloud, base de datos externa ni una API de IA de pago.
-
-| Componente | Clasificación | Costo obligatorio para este caso | Fuente oficial |
-|---|---|---:|---|
-| n8n Community self-hosted | Fair-code/source-available, Sustainable Use License; no es OSI open source | $0 | [n8n docs](https://docs.n8n.io/), [licencia](https://docs.n8n.io/sustainable-use-license/) |
-| Docker Engine/Compose | Software libre para este despliegue en Linux | $0 | [Docker Engine](https://docs.docker.com/engine/) |
-| Gmail API | Servicio con cuota; el uso estándar bajo el umbral no tiene costo adicional | $0 en este volumen | [cuotas y pricing](https://developers.google.com/workspace/gmail/api/reference/quota) |
-| GitHub | SaaS con GitHub Free; repositorios públicos/privados e Issues disponibles | $0 | [planes de GitHub](https://docs.github.com/en/get-started/learning-about-github/githubs-plans) |
-| Gemini API | SaaS Free Tier; `gemini-2.5-flash` tiene entrada/salida gratuita dentro de límites | $0 dentro del Free Tier | [pricing](https://ai.google.dev/gemini-api/docs/pricing), [límites](https://ai.google.dev/gemini-api/docs/rate-limits) |
-| Ollama | MIT, ejecución local; los modelos tienen sus propias licencias | $0 | [licencia](https://github.com/ollama/ollama/blob/main/LICENSE), [structured outputs](https://docs.ollama.com/capabilities/structured-outputs) |
-
-La energía y el hardware local ya existentes no se contabilizan como una suscripción. Gemini no tiene un SLA gratuito y sus límites pueden cambiar; Ollama conserva una ruta completamente local.
+Automatización n8n self-hosted que lee actividades publicadas de Google Classroom, analiza de forma segura el starter ZIP de Google Drive, contrasta el repositorio y genera un plan validado de GitHub Issues. Gmail ya no es una entrada; sólo puede enviar notificaciones opcionales.
 
 ## Arquitectura
 
 ```mermaid
 flowchart TD
-    C[Google Classroom] --> G[Gmail]
-    G --> S[n8n Schedule: lun-mié, cada hora 07:00-20:00]
-    S --> F[Filtro: remitente + Nueva tarea + no quiz/recordatorio]
-    F --> R{Router central}
-    R -->|DMI - 10B| D[Draggodeidad/campusops-dmi-team]
-    R -->|PWA - 10B| P[Draggodeidad/pwa-utt]
-    R -->|desconocida| X[Ignorar]
-    D --> GC[Contexto GitHub mínimo]
-    P --> GC
-    GC --> DD[Dedup message ID + course/week]
-    DD --> AI{AI_PROVIDER}
-    AI -->|gemini| GM[Gemini structured output]
-    AI -->|ollama| OL[Ollama JSON Schema]
-    GM --> V[Validación estricta]
-    OL --> V
-    V -->|inválido| RET[Un reintento de reparación]
-    RET --> V2[Validación final o fail closed]
-    V -->|válido| TOPO[Reglas de equipo + orden topológico]
-    V2 -->|válido| TOPO
-    TOPO --> MODE{AUTOMATION_MODE}
-    MODE -->|dry-run| PRE[Vista previa exacta, cero mutaciones]
-    MODE -->|live| L[Crear sólo labels faltantes]
-    L --> I[Crear/reanudar Issues secuencialmente]
-    I --> VER[Verificar conjunto completo]
-    VER --> ML[Label Gmail Processed]
-    ML --> N[Resumen por Gmail]
+    SP[Schedule PWA\nlunes 09:10] --> C[Classroom API]
+    SD[Schedule DMI\nmartes 09:10] --> C
+    M[Manual Trigger\ncourse + week] --> C
+    C --> F{CourseWork semanal\nválido?}
+    F -->|no, intento 1| W[Wait 30 min]
+    W --> R[Único retry 09:40]
+    R --> F2{Encontrado?}
+    F2 -->|no| A[Alerta / fin]
+    F -->|sí| CW[Normalizar CourseWork]
+    F2 -->|sí| CW
+    CW --> MAT[Inspeccionar materials]
+    MAT -->|ZIP| DM[Drive metadata + canDownload]
+    DM --> DZ[Descargar alt=media]
+    DZ --> ZV[Validar ZIP no confiable]
+    ZV --> ZX[Extraer + inventario]
+    MAT -->|sin ZIP| SC[Starter found=false]
+    ZX --> GH[Contexto GitHub]
+    SC --> GH
+    GH --> ID[Deduplicar courseId + courseWorkId]
+    ID --> LLM[Gemini u Ollama]
+    LLM --> JS[JSON Schema + reglas + DAG]
+    JS --> DR{dry-run/live}
+    DR -->|dry-run| P[Preview exacta]
+    DR -->|live| I[Labels + Issues secuenciales]
+    I --> V[Verificar conjunto]
 ```
 
-## Por qué Schedule Trigger
+El LLM se invoca sólo después de reunir tres fuentes:
 
-Ambas opciones son gratuitas y el Gmail Trigger de n8n también es un poller configurable ([documentación oficial](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.gmailtrigger/)).
+1. CourseWork de Classroom: qué pide el profesor.
+2. Starter real de Drive: cómo debe implementarse o verificarse.
+3. Estado actual de GitHub: qué existe y qué debe preservarse.
 
-| Criterio | Gmail Trigger | Schedule + Gmail Search |
-|---|---|---|
-| Nuevos mensajes | Muy simple | Simple |
-| Ventana lun–mié | Posible, menos explícita | Cron claro |
-| Backfill/manual de Semana 03 | Menos cómodo | Natural con `newer_than` y ejecución manual |
-| Exclusión por label | Debe configurarse en la consulta del trigger | Visible en una sola consulta Gmail |
-| Diagnóstico | Estado de polling implícito | Cada búsqueda queda en el log |
+## Comportamiento operativo
 
-Se eligió **Schedule + Gmail Search** cada 60 minutos de 07:00 a 20:00, lunes a miércoles. Para cambiar a 30 minutos usa `*/30 7-20 * * 1-3` en el nodo Schedule.
+- PWA: lunes a las 09:10, `America/Mexico_City`.
+- DMI: martes a las 09:10, `America/Mexico_City`.
+- Si no hay actividad válida, espera 30 minutos y consulta una sola vez más.
+- No hay polling continuo ni `courses.list` semanal.
+- La consulta usa `PUBLISHED`, `updateTime desc`, `pageSize=5` y partial response.
+- Los títulos `Semana 03`, `[Semana 03]` y variantes razonables se normalizan como `W03`.
+- Quiz, examen y recordatorio se excluyen antes del LLM.
+- Si la semana no es determinable, el flujo falla cerrado.
 
-## Idempotencia y transacción lógica
+## Idempotencia
 
-1. Gmail excluye `Automation/Classroom/Processed` y sólo aplica esa label después de verificar todas las Issues.
-2. Cada Issue contiene metadata invisible con `classroom-message-id`, `course`, `week`, `issue-key` y `plan-keys`.
-3. Antes del LLM se buscan coincidencias tanto por message ID como por materia/semana.
-4. Los correos candidatos se procesan de uno en uno dentro de cada ejecución; una actividad nunca comparte estado de creación con otra.
-5. Si el conjunto está completo, no se recrea: en `live` sólo se reconcilia la label Gmail faltante.
-6. Si hubo fallo parcial, `plan-keys` obliga al LLM a conservar exactamente las mismas keys. El loop reconstruye `key → #número`, vuelve a consultar GitHub inmediatamente antes de cada creación, salta Issues existentes y crea sólo las faltantes.
-7. La creación es secuencial y topológica; las referencias simbólicas se sustituyen por `#número` real.
-8. Ciclos, JSON inválido, repo/semana incorrectos o reparto inválido detienen el proceso antes de crear Issues.
+GitHub es la fuente persistente principal. Cada Issue contiene:
 
-GitHub Issues no ofrece transacciones ACID. Esta estrategia usa compensación por reanudación, no borrado: las Issues ya creadas se conservan y el siguiente intento completa el conjunto.
+```html
+<!-- automation:classroom -->
+<!-- classroom-course-id:COURSE_ID -->
+<!-- classroom-coursework-id:COURSEWORK_ID -->
+<!-- classroom-update-time:UPDATE_TIME -->
+<!-- course:PWA -->
+<!-- week:03 -->
+<!-- issue-key:service-worker -->
+<!-- starter:PWA-w03-kit-estudiante.zip -->
+<!-- plan-keys:foundation,core,offline-tests,final -->
+```
 
-## Contexto enviado al LLM
+- Conjunto completo: termina como `already_processed` sin duplicar.
+- Conjunto parcial: reconstruye `issue-key → #Issue` y crea sólo lo faltante.
+- `updateTime` posterior: termina como `coursework_updated`, no modifica Issues y solicita revisión.
+- Otra identidad para la misma materia/semana o metadata incompleta: falla cerrado para evitar duplicados.
+- La creación sigue orden topológico y reconsulta GitHub antes de cada Issue.
 
-Se consultan: metadata/default branch, hasta 100 Issues recientes, Issues abiertas y cerradas recientes, búsquedas de deduplicación, PRs abiertos, labels, árbol de rutas relevante y README. No se envía el repositorio completo. El árbol se filtra a documentación, configuración, código y pruebas, con máximo de 80 rutas; el README se limita a 12,000 caracteres.
+## Starter y seguridad
 
-## Gemini vs Ollama
+El ZIP se trata como entrada no confiable. Antes de extraer se valida firma y directorio central, y se rechazan:
 
-| Aspecto | Gemini 2.5 Flash | Ollama + qwen2.5-coder:7b |
-|---|---|---|
-| Costo | Free Tier, sujeto a límites | Local, sin costo por llamada |
-| Calidad | Mejor default para planificación y español | Depende mucho de RAM/CPU/GPU |
-| JSON | Structured output nativo | JSON Schema nativo; modelos pequeños pueden fallar más |
-| Privacidad | En el Free Tier el contenido puede usarse para mejorar productos | El contenido permanece local |
-| Disponibilidad | Requiere Internet/servicio de Google | Requiere que la computadora esté encendida y Ollama activo |
-| Operación | Muy sencilla | Descarga de modelo de ~4.7 GB y consumo local |
+- rutas absolutas, `..` y Zip Slip;
+- symlinks;
+- ZIP cifrado;
+- más de 500 archivos;
+- ZIP mayor de 25 MB;
+- extracción mayor de 100 MB;
+- archivo individual mayor de 10 MB;
+- ratio de compresión mayor de 100:1.
 
-Default: **Gemini**, por calidad, structured output y ausencia de requisitos de hardware. Fallback: **Ollama**, preferible si los correos o el repositorio contienen información que no debe salir del equipo. La página de pricing de Gemini advierte que en Free Tier el contenido se usa para mejorar productos; no envíes secretos ni datos sensibles.
+Los límites se configuran por `.env`. El analizador prioriza instrucciones, rúbrica, README, `package.json`, Makefile, workflows, tests y configuración. No envía automáticamente todo el ZIP al LLM. Los binarios usan almacenamiento temporal de n8n; las ejecuciones exitosas no guardan datos y los errores se podan a las 24 horas.
+
+## Foundation y equipo
+
+Cuando existe ZIP, el plan debe incluir exactamente:
+
+```text
+[<MATERIA>][WXX] Integrar <starter.zip> y establecer baseline semanal
+```
+
+asignada a `Draggodeidad`, sin dependencias y basada en datos reales del starter. Además, Draggodeidad debe tener una Issue técnica sustancial. `JulianDele` y `osbaldoXxC` reciben Issues guiadas que pueden avanzar mayormente en paralelo.
 
 ## Inicio rápido
 
-1. Copia `.env.example` a `.env`, genera `N8N_ENCRYPTION_KEY` y deja `AUTOMATION_MODE=dry-run`.
-2. Inicia n8n: `docker compose up -d`.
-3. Abre `http://localhost:5678` y crea la cuenta local de propietario.
-4. Sigue [SETUP-GMAIL.md](docs/SETUP-GMAIL.md), [SETUP-GITHUB.md](docs/SETUP-GITHUB.md) y [SETUP-AI.md](docs/SETUP-AI.md).
-5. Importa `workflows/classroom-error-handler.json` y luego `workflows/classroom-to-github.json`.
-6. En ambos workflows selecciona las credenciales que creaste. En el principal, ve a **Settings → Error workflow** y elige `Classroom to GitHub - Error Handler`.
-7. En Gmail crea manualmente la label anidada `Automation/Classroom/Processed`.
-8. Ejecuta primero **Manual Dry Run** y revisa el último nodo `Exact Dry-Run Preview`.
-9. Activa el workflow sólo después de aprobar las pruebas.
+1. Copia `.env.example` a `.env`, genera `N8N_ENCRYPTION_KEY` y conserva `AUTOMATION_MODE=dry-run`.
+2. Sigue [SETUP-CLASSROOM.md](docs/SETUP-CLASSROOM.md) y [SETUP-DRIVE.md](docs/SETUP-DRIVE.md).
+3. Configura [GitHub](docs/SETUP-GITHUB.md) y [Gemini/Ollama](docs/SETUP-AI.md).
+4. Inicia n8n con `docker compose up -d`.
+5. Importa primero `workflows/classroom-error-handler.json` y luego `workflows/classroom-to-github.json`.
+6. Asigna las credenciales nombradas en los nodos y selecciona el error workflow en Settings.
+7. Revisa [SCHEDULING.md](docs/SCHEDULING.md) y ejecuta los [dry-runs W03](docs/DRY-RUN-EXAMPLES.md).
+8. Cambia a `AUTOMATION_MODE=live` sólo tras aprobar las previews.
 
-El workflow importado está inactivo intencionalmente. Las credenciales no están incluidas en los JSON.
+El workflow importado está inactivo intencionalmente y no contiene credenciales.
 
-## Archivos
+## Manual Trigger
 
-```text
-automation/
-├── docker-compose.yml
-├── .env.example
-├── README.md
-├── src/                          # fuente auditable de los Code Nodes, por dominio
-│   ├── gmail/                    # ingesta y enrutado de correos
-│   ├── github/                   # contexto de repo, labels, Issues y verificación
-│   ├── ai/                       # normalización y validación del plan generado
-│   ├── planning/                 # orden topológico y cola de Issues
-│   ├── reporting/                # resúmenes y notificaciones
-│   └── glue/                     # nodos de enlace entre fases
-├── workflows/
-│   ├── classroom-to-github.json
-│   └── classroom-error-handler.json
-├── prompts/
-│   └── issue-planner.md
-├── schemas/
-│   └── issue-plan.schema.json
-├── docs/
-│   ├── SETUP-GMAIL.md
-│   ├── SETUP-GITHUB.md
-│   ├── SETUP-AI.md
-│   └── TESTING.md
-├── tests/
-└── tools/
-    └── build-workflows.mjs
+El nodo `Manual Request` contiene un objeto editable:
+
+```js
+const request = { course: 'PWA', week: 3 };
 ```
 
-## Seguridad y límites
+Cámbialo a `DMI` o a otra semana antes de ejecutar `Manual Trigger`. Esto no modifica los cron automáticos.
 
-- `127.0.0.1:5678` evita exponer n8n a la red por defecto. Para acceso remoto usa HTTPS mediante un reverse proxy y actualiza las cuatro URLs de n8n.
-- El volumen Docker conserva la base SQLite interna, workflows y credenciales cifradas. No se añade PostgreSQL/Redis.
-- El contenedor elimina capabilities y activa `no-new-privileges`.
-- No guardes tokens en `.env` para este proyecto: Gmail, GitHub y Gemini se almacenan cifrados en n8n Credentials.
-- La label Gmail se aplica antes del correo de éxito. Si falla sólo la notificación, la actividad ya está correctamente procesada y no se duplicará.
-- GitHub puede tardar en indexar Search; la verificación final usa `GET /repos/{owner}/{repo}/issues`, no el índice de búsqueda.
+## Variables principales
 
-## Actualización controlada
+Consulta `.env.example`. Los IDs de curso se resuelven una sola vez durante setup y luego se usan directamente. Tokens OAuth, token GitHub y clave Gemini se guardan en Credentials cifradas de n8n, no en `.env`.
 
-La imagen se fija en `2.39.5`, estable el 14-09-2026. Revisa [releases oficiales](https://github.com/n8n-io/n8n/releases), cambia el tag explícitamente, respalda el volumen y vuelve a ejecutar las pruebas. No uses `latest` en producción.
+n8n 2.x bloquea `$env` en Code Nodes por defecto. Este despliegue establece `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` porque los módulos leen IDs, límites y modo desde el entorno. Úsalo sólo en esta instancia confiable de un único propietario; los secretos continúan en Credentials y no se exponen por `$env`.
+
+## Desarrollo y pruebas
+
+```bash
+npm run build
+npm test
+```
+
+`build` regenera los dos JSON importables desde los módulos auditables de `src/`. `test` valida sintaxis, cron, ausencia de polling, routing, filtros Classroom, adjuntos, permisos Drive, ZIP Slip, compression bomb, Foundation, actualización de CourseWork, secretos y Compose. Consulta [TESTING.md](docs/TESTING.md).
+
+## Límites deliberados
+
+- No modifica Classroom, código, branches, commits, PRs, merges ni tags.
+- No agrega PostgreSQL, Redis, Supabase, Kafka ni servicios externos de estado.
+- No reconcilia automáticamente cambios sustanciales de un CourseWork ya procesado.
+- Si dos ZIP tienen igual relevancia, no elige arbitrariamente: falla cerrado.
+- Gmail, cuando se habilita, es sólo salida de éxito/error/revisión.

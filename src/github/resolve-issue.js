@@ -13,7 +13,7 @@ let body = String(issue.body).replace(
   /## Dependencias[\s\S]*?(?=\n## Evidencia individual)/,
   `## Dependencias\n\n${dependencyLines}\n`,
 );
-body = `${body.trim()}\n\n<!-- automation:classroom -->\n<!-- classroom-message-id:${item.gmailMessageId} -->\n<!-- course:${item.course} -->\n<!-- week:${item.weekPadded} -->\n<!-- issue-key:${issue.key} -->\n<!-- plan-keys:${item.planKeys.join(',')} -->`;
+body = `${body.trim()}\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:${item.courseId} -->\n<!-- classroom-coursework-id:${item.courseWorkId} -->\n<!-- classroom-update-time:${item.updateTime} -->\n<!-- course:${item.course} -->\n<!-- week:${item.weekPadded} -->\n<!-- issue-key:${issue.key} -->\n<!-- starter:${item.starterName || 'none'} -->\n<!-- plan-keys:${item.planKeys.join(',')} -->`;
 
 return [{
   json: {

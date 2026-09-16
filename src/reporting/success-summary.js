@@ -4,6 +4,6 @@ return [{
   json: {
     ...data,
     notificationSubject: `✅ ${data.course} Semana ${data.weekPadded} procesada`,
-    notificationBody: `✅ Semana ${data.weekPadded} procesada\n\nMateria: ${data.course}\nRepositorio: ${data.repository}\nActividad: ${data.plan.assignmentTitle}\nDeadline: ${data.plan.deadline || 'No indicada'}\n\nIssues verificadas: ${data.verifiedIssues.length}\n\nDraggodeidad: ${data.assignments.Draggodeidad}\nJulianDele: ${data.assignments.JulianDele}\nosbaldoXxC: ${data.assignments.osbaldoXxC}\n\n${issueLines}\n\nActividad marcada como procesada.`,
+    notificationBody: `✅ ${data.course} W${data.weekPadded} procesada\n\nCourseWork: ${data.plan.assignmentTitle}\nCourseWork ID: ${data.courseWorkId}\nStarter: ${data.starter?.name || 'sin ZIP'}\nRepositorio: ${data.repository}\nDeadline: ${data.plan.deadline || 'No indicada'}\n\nIssues verificadas: ${data.verifiedIssues.length}\n\nDraggodeidad: ${data.assignments.Draggodeidad}\nJulianDele: ${data.assignments.JulianDele}\nosbaldoXxC: ${data.assignments.osbaldoXxC}\n\n${issueLines}`,
   },
 }];

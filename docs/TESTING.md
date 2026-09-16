@@ -1,133 +1,100 @@
-# Plan de pruebas y paso a producción
+# Testing
 
-## Prueba automática de artefactos
+## Validación local reproducible
 
-Desde `automation/`:
-
-```text
+```bash
+npm run build
 npm test
 ```
 
-Valida JSON, sintaxis de Code Nodes, ausencia de patrones comunes de secretos, versión Docker, ausencia de PostgreSQL/Redis, router DMI/PWA, filtros de quiz/recordatorio/procesado/desconocido y un DAG paralelo sin ciclos.
+La suite comprueba:
 
-## Preparación segura
+- JSON importable y sintaxis de todos los Code Nodes;
+- cron PWA/DMI, zona horaria y un único Wait/retry;
+- separación de rutas PWA/DMI;
+- CourseWork normal, quiz y actividad sin ZIP;
+- selección de ZIP y rechazo de dos ZIP ambiguos;
+- `canDownload=false`;
+- ZIP válido, corrupto, Zip Slip y compression bomb;
+- metadata nueva y ausencia de message ID/Gmail Processed;
+- Foundation exacta y detección de `updateTime` nuevo;
+- ausencia de secretos y de PostgreSQL/Redis/Supabase/Kafka.
 
-1. Confirma `.env`: `AUTOMATION_MODE=dry-run`.
-2. Importa ambos workflows y asigna credenciales.
-3. Configura el error workflow en Settings.
-4. Deja el workflow principal inactivo.
-5. Localiza correos reales DMI Semana 03 y PWA Semana 03. No les agregues la label Processed.
-6. Ejecuta `Manual Dry Run`.
+## Matriz de aceptación en n8n
 
-El resultado debe terminar en `Exact Dry-Run Preview`, con `mutationsPerformed: false`, `missingLabelsThatWouldBeCreated` e `issuesThatWouldBeCreated` incluyendo cuerpo completo y metadata. GitHub y Gmail deben permanecer sin cambios.
+### Scheduling
 
-## Comprobación conceptual — Semana 03
+| Caso | Preparación | Resultado esperado |
+|---|---|---|
+| PWA lunes | CourseWork válido antes de 09:10 | 1 request; procesa PWA |
+| PWA retrasada | no existe a 09:10; existe a 09:40 | 2 requests; procesa PWA |
+| PWA ausente | no existe en ambas consultas | 2 requests; alerta/fin; no polling |
+| DMI martes | equivalentes DMI | sólo consulta `CLASSROOM_DMI_COURSE_ID` |
+| Trigger equivocado | inspeccionar URL/Execution Data | PWA nunca consulta DMI y viceversa |
 
-Los fixtures prueban el routing aun sin el contenido real de las actividades:
+### Classroom
 
-| Entrada | Repo esperado | Prefijo | Invariantes del plan |
-|---|---|---|---|
-| `DMI - 10B`, Semana 03 | `Draggodeidad/campusops-dmi-team` | `[DMI][W03]` | bootstrap D; implementación sustancial D; Julian/Osbaldo paralelos; integración final |
-| `PWA - 10B`, Semana 03 | `Draggodeidad/pwa-utt` | `[PWA][W03]` | mismas reglas, contexto exclusivo de PWA |
+- `Semana 03`, `[Semana 03]` y `Semana 3 — CI` producen `week=3`, `weekPadded=03`.
+- Quiz, examen y recordatorio producen `found=false`.
+- Una semana manual permite backfill aunque el CourseWork sea antiguo.
+- Sin semana determinable se ignora/falla cerrado; nunca llega al LLM.
+- Un CourseWork ya completo termina sin mutaciones.
+- Un `updateTime` más nuevo termina como `coursework_updated` y no modifica GitHub.
 
-Una distribución válida típica es:
+### Drive y starter
+
+- ZIP descargable: metadata → `alt=media` → validación → extracción → contexto normalizado.
+- `canDownload=false`, 404, ZIP corrupto, symlink, path inseguro o límite excedido: error antes del LLM/GitHub.
+- Archivo no ZIP: queda en `materialInventory`, no se descarga como starter.
+- Sin ZIP: continúa con `starter.found=false`.
+- Dos ZIP: selecciona sólo si uno puntúa inequívocamente por materia/semana/starter; empate material falla cerrado.
+- Confirma que `relevantFiles` prioriza instrucciones, rúbrica, README, scripts, workflows y tests.
+
+### Foundation
+
+Con `PWA-w03-kit-estudiante.zip`, la preview debe incluir exactamente:
 
 ```text
-bootstrap (Draggodeidad)
-├── implementación central (Draggodeidad)
-├── bloque independiente A (JulianDele)
-└── bloque independiente B (osbaldoXxC)
-    └── pruebas/evidencia propias dentro de cada Issue
-
-integración final (Draggodeidad)
-depende de los tres bloques de implementación
+[PWA][W03] Integrar PWA-w03-kit-estudiante.zip y establecer baseline semanal
 ```
 
-El nombre concreto, archivos y criterios deben salir del correo real y del repositorio; los fixtures no inventan esos datos.
+asignada a `Draggodeidad`, sin dependencias. Debe existir además otra Issue `feature`, `test` o `devops` sustancial para Draggodeidad. Julian y Osbaldo no deben depender entre sí salvo una necesidad técnica real, que la validación actual rechaza por seguridad.
 
-## Matriz mínima de nueve casos
+### Dry-run
 
-### Caso 1 — Nueva actividad DMI
+1. Configura Classroom, Drive, GitHub y un proveedor IA.
+2. Mantén `AUTOMATION_MODE=dry-run`.
+3. Ejecuta Manual PWA W03 y DMI W03.
+4. Revisa `Exact Dry-Run Preview`:
+   - `mutationsPerformed=false`;
+   - identidad CourseWork correcta;
+   - starter e inventario coherentes;
+   - metadata invisible nueva;
+   - labels e Issues exactas que se crearían.
+5. Comprueba que GitHub no cambió.
 
-- Entrada: remitente Classroom, asunto `Nueva tarea: "Semana 03 — ..."`, cuerpo `DMI - 10B`.
-- Esperado dry-run: repo `campusops-dmi-team`, cero mutaciones.
-- Esperado live en sandbox: Issues sólo en ese repo y label Gmail al final.
+### Live y recuperación parcial
 
-### Caso 2 — Nueva actividad PWA
+Usa primero un repositorio sandbox equivalente.
 
-- Entrada equivalente con `PWA - 10B`.
-- Esperado: sólo `pwa-utt`; nunca aparecen rutas/Issues de DMI.
+1. Cambia temporalmente el repositorio configurado al sandbox.
+2. Ejecuta una actividad en `live` y detén la ejecución después de dos Issues.
+3. Reintenta el mismo CourseWork.
+4. Debe reconstruir números por `issue-key`, reusar las dos Issues y crear sólo las faltantes.
+5. La verificación final exige assignee, labels, `plan-keys` y conjunto completo.
 
-### Caso 3 — Quiz
+### CourseWork actualizado
 
-- Entrada: `Nueva tarea: "Quiz semanal 4..."` o quiz individual.
-- Esperado: `Parse and Route` no produce items; cero llamadas de mutación.
+1. Crea un conjunto con `classroom-update-time:T1`.
+2. Simula el mismo `courseWorkId` con `updateTime=T2`, donde `T2>T1`.
+3. Debe terminar en `Build Manual Review Alert`.
+4. Ninguna Issue debe crearse o editarse.
 
-### Caso 4 — Recordatorio
+## Seguridad manual
 
-- Entrada: `Fecha de entrega mañana: "Semana 03..."`.
-- Esperado: ignorado antes de GitHub.
-
-### Caso 5 — Correo procesado
-
-- Añade `Automation/Classroom/Processed` a una copia de prueba.
-- Esperado: la consulta Gmail lo excluye; el parser también tiene defensa adicional.
-
-### Caso 6 — Actividad existente en GitHub
-
-- En un repo sandbox crea Issues con metadata del mismo message ID/course/week y `plan-keys` completo.
-- Dry-run: `duplicateDetected: true`, cero mutaciones.
-- Live: no crea Issues; sólo reconcilia la label Gmail si faltaba y envía resumen.
-
-### Caso 7 — JSON inválido del LLM
-
-- Temporalmente usa un endpoint/modelo de prueba que devuelva texto inválido, o fija la salida del nodo AI en una copia del workflow.
-- Esperado: un solo reintento. Si vuelve a fallar, `Fail Closed - Invalid Plan`; cero Issues y correo sin Processed.
-
-### Caso 8 — Fallo parcial GitHub
-
-1. En un repo sandbox ejecuta live y fuerza un fallo después de 2 Issues (por ejemplo, revoca temporalmente el PAT justo después de ver la segunda creación).
-2. Comprueba que el correo no tiene Processed.
-3. Restaura el PAT y reejecuta.
-4. Esperado: las dos `issue-key` existentes se registran; sólo se crean las faltantes; las dependencias muestran números reales; al final se verifica todo y se marca Gmail.
-
-No cierres ni borres automáticamente las Issues parciales: son el registro de compensación.
-
-### Caso 9 — Materia desconocida
-
-- Entrada con nueva tarea Semana 03 pero sin `DMI - 10B` ni `PWA - 10B`.
-- Esperado: ignorada; ningún repositorio se modifica.
-
-## Pruebas adicionales obligatorias antes de live
-
-- Cambia una dependencia para formar un ciclo en una salida simulada: debe fallar antes de GitHub.
-- Quita la implementación sustancial de Draggodeidad: debe fallar en `Plan and Topological Sort`.
-- Haz que Julian dependa de una Issue de Osbaldo: debe fallar.
-- Verifica que las tres cuentas sean asignables; GitHub puede omitir assignees si faltan permisos.
-- Inspecciona que ninguna Issue contenga secretos del correo o del repositorio.
-- Verifica que `N8N_ENCRYPTION_KEY` no cambie entre reinicios; perderla impide descifrar credenciales.
-
-## Pasar de dry-run a live
-
-1. Guarda/exporta los previews de DMI Semana 03 y PWA Semana 03.
-2. Revisa títulos, repo, assignees, dependencias, alcance, pruebas, evidencia y labels.
-3. Corrige el prompt si hace falta y repite dry-run.
-4. En `.env`, cambia exactamente:
-
-   ```env
-   AUTOMATION_MODE=live
-   ```
-
-5. Aplica el cambio: `docker compose up -d`.
-6. Ejecuta manualmente una sola actividad controlada.
-7. Confirma conjunto de Issues, referencias `#`, label Gmail y correo resumen.
-8. Activa el workflow para el Schedule.
-
-Para volver a modo seguro: cambia a `AUTOMATION_MODE=dry-run` y recrea el contenedor. No es necesario reimportar el workflow.
-
-## Observabilidad
-
-- Usa **Executions** de n8n; el Compose conserva 14 días o 500 ejecuciones.
-- El error handler informa último nodo, mensaje y URL/ID de ejecución.
-- No se añaden Grafana, Prometheus, Loki ni Elasticsearch.
-- Un fallo antes de `Gmail - Mark Processed` es reintentable. Un fallo sólo en `Gmail - Send Success Summary` no requiere reintentar la actividad: la label ya evita duplicados.
+- Busca posibles secretos: `rg -n 'ghp_|github_pat_|AIzaSy|sk-' .`.
+- Confirma que `.env` no está versionado.
+- Revisa que ningún contenido enviado al LLM incluya `.env`, tokens o credenciales.
+- Comprueba pruning de ejecuciones fallidas tras 24 horas.
+- Verifica que las únicas operaciones Classroom/Drive sean GET.
+- Mantén el workflow inactivo hasta completar la prueba sandbox.

@@ -15,7 +15,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const e = $json.execution || {}; const t = $json.trigger || {}; const phase = e.lastNodeExecuted || 'desconocida'; const message = e.error?.message || t.error?.message || 'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nProblema: ${message}\\nEjecución: ${e.url || e.id || 'sin URL'}\\n\\nGmail sólo se marca después de verificar todas las Issues. Si la fase fue el envío del resumen final, el correo puede ya estar marcado; revisa la ejecución antes de reintentar.`}}];"
+        "jsCode": "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -25,6 +25,40 @@
       ],
       "id": "20000000-0000-4000-8000-000000000002",
       "name": "Build Error Summary"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "20000000-0000-4000-8000-000000000005",
+              "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "20000000-0000-4000-8000-000000000003",
+      "name": "Notifications Enabled?"
     },
     {
       "parameters": {
@@ -39,14 +73,14 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        440,
-        0
+        660,
+        -40
       ],
-      "id": "20000000-0000-4000-8000-000000000003",
+      "id": "20000000-0000-4000-8000-000000000004",
       "name": "Gmail - Send Error Summary",
       "credentials": {
         "gmailOAuth2": {
-          "name": "Gmail account"
+          "name": "Gmail notifications (optional)"
         }
       }
     }
@@ -69,11 +103,23 @@
       "main": [
         [
           {
-            "node": "Gmail - Send Error Summary",
+            "node": "Notifications Enabled?",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Notifications Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Error Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },
@@ -81,7 +127,7 @@
     "executionOrder": "v1",
     "timezone": "America/Mexico_City"
   },
-  "versionId": "20000000-0000-4000-8000-000000000004",
+  "versionId": "20000000-0000-4000-8000-000000000006",
   "meta": {
     "templateCredsSetupCompleted": false
   },

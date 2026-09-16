@@ -24,13 +24,13 @@ while (queue.length) {
 }
 if (ordered.length !== issues.length) throw new Error('Plan rechazado: existen dependencias circulares. No se modificó GitHub.');
 
-const bootstrap = ordered.find((issue) => issue.assignee === 'Draggodeidad' && issue.dependsOn.length === 0 && /bootstrap|baseline|inicio|starter/i.test(`${issue.key} ${issue.title} ${issue.body}`));
-if (!bootstrap) throw new Error('Plan rechazado: falta bootstrap/baseline sin dependencias para Draggodeidad.');
+const bootstrap = ordered.find((issue) => issue.assignee === 'Draggodeidad' && issue.dependsOn.length === 0 && /bootstrap|baseline|inicio|starter|integrar/i.test(`${issue.key} ${issue.title} ${issue.body}`));
+if (data.starter?.found && !bootstrap) throw new Error('Plan rechazado: falta Foundation/baseline sin dependencias para Draggodeidad.');
 
 const substantial = issues.find((issue) =>
   issue.assignee === 'Draggodeidad' &&
   ['feature', 'devops', 'test'].includes(issue.type) &&
-  issue.key !== bootstrap.key &&
+  issue.key !== bootstrap?.key &&
   (issue.expectedFiles || []).length > 0 &&
   /c[oó]digo|l[oó]gica|configuraci[oó]n|ci\/cd|pipeline|arquitectura|implement|test/i.test(`${issue.title} ${issue.body}`)
 );
@@ -64,7 +64,7 @@ return [{
     planKeys,
     desiredLabels,
     missingLabels,
-    bootstrapKey: bootstrap.key,
+    bootstrapKey: bootstrap?.key || null,
     substantialDraggodeidadKey: substantial.key,
   },
 }];

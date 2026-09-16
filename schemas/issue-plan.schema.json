@@ -10,6 +10,7 @@
     "repository",
     "assignmentTitle",
     "deadline",
+    "source",
     "issues"
   ],
   "properties": {
@@ -36,6 +37,17 @@
     },
     "deadline": {
       "type": ["string", "null"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["courseId", "courseWorkId", "updateTime", "starterName"],
+      "properties": {
+        "courseId": { "type": "string", "minLength": 1 },
+        "courseWorkId": { "type": "string", "minLength": 1 },
+        "updateTime": { "type": "string", "format": "date-time" },
+        "starterName": { "type": ["string", "null"] }
+      }
     },
     "issues": {
       "type": "array",

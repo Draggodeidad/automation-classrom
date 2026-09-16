@@ -30,7 +30,7 @@ La solicitud usa `responseMimeType: application/json` y `responseJsonSchema`. Re
 
 ### Privacidad
 
-La tabla oficial indica que el contenido de Free Tier puede utilizarse para mejorar productos. El workflow limita el contexto, pero el correo, README, rutas y resúmenes de Issues salen a Google. Si esto no es aceptable, usa Ollama.
+La tabla oficial indica que el contenido de Free Tier puede utilizarse para mejorar productos. El workflow limita el contexto, pero la descripción de CourseWork, fragmentos priorizados del starter, README, rutas y resúmenes de Issues salen a Google. Si esto no es aceptable, usa Ollama.
 
 ## Opción B — Ollama local
 
