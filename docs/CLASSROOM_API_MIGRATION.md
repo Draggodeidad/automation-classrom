@@ -6,7 +6,7 @@ Migrar la automatización existente de Gmail a Google Classroom API + Google Dri
 
 ## Estado actual
 
-Implementación principal terminada y validada. El workflow ya usa Classroom/Drive, conserva el pipeline GitHub/LLM y se importa correctamente en n8n 2.39.5. Falta cerrar el commit de documentación final.
+Migración terminada y validada. El workflow usa Classroom/Drive, conserva el pipeline GitHub/LLM y se importa correctamente en n8n 2.39.5.
 
 ## Completado
 
@@ -21,10 +21,11 @@ Implementación principal terminada y validada. El workflow ya usa Classroom/Dri
 - [x] Adaptar schema, prompt, Foundation, validaciones, dry-run/live y recuperación parcial.
 - [x] Generar e importar ambos workflows con n8n 2.39.5.
 - [x] Añadir pruebas de Classroom, Drive, ZIP, schedules, Foundation e idempotencia.
+- [x] Actualizar README, OAuth setup, Drive security, scheduling, testing, dry-runs y migration report.
 
 ## En progreso
 
-- [ ] Cerrar documentación y migration report.
+- Ninguno.
 
 ## Pendiente
 
@@ -78,4 +79,4 @@ Configurar credenciales e IDs con `docs/SETUP-CLASSROOM.md`, importar los workfl
 
 ## Último commit estable
 
-`9470742`
+`3cdc3e7`
