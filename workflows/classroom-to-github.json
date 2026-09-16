@@ -1,0 +1,2121 @@
+{
+  "id": "classroomDmiPwa2026",
+  "name": "Classroom to GitHub Issues - DMI and PWA",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7-20 * * 1-3"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2200,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "Schedule Monday-Wednesday"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2200,
+        180
+      ],
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "Manual Dry Run"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 20,
+        "simple": false,
+        "filters": {
+          "q": "from:no-reply@classroom.google.com newer_than:21d -label:Automation/Classroom/Processed",
+          "readStatus": "both"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1980,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "Gmail - Search Candidates",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const COURSE_MAP = {\n  DMI: { match: 'DMI - 10B', repository: 'Draggodeidad/campusops-dmi-team' },\n  PWA: { match: 'PWA - 10B', repository: 'Draggodeidad/pwa-utt' },\n};\n\nfunction decodeBase64Url(value = '') {\n  if (!value) return '';\n  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');\n  return Buffer.from(normalized, 'base64').toString('utf8');\n}\n\nfunction collectParts(part, result = { text: [], html: [] }) {\n  if (!part) return result;\n  const data = part.body?.data;\n  if (data) {\n    const decoded = decodeBase64Url(data);\n    if (part.mimeType === 'text/plain') result.text.push(decoded);\n    if (part.mimeType === 'text/html') result.html.push(decoded);\n  }\n  for (const child of part.parts || []) collectParts(child, result);\n  return result;\n}\n\nfunction stripHtml(html = '') {\n  return html\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<\\/p>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction header(message, name) {\n  const direct = message[name] || message[name.toLowerCase()];\n  if (direct) return String(direct);\n  const headers = message.payload?.headers || [];\n  return String(headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value || '');\n}\n\nconst output = [];\nfor (const item of $input.all()) {\n  const message = item.json;\n  const subject = header(message, 'Subject');\n  const from = header(message, 'From');\n  if (!/no-reply@classroom\\.google\\.com/i.test(from)) continue;\n\n  const parts = collectParts(message.payload);\n  const body = (parts.text.join('\\n').trim() || stripHtml(parts.html.join('\\n')) || message.snippet || '').slice(0, 45000);\n  const positive = subject.match(/Nueva tarea:\\s*[\"“']?\\s*(?:\\[\\s*)?Semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  if (!positive) continue;\n  if (/quiz\\s+(semanal|individual)|fecha de entrega mañana|recordatorio|aviso general|comentario|calificaci[oó]n/i.test(subject)) continue;\n\n  const corpus = `${subject}\\n${body}`;\n  const course = Object.keys(COURSE_MAP).find((key) => corpus.includes(COURSE_MAP[key].match));\n  if (!course) continue;\n\n  const week = Number(positive[1]);\n  const assignmentTitle = subject\n    .replace(/^.*?Nueva tarea:\\s*/i, '')\n    .replace(/^[\"“]|[\"”]$/g, '')\n    .trim();\n  const labels = (message.labels || []).map((label) => typeof label === 'string' ? label : label.name);\n  if (labels.includes('Automation/Classroom/Processed')) continue;\n\n  output.push({\n    json: {\n      gmailMessageId: message.id,\n      gmailThreadId: message.threadId,\n      subject,\n      from,\n      emailText: body,\n      course,\n      week,\n      weekPadded: String(week).padStart(2, '0'),\n      repository: COURSE_MAP[course].repository,\n      assignmentTitle,\n      receivedAt: message.internalDate ? new Date(Number(message.internalDate)).toISOString() : null,\n      automationMode: ($env.AUTOMATION_MODE || 'dry-run').toLowerCase(),\n      aiProvider: ($env.AI_PROVIDER || 'gemini').toLowerCase(),\n    },\n    pairedItem: item.pairedItem,\n  });\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1760,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "Parse and Route"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1650,
+        220
+      ],
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "Loop Messages Sequentially"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1540,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "GitHub - Repository",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/issues?state=all&sort=created&direction=desc&per_page=100' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1320,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "GitHub - Recent Issues",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/search/issues?q=' + encodeURIComponent('repo:' + $('Parse and Route').item.json.repository + ' is:issue in:body \"classroom-message-id:' + $('Parse and Route').item.json.gmailMessageId + '\"') + '&per_page=100' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1100,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000008",
+      "name": "GitHub - Search Message ID",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/search/issues?q=' + encodeURIComponent('repo:' + $('Parse and Route').item.json.repository + ' is:issue in:body \"course:' + $('Parse and Route').item.json.course + '\" \"week:' + $('Parse and Route').item.json.weekPadded + '\"') + '&per_page=100' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -880,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000009",
+      "name": "GitHub - Search Course Week",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/pulls?state=open&per_page=30' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -660,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": "GitHub - Open Pull Requests",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/labels?per_page=100' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -440,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "GitHub - Labels",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/git/trees/' + encodeURIComponent($('GitHub - Repository').item.json.body.default_branch) + '?recursive=1' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -220,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000012",
+      "name": "GitHub - Tree",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/readme' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        0,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000013",
+      "name": "GitHub - README",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Parse and Route').item.json;\nconst outputSchema = {\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://local.example/schemas/classroom-issue-plan.schema.json\",\"title\":\"ClassroomIssuePlan\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"course\",\"week\",\"repository\",\"assignmentTitle\",\"deadline\",\"issues\"],\"properties\":{\"course\":{\"type\":\"string\",\"enum\":[\"DMI\",\"PWA\"]},\"week\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":99},\"repository\":{\"type\":\"string\",\"enum\":[\"Draggodeidad/campusops-dmi-team\",\"Draggodeidad/pwa-utt\"]},\"assignmentTitle\":{\"type\":\"string\",\"minLength\":3,\"maxLength\":240},\"deadline\":{\"type\":[\"string\",\"null\"]},\"issues\":{\"type\":\"array\",\"minItems\":3,\"maxItems\":12,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"key\",\"title\",\"assignee\",\"type\",\"priority\",\"dependsOn\",\"body\",\"expectedFiles\",\"acceptanceCriteria\",\"tests\",\"evidence\"],\"properties\":{\"key\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"},\"title\":{\"type\":\"string\",\"minLength\":8,\"maxLength\":240},\"assignee\":{\"type\":\"string\",\"enum\":[\"Draggodeidad\",\"JulianDele\",\"osbaldoXxC\"]},\"type\":{\"type\":\"string\",\"enum\":[\"feature\",\"test\",\"docs\",\"devops\",\"evidence\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\"]},\"dependsOn\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"}},\"body\":{\"type\":\"string\",\"minLength\":350},\"expectedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"acceptanceCriteria\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"type\":\"string\"}},\"tests\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"evidence\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}}}}}}};\nconst geminiAllowed = new Set([\n  'type', 'title', 'description', 'properties', 'required', 'additionalProperties',\n  'enum', 'format', 'minimum', 'maximum', 'items', 'prefixItems', 'minItems',\n  'maxItems', 'anyOf', '$ref',\n]);\nfunction geminiCompatibleSchema(value) {\n  if (Array.isArray(value)) return value.map(geminiCompatibleSchema);\n  if (!value || typeof value !== 'object') return value;\n  return Object.fromEntries(Object.entries(value)\n    .filter(([key]) => geminiAllowed.has(key))\n    .map(([key, child]) => [key, key === 'properties'\n      ? Object.fromEntries(Object.entries(child).map(([name, property]) => [name, geminiCompatibleSchema(property)]))\n      : geminiCompatibleSchema(child)]));\n}\nconst geminiSchema = geminiCompatibleSchema(outputSchema);\nconst responseBody = (name) => {\n  const value = $(name).item.json;\n  return value.body ?? value;\n};\nconst asArray = (value) => Array.isArray(value) ? value : [];\nconst decode = (value) => {\n  try { return Buffer.from(String(value || '').replace(/\\n/g, ''), 'base64').toString('utf8'); }\n  catch { return ''; }\n};\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\n\nconst repo = responseBody('GitHub - Repository');\nconst recentRaw = asArray(responseBody('GitHub - Recent Issues'));\nconst recentIssues = recentRaw.filter((entry) => !entry.pull_request);\nconst openPrs = asArray(responseBody('GitHub - Open Pull Requests'));\nconst labels = asArray(responseBody('GitHub - Labels'));\nconst searchByMessage = responseBody('GitHub - Search Message ID');\nconst searchByWeek = responseBody('GitHub - Search Course Week');\nconst tree = asArray(responseBody('GitHub - Tree').tree);\nconst readmePayload = responseBody('GitHub - README');\nconst readme = decode(readmePayload.content).slice(0, 12000);\n\nconst matches = [];\nfor (const issue of [\n  ...asArray(searchByMessage.items),\n  ...asArray(searchByWeek.items),\n  ...recentIssues,\n]) {\n  const body = String(issue.body || '');\n  const sameMessage = metadata(body, 'classroom-message-id') === source.gmailMessageId;\n  const sameCourseWeek = metadata(body, 'course') === source.course && metadata(body, 'week') === source.weekPadded;\n  if ((sameMessage || sameCourseWeek) && !matches.some((x) => x.number === issue.number)) matches.push(issue);\n}\n\nconst issueKeys = matches.map((issue) => metadata(issue.body, 'issue-key')).filter(Boolean);\nconst declaredPlanKeys = matches\n  .map((issue) => metadata(issue.body, 'plan-keys'))\n  .filter(Boolean)\n  .flatMap((value) => value.split(',').map((key) => key.trim()).filter(Boolean));\nconst planKeys = [...new Set(declaredPlanKeys)];\nconst completeExisting = matches.length > 0 && (planKeys.length === 0 || planKeys.every((key) => issueKeys.includes(key)));\nconst resumeKeys = matches.length > 0 && !completeExisting ? planKeys : [];\n\nconst tokens = `${source.assignmentTitle} ${source.emailText}`\n  .toLowerCase()\n  .split(/[^a-záéíóúüñ0-9._/-]+/i)\n  .filter((token) => token.length >= 4);\nconst relevantPaths = tree\n  .filter((entry) => entry.type === 'blob' && entry.path && entry.path.length < 180)\n  .map((entry) => entry.path)\n  .filter((path) => /readme|docs?|package\\.json|docker|compose|workflow|src|test|spec|\\.github/i.test(path))\n  .sort((a, b) => {\n    const score = (path) => tokens.reduce((sum, token) => sum + (path.toLowerCase().includes(token) ? 1 : 0), 0);\n    return score(b) - score(a);\n  })\n  .slice(0, 80);\n\nconst compactIssues = recentIssues.slice(0, 40).map((issue) => ({\n  number: issue.number,\n  state: issue.state,\n  title: issue.title,\n  labels: (issue.labels || []).map((label) => label.name || label),\n  assignees: (issue.assignees || []).map((assignee) => assignee.login),\n  createdAt: issue.created_at,\n  closedAt: issue.closed_at,\n  metadata: {\n    messageId: metadata(issue.body, 'classroom-message-id'),\n    course: metadata(issue.body, 'course'),\n    week: metadata(issue.body, 'week'),\n    key: metadata(issue.body, 'issue-key'),\n  },\n}));\n\nconst repoContext = {\n  repository: source.repository,\n  defaultBranch: repo.default_branch,\n  description: repo.description,\n  language: repo.language,\n  topics: repo.topics || [],\n  openIssues: compactIssues.filter((issue) => issue.state === 'open'),\n  recentClosedIssues: compactIssues.filter((issue) => issue.state === 'closed').slice(0, 20),\n  openPullRequests: openPrs.slice(0, 20).map((pr) => ({ number: pr.number, title: pr.title, head: pr.head?.ref, base: pr.base?.ref })),\n  labels: labels.map((label) => label.name),\n  relevantPaths,\n  readme,\n};\n\nconst systemPrompt = `Eres Tech Lead y Project Manager técnico. Devuelve exclusivamente JSON válido conforme al schema. Reglas: (1) course/week/repository coinciden con la entrada; (2) equipo: Draggodeidad, JulianDele, osbaldoXxC; (3) Draggodeidad recibe bootstrap sin dependencias y además al menos una implementación técnica sustancial que no sea sólo docs/evidencia/integración; (4) tras bootstrap Julian y Osbaldo trabajan en paralelo, sin cadenas cruzadas; (5) sus Issues explican qué hacer, dónde, archivos probables, qué no tocar, resultado, pruebas y evidencia, sin escribirles toda la solución; (6) keys estables kebab-case y dependsOn usa sólo keys; (7) no inventes evidencia, resultados, SHA, tags ni archivos confirmados; (8) si resumeKeys existe usa exactamente esas keys; (9) títulos [COURSE][WNN]. Cada body incluye exactamente y en orden: ## Historia de Usuario, ## Contexto, ## Objetivo técnico, ## Alcance, ## Fuera de alcance, ## Archivos esperados, ## Pasos sugeridos, ## Criterios de aceptación, ## Pruebas, ## Dependencias, ## Evidencia individual, ## Definition of Done. Definition of Done termina con checks de implementación, criterios, tests, evidencia y PR. No añadas metadata HTML.`;\nconst userPrompt = JSON.stringify({\n  assignment: {\n    course: source.course,\n    week: source.week,\n    repository: source.repository,\n    title: source.assignmentTitle,\n    email: source.emailText,\n  },\n  resumeKeys,\n  repositoryContext: repoContext,\n});\n\nreturn [{\n  json: {\n    ...source,\n    repoContext,\n    existingAutomationIssues: matches.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body })),\n    completeExisting,\n    resumeKeys,\n    schema: outputSchema,\n    geminiSchema,\n    systemPrompt,\n    userPrompt,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000014",
+      "name": "Build Context & Dedup"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000015",
+              "leftValue": "={{ $json.completeExisting }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "Existing Set Complete?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000017",
+              "leftValue": "={{ $json.automationMode }}",
+              "rightValue": "live",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        -140
+      ],
+      "id": "00000000-0000-4000-8000-000000000018",
+      "name": "Existing Reconcile Live?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { mode: 'dry-run', mutationsPerformed: false, duplicateDetected: true, course: $json.course, week: $json.week, repository: $json.repository, existingIssues: $json.existingAutomationIssues, note: 'El conjunto ya existe; no se modificó GitHub ni Gmail.' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -40
+      ],
+      "id": "00000000-0000-4000-8000-000000000019",
+      "name": "Existing Dry-Run Summary"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Parse and Route').item.json.gmailMessageId }}",
+        "labelNames": [
+          "Automation/Classroom/Processed"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -240
+      ],
+      "id": "00000000-0000-4000-8000-000000000020",
+      "name": "Gmail - Mark Existing Processed",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst numbers = data.existingAutomationIssues.map((issue) => `#${issue.number} ${issue.title}`).join('\\n');\nreturn [{\n  json: {\n    ...data,\n    notificationSubject: `✅ ${data.course} Semana ${data.weekPadded} ya estaba completa`,\n    notificationBody: `✅ Semana ${data.weekPadded} reconciliada\\n\\nMateria: ${data.course}\\nRepositorio: ${data.repository}\\nActividad: ${data.assignmentTitle}\\n\\nEl conjunto ya existía en GitHub y no se duplicó.\\n\\n${numbers}\\n\\nEl correo fue marcado como procesado.`,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -240
+      ],
+      "id": "00000000-0000-4000-8000-000000000021",
+      "name": "Build Reconcile Summary"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+        "subject": "={{ $json.notificationSubject }}",
+        "message": "={{ $json.notificationBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1320,
+        -240
+      ],
+      "id": "00000000-0000-4000-8000-000000000022",
+      "name": "Gmail - Send Reconcile Summary",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000023",
+              "leftValue": "={{ $json.aiProvider }}",
+              "rightValue": "gemini",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        180
+      ],
+      "id": "00000000-0000-4000-8000-000000000024",
+      "name": "AI Provider Gemini?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ systemInstruction: { parts: [{ text: $json.systemPrompt }] }, contents: [{ role: 'user', parts: [{ text: $json.userPrompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', responseJsonSchema: $json.geminiSchema } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        880,
+        100
+      ],
+      "id": "00000000-0000-4000-8000-000000000025",
+      "name": "Gemini - Plan",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userPrompt }], stream: false, format: $json.schema, options: { temperature: 0.1 } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        880,
+        280
+      ],
+      "id": "00000000-0000-4000-8000-000000000026",
+      "name": "Ollama - Plan"
+    },
+    {
+      "parameters": {
+        "jsCode": "const contextNode = $input.first().json._contextNode || 'Build Context & Dedup';\nconst context = $(contextNode).item.json;\nconst response = $json.body ?? $json;\nlet raw;\nif (context.aiProvider === 'gemini') {\n  raw = response.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || '';\n} else {\n  raw = response.message?.content || response.response || '';\n}\nraw = String(raw).trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, '');\nreturn [{ json: { ...context, rawModelText: raw } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        180
+      ],
+      "id": "00000000-0000-4000-8000-000000000027",
+      "name": "Normalize AI Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        180
+      ],
+      "id": "00000000-0000-4000-8000-000000000028",
+      "name": "Validate Plan"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000029",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        180
+      ],
+      "id": "00000000-0000-4000-8000-000000000030",
+      "name": "Plan Valid?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000031",
+              "leftValue": "={{ $json.aiProvider }}",
+              "rightValue": "gemini",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000032",
+      "name": "Retry with Gemini?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ systemInstruction: { parts: [{ text: $json.systemPrompt }] }, contents: [{ role: 'user', parts: [{ text: $json.retryPrompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json', responseJsonSchema: $json.geminiSchema } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1980,
+        280
+      ],
+      "id": "00000000-0000-4000-8000-000000000033",
+      "name": "Gemini - Repair Once",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.retryPrompt }], stream: false, format: $json.schema, options: { temperature: 0 } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1980,
+        420
+      ],
+      "id": "00000000-0000-4000-8000-000000000034",
+      "name": "Ollama - Repair Once"
+    },
+    {
+      "parameters": {
+        "jsCode": "const contextNode = $input.first().json._contextNode || 'Build Context & Dedup';\nconst context = $(contextNode).item.json;\nconst response = $json.body ?? $json;\nlet raw;\nif (context.aiProvider === 'gemini') {\n  raw = response.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || '';\n} else {\n  raw = response.message?.content || response.response || '';\n}\nraw = String(raw).trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, '');\nreturn [{ json: { ...context, rawModelText: raw } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000035",
+      "name": "Normalize Repair Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000036",
+      "name": "Validate Repaired Plan"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000037",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000038",
+      "name": "Repaired Plan Valid?"
+    },
+    {
+      "parameters": {
+        "jsCode": "throw new Error('LLM devolvió JSON inválido después de un reintento: ' + ($json.validationErrors || []).join('; ') + '. GitHub y Gmail no fueron modificados.');"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        460
+      ],
+      "id": "00000000-0000-4000-8000-000000000039",
+      "name": "Fail Closed - Invalid Plan"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst plan = structuredClone(data.plan);\nconst issues = plan.issues;\nconst byKey = new Map(issues.map((issue) => [issue.key, issue]));\nconst indegree = new Map(issues.map((issue) => [issue.key, 0]));\nconst outgoing = new Map(issues.map((issue) => [issue.key, []]));\n\nfor (const issue of issues) {\n  for (const dependency of issue.dependsOn) {\n    indegree.set(issue.key, indegree.get(issue.key) + 1);\n    outgoing.get(dependency).push(issue.key);\n  }\n}\n\nconst queue = issues.filter((issue) => indegree.get(issue.key) === 0).map((issue) => issue.key);\nconst ordered = [];\nwhile (queue.length) {\n  const key = queue.shift();\n  ordered.push(byKey.get(key));\n  for (const next of outgoing.get(key)) {\n    indegree.set(next, indegree.get(next) - 1);\n    if (indegree.get(next) === 0) queue.push(next);\n  }\n}\nif (ordered.length !== issues.length) throw new Error('Plan rechazado: existen dependencias circulares. No se modificó GitHub.');\n\nconst bootstrap = ordered.find((issue) => issue.assignee === 'Draggodeidad' && issue.dependsOn.length === 0 && /bootstrap|baseline|inicio|starter/i.test(`${issue.key} ${issue.title} ${issue.body}`));\nif (!bootstrap) throw new Error('Plan rechazado: falta bootstrap/baseline sin dependencias para Draggodeidad.');\n\nconst substantial = issues.find((issue) =>\n  issue.assignee === 'Draggodeidad' &&\n  ['feature', 'devops', 'test'].includes(issue.type) &&\n  issue.key !== bootstrap.key &&\n  (issue.expectedFiles || []).length > 0 &&\n  /c[oó]digo|l[oó]gica|configuraci[oó]n|ci\\/cd|pipeline|arquitectura|implement|test/i.test(`${issue.title} ${issue.body}`)\n);\nif (!substantial) throw new Error('Plan rechazado: Draggodeidad no tiene implementación técnica sustancial independiente del bootstrap.');\n\nconst julian = issues.filter((issue) => issue.assignee === 'JulianDele');\nconst osbaldo = issues.filter((issue) => issue.assignee === 'osbaldoXxC');\nif (!julian.length || !osbaldo.length) throw new Error('Plan rechazado: JulianDele y osbaldoXxC deben tener trabajo explícito.');\nconst julianKeys = new Set(julian.map((issue) => issue.key));\nconst osbaldoKeys = new Set(osbaldo.map((issue) => issue.key));\nfor (const issue of julian) {\n  if (issue.dependsOn.some((key) => osbaldoKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Osbaldo → Julian.`);\n}\nfor (const issue of osbaldo) {\n  if (issue.dependsOn.some((key) => julianKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Julian → Osbaldo.`);\n}\n\nconst planKeys = ordered.map((issue) => issue.key);\nconst desiredLabels = [...new Set([\n  data.course,\n  `week-${data.weekPadded}`,\n  ...ordered.flatMap((issue) => [`type:${issue.type}`, `priority:${issue.priority}`]),\n])];\nconst existingLabels = new Set(data.repoContext.labels || []);\nconst missingLabels = desiredLabels.filter((label) => !existingLabels.has(label));\n\nreturn [{\n  json: {\n    ...data,\n    plan: { ...plan, issues: ordered },\n    planKeys,\n    desiredLabels,\n    missingLabels,\n    bootstrapKey: bootstrap.key,\n    substantialDraggodeidadKey: substantial.key,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        120
+      ],
+      "id": "00000000-0000-4000-8000-000000000040",
+      "name": "Plan and Topological Sort"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000041",
+              "leftValue": "={{ $json.automationMode }}",
+              "rightValue": "dry-run",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3080,
+        120
+      ],
+      "id": "00000000-0000-4000-8000-000000000042",
+      "name": "Dry Run?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst preview = data.plan.issues.map((issue, index) => ({\n  order: index + 1,\n  key: issue.key,\n  title: issue.title,\n  assignee: issue.assignee,\n  labels: [data.course, `week-${data.weekPadded}`, `type:${issue.type}`, `priority:${issue.priority}`],\n  dependsOn: issue.dependsOn,\n  body: `${issue.body.trim()}\\n\\n<!-- automation:classroom -->\\n<!-- classroom-message-id:${data.gmailMessageId} -->\\n<!-- course:${data.course} -->\\n<!-- week:${data.weekPadded} -->\\n<!-- issue-key:${issue.key} -->\\n<!-- plan-keys:${data.planKeys.join(',')} -->`,\n}));\nreturn [{\n  json: {\n    mode: 'dry-run',\n    mutationsPerformed: false,\n    gmailMessageId: data.gmailMessageId,\n    course: data.course,\n    week: data.week,\n    repository: data.repository,\n    assignmentTitle: data.plan.assignmentTitle,\n    deadline: data.plan.deadline,\n    missingLabelsThatWouldBeCreated: data.missingLabels,\n    issuesThatWouldBeCreated: preview,\n    note: 'No se crearon Issues, no se crearon labels y Gmail no fue modificado.',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        20
+      ],
+      "id": "00000000-0000-4000-8000-000000000043",
+      "name": "Exact Dry-Run Preview"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000044",
+              "leftValue": "={{ $json.missingLabels.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3300,
+        200
+      ],
+      "id": "00000000-0000-4000-8000-000000000045",
+      "name": "Missing Labels?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const colors = {\n  DMI: '1D76DB', PWA: '5319E7',\n  feature: '0E8A16', test: 'BFD4F2', docs: '0075CA', devops: 'FBCA04', evidence: 'C5DEF5',\n  high: 'D93F0B', medium: 'FBCA04', low: '0E8A16',\n};\nconst descriptions = {\n  DMI: 'Materia DMI', PWA: 'Materia PWA',\n  feature: 'Implementación de funcionalidad', test: 'Pruebas y calidad', docs: 'Documentación', devops: 'Infraestructura y automatización', evidence: 'Evidencia requerida',\n  high: 'Prioridad alta', medium: 'Prioridad media', low: 'Prioridad baja',\n};\nconst base = $json;\nreturn base.missingLabels.map((name) => {\n  const suffix = name.split(':')[1] || name;\n  const isWeek = name.startsWith('week-');\n  return {\n    json: {\n      runData: base,\n      labelPayload: {\n        name,\n        color: isWeek ? 'D4C5F9' : (colors[suffix] || colors[name] || 'EDEDED'),\n        description: isWeek ? `Semana ${name.slice(5)}` : (descriptions[suffix] || descriptions[name] || 'Creada por automatización Classroom'),\n      },\n    },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        160
+      ],
+      "id": "00000000-0000-4000-8000-000000000046",
+      "name": "Prepare Missing Labels"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.github.com/repos/' + $json.runData.repository + '/labels' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.labelPayload }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3740,
+        160
+      ],
+      "id": "00000000-0000-4000-8000-000000000047",
+      "name": "GitHub - Create Missing Label",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Plan and Topological Sort').item.json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3960,
+        240
+      ],
+      "id": "00000000-0000-4000-8000-000000000048",
+      "name": "Continue After Labels"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst runKey = `${data.gmailMessageId}:${data.course}:${data.weekPadded}`;\nconst staticData = $getWorkflowStaticData('global');\nstaticData.classroomRuns ||= {};\nconst numbers = {};\nfor (const issue of data.existingAutomationIssues || []) {\n  const key = metadata(issue.body, 'issue-key');\n  if (key) numbers[key] = issue.number;\n}\nstaticData.classroomRuns[runKey] = {\n  messageId: data.gmailMessageId,\n  course: data.course,\n  week: data.weekPadded,\n  repository: data.repository,\n  planKeys: data.planKeys,\n  numbers,\n  updatedAt: new Date().toISOString(),\n};\n\nreturn data.plan.issues.map((issue, index) => ({\n  json: {\n    runKey,\n    index,\n    repository: data.repository,\n    gmailMessageId: data.gmailMessageId,\n    course: data.course,\n    weekPadded: data.weekPadded,\n    planKeys: data.planKeys,\n    issue,\n  },\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        240
+      ],
+      "id": "00000000-0000-4000-8000-000000000049",
+      "name": "Prepare Issue Queue"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        4400,
+        240
+      ],
+      "id": "00000000-0000-4000-8000-000000000050",
+      "name": "Loop Issues Sequentially"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nconst staticData = $getWorkflowStaticData('global');\nconst state = staticData.classroomRuns?.[item.runKey];\nif (!state) throw new Error(`No existe estado de ejecución para ${item.runKey}`);\nconst issue = item.issue;\nconst existingNumber = state.numbers[issue.key];\nconst missingDependencies = issue.dependsOn.filter((key) => !state.numbers[key]);\nif (missingDependencies.length) throw new Error(`No se resolvieron dependencias de ${issue.key}: ${missingDependencies.join(', ')}`);\nconst dependencyLines = issue.dependsOn.length\n  ? issue.dependsOn.map((key) => `- #${state.numbers[key]} (${key})`).join('\\n')\n  : '- Ninguna.';\nlet body = String(issue.body).replace(\n  /## Dependencias[\\s\\S]*?(?=\\n## Evidencia individual)/,\n  `## Dependencias\\n\\n${dependencyLines}\\n`,\n);\nbody = `${body.trim()}\\n\\n<!-- automation:classroom -->\\n<!-- classroom-message-id:${item.gmailMessageId} -->\\n<!-- course:${item.course} -->\\n<!-- week:${item.weekPadded} -->\\n<!-- issue-key:${issue.key} -->\\n<!-- plan-keys:${item.planKeys.join(',')} -->`;\n\nreturn [{\n  json: {\n    ...item,\n    skipCreate: Boolean(existingNumber),\n    issueNumber: existingNumber || null,\n    issuePayload: {\n      title: issue.title,\n      body,\n      assignees: [issue.assignee],\n      labels: [item.course, `week-${item.weekPadded}`, `type:${issue.type}`, `priority:${issue.priority}`],\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4620,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000051",
+      "name": "Resolve Dependencies"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Resolve Dependencies').item.json.repository + '/issues?state=all&sort=created&direction=desc&per_page=100' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4840,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000052",
+      "name": "GitHub - Recheck Issue Key",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Resolve Dependencies').item.json;\nconst response = $json.body ?? $json;\nconst issues = Array.isArray(response) ? response : [];\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst existing = issues.find((issue) =>\n  metadata(issue.body, 'classroom-message-id') === source.gmailMessageId &&\n  metadata(issue.body, 'issue-key') === source.issue.key\n);\nif (existing) {\n  const staticData = $getWorkflowStaticData('global');\n  staticData.classroomRuns[source.runKey].numbers[source.issue.key] = existing.number;\n}\nreturn [{\n  json: {\n    ...source,\n    skipCreate: Boolean(existing || source.skipCreate),\n    issueNumber: existing?.number || source.issueNumber || null,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5060,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000053",
+      "name": "Apply Issue Recheck"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000054",
+              "leftValue": "={{ $json.skipCreate }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5280,
+        340
+      ],
+      "id": "00000000-0000-4000-8000-000000000055",
+      "name": "Issue Already Exists?"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://api.github.com/repos/' + $json.repository + '/issues/' + $json.issueNumber }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.issuePayload }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        5500,
+        260
+      ],
+      "id": "00000000-0000-4000-8000-000000000056",
+      "name": "GitHub - Reconcile Existing Issue",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Apply Issue Recheck').item.json;\nconst response = $json.body ?? $json;\nconst number = response.number || source.issueNumber;\nif (!number) throw new Error(`No se pudo reconciliar la Issue existente ${source.issue.key}`);\nconst staticData = $getWorkflowStaticData('global');\nconst state = staticData.classroomRuns[source.runKey];\nstate.numbers[source.issue.key] = number;\nstate.updatedAt = new Date().toISOString();\nreturn [{ json: { runKey: source.runKey, key: source.issue.key, number, created: false, reconciled: true } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5720,
+        260
+      ],
+      "id": "00000000-0000-4000-8000-000000000057",
+      "name": "Record Existing Issue"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.github.com/repos/' + $json.repository + '/issues' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.issuePayload }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        5500,
+        420
+      ],
+      "id": "00000000-0000-4000-8000-000000000058",
+      "name": "GitHub - Create Issue",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Resolve Dependencies').item.json;\nconst response = $json.body ?? $json;\nif (!response.number) throw new Error(`GitHub no devolvió número para ${source.issue.key}`);\nconst staticData = $getWorkflowStaticData('global');\nconst state = staticData.classroomRuns[source.runKey];\nstate.numbers[source.issue.key] = response.number;\nstate.updatedAt = new Date().toISOString();\nreturn [{ json: { runKey: source.runKey, key: source.issue.key, number: response.number, created: true } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5720,
+        420
+      ],
+      "id": "00000000-0000-4000-8000-000000000059",
+      "name": "Record Created Issue"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/issues?state=all&sort=created&direction=desc&per_page=100' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4620,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000060",
+      "name": "GitHub - Verify Complete Set",
+      "credentials": {
+        "githubApi": {
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const planData = $('Plan and Topological Sort').item.json;\nconst response = $json.body ?? $json;\nconst issues = Array.isArray(response) ? response : [];\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst matching = issues.filter((issue) =>\n  metadata(issue.body, 'classroom-message-id') === planData.gmailMessageId &&\n  metadata(issue.body, 'course') === planData.course &&\n  metadata(issue.body, 'week') === planData.weekPadded\n);\nconst byKey = Object.fromEntries(matching.map((issue) => [metadata(issue.body, 'issue-key'), issue]));\nconst missing = planData.planKeys.filter((key) => !byKey[key]);\nif (missing.length) throw new Error(`Verificación falló; faltan Issues: ${missing.join(', ')}. Gmail NO fue marcado.`);\nconst configurationErrors = [];\nfor (const expected of planData.plan.issues) {\n  const actual = byKey[expected.key];\n  const assignees = (actual.assignees || []).map((assignee) => assignee.login);\n  const labels = (actual.labels || []).map((label) => label.name || label);\n  const expectedLabels = [planData.course, `week-${planData.weekPadded}`, `type:${expected.type}`, `priority:${expected.priority}`];\n  if (!assignees.includes(expected.assignee)) configurationErrors.push(`${expected.key}: falta assignee ${expected.assignee}`);\n  for (const label of expectedLabels) if (!labels.includes(label)) configurationErrors.push(`${expected.key}: falta label ${label}`);\n  if (!metadata(actual.body, 'plan-keys')) configurationErrors.push(`${expected.key}: falta plan-keys`);\n}\nif (configurationErrors.length) throw new Error(`Verificación de Issues falló: ${configurationErrors.join('; ')}. Gmail NO fue marcado.`);\nconst assignments = { Draggodeidad: 0, JulianDele: 0, osbaldoXxC: 0 };\nfor (const issue of planData.plan.issues) assignments[issue.assignee] += 1;\nreturn [{\n  json: {\n    ...planData,\n    verifiedIssues: planData.planKeys.map((key) => ({ key, number: byKey[key].number, title: byKey[key].title })),\n    assignments,\n    verified: true,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4840,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000061",
+      "name": "Verify Complete Set"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Parse and Route').item.json.gmailMessageId }}",
+        "labelNames": [
+          "Automation/Classroom/Processed"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        5060,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000062",
+      "name": "Gmail - Mark Processed",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst issueLines = data.verifiedIssues.map((issue) => `${issue.key}: #${issue.number} ${issue.title}`).join('\\n');\nreturn [{\n  json: {\n    ...data,\n    notificationSubject: `✅ ${data.course} Semana ${data.weekPadded} procesada`,\n    notificationBody: `✅ Semana ${data.weekPadded} procesada\\n\\nMateria: ${data.course}\\nRepositorio: ${data.repository}\\nActividad: ${data.plan.assignmentTitle}\\nDeadline: ${data.plan.deadline || 'No indicada'}\\n\\nIssues verificadas: ${data.verifiedIssues.length}\\n\\nDraggodeidad: ${data.assignments.Draggodeidad}\\nJulianDele: ${data.assignments.JulianDele}\\nosbaldoXxC: ${data.assignments.osbaldoXxC}\\n\\n${issueLines}\\n\\nActividad marcada como procesada.`,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000063",
+      "name": "Build Success Summary"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+        "subject": "={{ $json.notificationSubject }}",
+        "message": "={{ $json.notificationBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        5500,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000064",
+      "name": "Gmail - Send Success Summary",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Monday-Wednesday": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Search Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Dry Run": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Search Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Search Candidates": {
+      "main": [
+        [
+          {
+            "node": "Parse and Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Route": {
+      "main": [
+        [
+          {
+            "node": "Loop Messages Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Messages Sequentially": {
+      "main": [
+        [],
+        [
+          {
+            "node": "GitHub - Repository",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Repository": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Recent Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Recent Issues": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Search Message ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Search Message ID": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Search Course Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Search Course Week": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Open Pull Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Open Pull Requests": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Labels": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Tree",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Tree": {
+      "main": [
+        [
+          {
+            "node": "GitHub - README",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - README": {
+      "main": [
+        [
+          {
+            "node": "Build Context & Dedup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Context & Dedup": {
+      "main": [
+        [
+          {
+            "node": "Existing Set Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existing Set Complete?": {
+      "main": [
+        [
+          {
+            "node": "Existing Reconcile Live?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Provider Gemini?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existing Reconcile Live?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Mark Existing Processed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Existing Dry-Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Mark Existing Processed": {
+      "main": [
+        [
+          {
+            "node": "Build Reconcile Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reconcile Summary": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Reconcile Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Reconcile Summary": {
+      "main": [
+        [
+          {
+            "node": "Loop Messages Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existing Dry-Run Summary": {
+      "main": [
+        [
+          {
+            "node": "Loop Messages Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Provider Gemini?": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Plan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama - Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Plan": {
+      "main": [
+        [
+          {
+            "node": "Normalize AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama - Plan": {
+      "main": [
+        [
+          {
+            "node": "Normalize AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize AI Response": {
+      "main": [
+        [
+          {
+            "node": "Validate Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Plan": {
+      "main": [
+        [
+          {
+            "node": "Plan Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Valid?": {
+      "main": [
+        [
+          {
+            "node": "Plan and Topological Sort",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Retry with Gemini?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry with Gemini?": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Repair Once",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ollama - Repair Once",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Repair Once": {
+      "main": [
+        [
+          {
+            "node": "Normalize Repair Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama - Repair Once": {
+      "main": [
+        [
+          {
+            "node": "Normalize Repair Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Repair Response": {
+      "main": [
+        [
+          {
+            "node": "Validate Repaired Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Repaired Plan": {
+      "main": [
+        [
+          {
+            "node": "Repaired Plan Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repaired Plan Valid?": {
+      "main": [
+        [
+          {
+            "node": "Plan and Topological Sort",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fail Closed - Invalid Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan and Topological Sort": {
+      "main": [
+        [
+          {
+            "node": "Dry Run?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dry Run?": {
+      "main": [
+        [
+          {
+            "node": "Exact Dry-Run Preview",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Missing Labels?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exact Dry-Run Preview": {
+      "main": [
+        [
+          {
+            "node": "Loop Messages Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Missing Labels?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Missing Labels",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Continue After Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Missing Labels": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Create Missing Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Create Missing Label": {
+      "main": [
+        [
+          {
+            "node": "Continue After Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue After Labels": {
+      "main": [
+        [
+          {
+            "node": "Prepare Issue Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Issue Queue": {
+      "main": [
+        [
+          {
+            "node": "Loop Issues Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Issues Sequentially": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Verify Complete Set",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resolve Dependencies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Dependencies": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Recheck Issue Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Recheck Issue Key": {
+      "main": [
+        [
+          {
+            "node": "Apply Issue Recheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Issue Recheck": {
+      "main": [
+        [
+          {
+            "node": "Issue Already Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Issue Already Exists?": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Reconcile Existing Issue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GitHub - Create Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Reconcile Existing Issue": {
+      "main": [
+        [
+          {
+            "node": "Record Existing Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Existing Issue": {
+      "main": [
+        [
+          {
+            "node": "Loop Issues Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Create Issue": {
+      "main": [
+        [
+          {
+            "node": "Record Created Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Created Issue": {
+      "main": [
+        [
+          {
+            "node": "Loop Issues Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Verify Complete Set": {
+      "main": [
+        [
+          {
+            "node": "Verify Complete Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Complete Set": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Mark Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Mark Processed": {
+      "main": [
+        [
+          {
+            "node": "Build Success Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Summary": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Success Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Success Summary": {
+      "main": [
+        [
+          {
+            "node": "Loop Messages Sequentially",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "versionId": "10000000-0000-4000-8000-000000000001",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

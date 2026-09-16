@@ -1,0 +1,89 @@
+{
+  "id": "classroomError2026",
+  "name": "Classroom to GitHub - Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "20000000-0000-4000-8000-000000000001",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $json.execution || {}; const t = $json.trigger || {}; const phase = e.lastNodeExecuted || 'desconocida'; const message = e.error?.message || t.error?.message || 'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nProblema: ${message}\\nEjecución: ${e.url || e.id || 'sin URL'}\\n\\nGmail sólo se marca después de verificar todas las Issues. Si la fase fue el envío del resumen final, el correo puede ya estar marcado; revisa la ejecución antes de reintentar.`}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "20000000-0000-4000-8000-000000000002",
+      "name": "Build Error Summary"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+        "subject": "={{ $json.notificationSubject }}",
+        "message": "={{ $json.notificationBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        440,
+        0
+      ],
+      "id": "20000000-0000-4000-8000-000000000003",
+      "name": "Gmail - Send Error Summary",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "active": false,
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Error Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Summary": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Error Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "versionId": "20000000-0000-4000-8000-000000000004",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
