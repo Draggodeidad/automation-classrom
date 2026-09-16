@@ -6,7 +6,8 @@ const metadata = (body, key) => {
   return match ? match[1].trim() : null;
 };
 const existing = issues.find((issue) =>
-  metadata(issue.body, 'classroom-message-id') === source.gmailMessageId &&
+  metadata(issue.body, 'classroom-course-id') === source.courseId &&
+  metadata(issue.body, 'classroom-coursework-id') === source.courseWorkId &&
   metadata(issue.body, 'issue-key') === source.issue.key
 );
 if (existing) {

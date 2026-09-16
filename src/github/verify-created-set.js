@@ -6,13 +6,14 @@ const metadata = (body, key) => {
   return match ? match[1].trim() : null;
 };
 const matching = issues.filter((issue) =>
-  metadata(issue.body, 'classroom-message-id') === planData.gmailMessageId &&
+  metadata(issue.body, 'classroom-course-id') === planData.courseId &&
+  metadata(issue.body, 'classroom-coursework-id') === planData.courseWorkId &&
   metadata(issue.body, 'course') === planData.course &&
   metadata(issue.body, 'week') === planData.weekPadded
 );
 const byKey = Object.fromEntries(matching.map((issue) => [metadata(issue.body, 'issue-key'), issue]));
 const missing = planData.planKeys.filter((key) => !byKey[key]);
-if (missing.length) throw new Error(`Verificación falló; faltan Issues: ${missing.join(', ')}. Gmail NO fue marcado.`);
+if (missing.length) throw new Error(`Verificación falló; faltan Issues: ${missing.join(', ')}.`);
 const configurationErrors = [];
 for (const expected of planData.plan.issues) {
   const actual = byKey[expected.key];
@@ -23,7 +24,7 @@ for (const expected of planData.plan.issues) {
   for (const label of expectedLabels) if (!labels.includes(label)) configurationErrors.push(`${expected.key}: falta label ${label}`);
   if (!metadata(actual.body, 'plan-keys')) configurationErrors.push(`${expected.key}: falta plan-keys`);
 }
-if (configurationErrors.length) throw new Error(`Verificación de Issues falló: ${configurationErrors.join('; ')}. Gmail NO fue marcado.`);
+if (configurationErrors.length) throw new Error(`Verificación de Issues falló: ${configurationErrors.join('; ')}.`);
 const assignments = { Draggodeidad: 0, JulianDele: 0, osbaldoXxC: 0 };
 for (const issue of planData.plan.issues) assignments[issue.assignee] += 1;
 return [{

@@ -16,6 +16,10 @@ if (plan) {
   if (plan.course !== $json.course) errors.push('course no coincide con la entrada');
   if (plan.week !== $json.week) errors.push('week no coincide con la entrada');
   if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');
+  if (plan.source?.courseId !== $json.courseId) errors.push('source.courseId no coincide con la entrada');
+  if (plan.source?.courseWorkId !== $json.courseWorkId) errors.push('source.courseWorkId no coincide con la entrada');
+  if (plan.source?.updateTime !== $json.updateTime) errors.push('source.updateTime no coincide con la entrada');
+  if ((plan.source?.starterName ?? null) !== ($json.starter?.name ?? null)) errors.push('source.starterName no coincide con la entrada');
   if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');
   if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');
   const keys = new Set();
@@ -48,6 +52,11 @@ if (plan) {
       if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);
       if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);
     }
+  }
+  if ($json.starter?.found) {
+    const expectedTitle = `[${$json.course}][W${$json.weekPadded}] Integrar ${$json.starter.name} y establecer baseline semanal`;
+    const foundation = (plan.issues || []).find((issue) => issue.title === expectedTitle && issue.assignee === 'Draggodeidad' && issue.dependsOn?.length === 0);
+    if (!foundation) errors.push(`falta Foundation exacta: ${expectedTitle}`);
   }
   if ($json.resumeKeys?.length) {
     const expected = [...$json.resumeKeys].sort().join(',');

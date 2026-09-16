@@ -1,0 +1,44 @@
+[
+  {
+    "case": "coursework-normal",
+    "courseWork": {
+      "courseId": "course-pwa",
+      "id": "cw-pwa-03",
+      "title": "[Semana 03] Service worker",
+      "description": "Implementar experiencia offline",
+      "state": "PUBLISHED",
+      "updateTime": "2026-09-15T14:00:00Z",
+      "creationTime": "2026-09-15T14:00:00Z",
+      "materials": []
+    },
+    "expected": "process"
+  },
+  {
+    "case": "quiz-semanal",
+    "courseWork": {
+      "courseId": "course-pwa",
+      "id": "cw-quiz-03",
+      "title": "Semana 03 Quiz semanal",
+      "description": "Cuestionario",
+      "state": "PUBLISHED",
+      "updateTime": "2026-09-15T14:00:00Z",
+      "creationTime": "2026-09-15T14:00:00Z",
+      "materials": []
+    },
+    "expected": "ignore"
+  },
+  {
+    "case": "coursework-sin-zip",
+    "courseWork": {
+      "courseId": "course-pwa",
+      "id": "cw-no-zip",
+      "title": "Semana 03 CI",
+      "description": "Configurar CI",
+      "state": "PUBLISHED",
+      "updateTime": "2026-09-15T14:00:00Z",
+      "creationTime": "2026-09-15T14:00:00Z",
+      "materials": [{"link": {"url": "https://example.test/rubrica", "title": "Rúbrica"}}]
+    },
+    "expected": "process"
+  }
+]

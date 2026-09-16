@@ -1,6 +1,6 @@
 {
   "id": "classroomDmiPwa2026",
-  "name": "Classroom to GitHub Issues - DMI and PWA",
+  "name": "Classroom API to GitHub Issues - DMI and PWA",
   "nodes": [
     {
       "parameters": {
@@ -8,7 +8,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 7-20 * * 1-3"
+              "expression": "10 9 * * 1"
             }
           ]
         }
@@ -16,78 +16,581 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -2200,
-        0
+        -2600,
+        -260
       ],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": "Schedule Monday-Wednesday"
+      "name": "Schedule PWA Monday 09:10"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { course: 'PWA', triggerKind: 'schedule', attempt: 1 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2380,
+        -260
+      ],
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "Route PWA"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "10 9 * * 2"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2600,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "Schedule DMI Tuesday 09:10"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { course: 'DMI', triggerKind: 'schedule', attempt: 1 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2380,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "Route DMI"
     },
     {
       "parameters": {},
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -2200,
-        180
+        -2600,
+        120
       ],
-      "id": "00000000-0000-4000-8000-000000000002",
-      "name": "Manual Dry Run"
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "Manual Trigger"
     },
     {
       "parameters": {
-        "operation": "getAll",
-        "returnAll": false,
-        "limit": 20,
-        "simple": false,
-        "filters": {
-          "q": "from:no-reply@classroom.google.com newer_than:21d -label:Automation/Classroom/Processed",
-          "readStatus": "both"
+        "jsCode": "// Edita únicamente estos valores para backfill/recuperación manual.\nconst request = { course: 'PWA', week: 3 };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2380,
+        120
+      ],
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "Manual Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const course = String($json.course || '').trim().toUpperCase();\nconst config = {\n  PWA: {\n    courseId: $env.CLASSROOM_PWA_COURSE_ID,\n    repository: $env.PWA_REPOSITORY || 'Draggodeidad/pwa-utt',\n  },\n  DMI: {\n    courseId: $env.CLASSROOM_DMI_COURSE_ID,\n    repository: $env.DMI_REPOSITORY || 'Draggodeidad/campusops-dmi-team',\n  },\n};\nif (!config[course]) throw new Error(`Materia no permitida: ${course || '(vacía)'}`);\nif (!config[course].courseId) throw new Error(`Falta CLASSROOM_${course}_COURSE_ID`);\n\nconst manualWeek = $json.week === undefined || $json.week === null || $json.week === ''\n  ? null\n  : Number($json.week);\nif (manualWeek !== null && (!Number.isInteger(manualWeek) || manualWeek < 1 || manualWeek > 99)) {\n  throw new Error('La semana manual debe ser un entero entre 1 y 99');\n}\n\nreturn [{\n  json: {\n    course,\n    courseId: String(config[course].courseId),\n    repository: config[course].repository,\n    requestedWeek: manualWeek,\n    triggerKind: $json.triggerKind || 'manual',\n    attempt: Number($json.attempt || 1),\n    automationMode: String($env.AUTOMATION_MODE || 'dry-run').toLowerCase(),\n    aiProvider: String($env.AI_PROVIDER || 'gemini').toLowerCase(),\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2160,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "Prepare Classroom Request"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://classroom.googleapis.com/v1/courses/' + encodeURIComponent($json.courseId) + '/courseWork?courseWorkStates=PUBLISHED&orderBy=updateTime%20desc&pageSize=5&fields=courseWork(courseId,id,title,description,materials,state,alternateLink,creationTime,updateTime,dueDate,dueTime,scheduledTime,maxPoints,workType)' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
         }
       },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
       "position": [
-        -1980,
-        80
+        -1940,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000003",
-      "name": "Gmail - Search Candidates",
+      "id": "00000000-0000-4000-8000-000000000008",
+      "name": "Classroom - List CourseWork Initial",
       "credentials": {
-        "gmailOAuth2": {
-          "name": "Gmail account"
+        "oAuth2Api": {
+          "name": "Google Classroom and Drive OAuth2"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "const COURSE_MAP = {\n  DMI: { match: 'DMI - 10B', repository: 'Draggodeidad/campusops-dmi-team' },\n  PWA: { match: 'PWA - 10B', repository: 'Draggodeidad/pwa-utt' },\n};\n\nfunction decodeBase64Url(value = '') {\n  if (!value) return '';\n  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');\n  return Buffer.from(normalized, 'base64').toString('utf8');\n}\n\nfunction collectParts(part, result = { text: [], html: [] }) {\n  if (!part) return result;\n  const data = part.body?.data;\n  if (data) {\n    const decoded = decodeBase64Url(data);\n    if (part.mimeType === 'text/plain') result.text.push(decoded);\n    if (part.mimeType === 'text/html') result.html.push(decoded);\n  }\n  for (const child of part.parts || []) collectParts(child, result);\n  return result;\n}\n\nfunction stripHtml(html = '') {\n  return html\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<\\/p>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction header(message, name) {\n  const direct = message[name] || message[name.toLowerCase()];\n  if (direct) return String(direct);\n  const headers = message.payload?.headers || [];\n  return String(headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value || '');\n}\n\nconst output = [];\nfor (const item of $input.all()) {\n  const message = item.json;\n  const subject = header(message, 'Subject');\n  const from = header(message, 'From');\n  if (!/no-reply@classroom\\.google\\.com/i.test(from)) continue;\n\n  const parts = collectParts(message.payload);\n  const body = (parts.text.join('\\n').trim() || stripHtml(parts.html.join('\\n')) || message.snippet || '').slice(0, 45000);\n  const positive = subject.match(/Nueva tarea:\\s*[\"“']?\\s*(?:\\[\\s*)?Semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  if (!positive) continue;\n  if (/quiz\\s+(semanal|individual)|fecha de entrega mañana|recordatorio|aviso general|comentario|calificaci[oó]n/i.test(subject)) continue;\n\n  const corpus = `${subject}\\n${body}`;\n  const course = Object.keys(COURSE_MAP).find((key) => corpus.includes(COURSE_MAP[key].match));\n  if (!course) continue;\n\n  const week = Number(positive[1]);\n  const assignmentTitle = subject\n    .replace(/^.*?Nueva tarea:\\s*/i, '')\n    .replace(/^[\"“]|[\"”]$/g, '')\n    .trim();\n  const labels = (message.labels || []).map((label) => typeof label === 'string' ? label : label.name);\n  if (labels.includes('Automation/Classroom/Processed')) continue;\n\n  output.push({\n    json: {\n      gmailMessageId: message.id,\n      gmailThreadId: message.threadId,\n      subject,\n      from,\n      emailText: body,\n      course,\n      week,\n      weekPadded: String(week).padStart(2, '0'),\n      repository: COURSE_MAP[course].repository,\n      assignmentTitle,\n      receivedAt: message.internalDate ? new Date(Number(message.internalDate)).toISOString() : null,\n      automationMode: ($env.AUTOMATION_MODE || 'dry-run').toLowerCase(),\n      aiProvider: ($env.AI_PROVIDER || 'gemini').toLowerCase(),\n    },\n    pairedItem: item.pairedItem,\n  });\n}\n\nreturn output;"
+        "jsCode": "const context = $('Prepare Classroom Request').item.json; return [{ json: { ...context, classroomResponse: $json } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1760,
-        80
+        -1720,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000004",
-      "name": "Parse and Route"
+      "id": "00000000-0000-4000-8000-000000000009",
+      "name": "Attach Initial Classroom Response"
     },
     {
       "parameters": {
-        "batchSize": 1,
+        "jsCode": "const data = $json;\nconst payload = data.classroomResponse?.body ?? data.classroomResponse ?? {};\nconst rows = Array.isArray(payload.courseWork) ? payload.courseWork : [];\nconst excluded = /\\b(quiz(?:\\s+semanal|\\s+individual)?|examen|recordatorio)\\b/i;\nconst weekFrom = (title) => {\n  const match = String(title || '').match(/(?:\\[\\s*)?semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  return match ? Number(match[1]) : null;\n};\nconst cutoff = Date.now() - 36 * 60 * 60 * 1000;\nconst candidates = rows\n  .map((courseWork) => ({ courseWork, week: weekFrom(courseWork.title) }))\n  .filter(({ courseWork, week }) =>\n    courseWork.state === 'PUBLISHED' &&\n    week !== null && week >= 1 && week <= 99 &&\n    !excluded.test(`${courseWork.title || ''}\\n${courseWork.description || ''}`) &&\n    (data.requestedWeek === null\n      ? Date.parse(courseWork.creationTime || courseWork.updateTime || 0) >= cutoff\n      : week === data.requestedWeek))\n  .sort((a, b) => Date.parse(b.courseWork.updateTime || 0) - Date.parse(a.courseWork.updateTime || 0));\n\nif (!candidates.length) {\n  return [{ json: { ...data, found: false, executionResult: data.attempt >= 2 ? 'not_found_after_retry' : 'not_found' } }];\n}\n\nconst { courseWork, week } = candidates[0];\nif (!courseWork.id || !courseWork.courseId || !courseWork.updateTime) {\n  throw new Error('CourseWork incompleto: faltan courseId, id o updateTime');\n}\nif (String(courseWork.courseId) !== String(data.courseId)) {\n  throw new Error('CourseWork pertenece a un courseId distinto al solicitado');\n}\n\nconst dueAt = courseWork.dueDate\n  ? `${courseWork.dueDate.year}-${String(courseWork.dueDate.month).padStart(2, '0')}-${String(courseWork.dueDate.day).padStart(2, '0')}` +\n    (courseWork.dueTime ? `T${String(courseWork.dueTime.hours || 0).padStart(2, '0')}:${String(courseWork.dueTime.minutes || 0).padStart(2, '0')}:00` : '')\n  : null;\n\nreturn [{\n  json: {\n    ...data,\n    found: true,\n    executionResult: 'coursework_found',\n    courseWorkId: String(courseWork.id),\n    week,\n    weekPadded: String(week).padStart(2, '0'),\n    assignmentTitle: String(courseWork.title || '').trim(),\n    description: String(courseWork.description || '').slice(0, 30000),\n    materials: Array.isArray(courseWork.materials) ? courseWork.materials : [],\n    alternateLink: courseWork.alternateLink || null,\n    creationTime: courseWork.creationTime || null,\n    updateTime: courseWork.updateTime,\n    dueAt,\n    scheduledTime: courseWork.scheduledTime || null,\n    maxPoints: courseWork.maxPoints ?? null,\n    workType: courseWork.workType || null,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1500,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": "Parse Initial CourseWork"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000011",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
         "options": {}
       },
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
       "position": [
-        -1650,
-        220
+        -1280,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000005",
-      "name": "Loop Messages Sequentially"
+      "id": "00000000-0000-4000-8000-000000000012",
+      "name": "CourseWork Found Initial?"
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository }}",
+        "amount": 30,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1060,
+        100
+      ],
+      "id": "00000000-0000-4000-8000-000000000013",
+      "name": "Wait 30 Minutes Once"
+    },
+    {
+      "parameters": {
+        "jsCode": "if (Number($json.attempt) !== 1) throw new Error('Retry guard: sólo se permite un retry'); return [{ json: { ...$json, attempt: 2 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -840,
+        100
+      ],
+      "id": "00000000-0000-4000-8000-000000000014",
+      "name": "Increment Retry"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://classroom.googleapis.com/v1/courses/' + encodeURIComponent($json.courseId) + '/courseWork?courseWorkStates=PUBLISHED&orderBy=updateTime%20desc&pageSize=5&fields=courseWork(courseId,id,title,description,materials,state,alternateLink,creationTime,updateTime,dueDate,dueTime,scheduledTime,maxPoints,workType)' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -620,
+        100
+      ],
+      "id": "00000000-0000-4000-8000-000000000015",
+      "name": "Classroom - List CourseWork Retry",
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Google Classroom and Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Increment Retry').item.json; return [{ json: { ...context, classroomResponse: $json } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        100
+      ],
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "Attach Retry Classroom Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst payload = data.classroomResponse?.body ?? data.classroomResponse ?? {};\nconst rows = Array.isArray(payload.courseWork) ? payload.courseWork : [];\nconst excluded = /\\b(quiz(?:\\s+semanal|\\s+individual)?|examen|recordatorio)\\b/i;\nconst weekFrom = (title) => {\n  const match = String(title || '').match(/(?:\\[\\s*)?semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  return match ? Number(match[1]) : null;\n};\nconst cutoff = Date.now() - 36 * 60 * 60 * 1000;\nconst candidates = rows\n  .map((courseWork) => ({ courseWork, week: weekFrom(courseWork.title) }))\n  .filter(({ courseWork, week }) =>\n    courseWork.state === 'PUBLISHED' &&\n    week !== null && week >= 1 && week <= 99 &&\n    !excluded.test(`${courseWork.title || ''}\\n${courseWork.description || ''}`) &&\n    (data.requestedWeek === null\n      ? Date.parse(courseWork.creationTime || courseWork.updateTime || 0) >= cutoff\n      : week === data.requestedWeek))\n  .sort((a, b) => Date.parse(b.courseWork.updateTime || 0) - Date.parse(a.courseWork.updateTime || 0));\n\nif (!candidates.length) {\n  return [{ json: { ...data, found: false, executionResult: data.attempt >= 2 ? 'not_found_after_retry' : 'not_found' } }];\n}\n\nconst { courseWork, week } = candidates[0];\nif (!courseWork.id || !courseWork.courseId || !courseWork.updateTime) {\n  throw new Error('CourseWork incompleto: faltan courseId, id o updateTime');\n}\nif (String(courseWork.courseId) !== String(data.courseId)) {\n  throw new Error('CourseWork pertenece a un courseId distinto al solicitado');\n}\n\nconst dueAt = courseWork.dueDate\n  ? `${courseWork.dueDate.year}-${String(courseWork.dueDate.month).padStart(2, '0')}-${String(courseWork.dueDate.day).padStart(2, '0')}` +\n    (courseWork.dueTime ? `T${String(courseWork.dueTime.hours || 0).padStart(2, '0')}:${String(courseWork.dueTime.minutes || 0).padStart(2, '0')}:00` : '')\n  : null;\n\nreturn [{\n  json: {\n    ...data,\n    found: true,\n    executionResult: 'coursework_found',\n    courseWorkId: String(courseWork.id),\n    week,\n    weekPadded: String(week).padStart(2, '0'),\n    assignmentTitle: String(courseWork.title || '').trim(),\n    description: String(courseWork.description || '').slice(0, 30000),\n    materials: Array.isArray(courseWork.materials) ? courseWork.materials : [],\n    alternateLink: courseWork.alternateLink || null,\n    creationTime: courseWork.creationTime || null,\n    updateTime: courseWork.updateTime,\n    dueAt,\n    scheduledTime: courseWork.scheduledTime || null,\n    maxPoints: courseWork.maxPoints ?? null,\n    workType: courseWork.workType || null,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        100
+      ],
+      "id": "00000000-0000-4000-8000-000000000017",
+      "name": "Parse Retry CourseWork"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000018",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        40,
+        100
+      ],
+      "id": "00000000-0000-4000-8000-000000000019",
+      "name": "CourseWork Found Retry?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{...$json,notificationSubject:`❌ No se encontró ${$json.course} tras el retry`,notificationBody:`❌ No se procesó ${$json.course}\\n\\nCourse ID: ${$json.courseId}\\nConsultas Classroom: 2\\nResultado: ninguna actividad semanal válida a las 09:10 ni a las 09:40.\\n\\nGitHub no fue modificado.`,executionResult:'not_found_after_retry'}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        260
+      ],
+      "id": "00000000-0000-4000-8000-000000000020",
+      "name": "Build No Activity Summary"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000021",
+              "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        260
+      ],
+      "id": "00000000-0000-4000-8000-000000000022",
+      "name": "Notify No Activity?"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+        "subject": "={{ $json.notificationSubject }}",
+        "message": "={{ $json.notificationBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        700,
+        220
+      ],
+      "id": "00000000-0000-4000-8000-000000000023",
+      "name": "Gmail - Send No Activity Alert",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail notifications (optional)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst normalized = (data.materials || []).map((material, index) => {\n  const attachment = material.driveFile?.driveFile || material.driveFile || null;\n  if (attachment?.id) {\n    return {\n      index,\n      type: 'driveFile',\n      id: String(attachment.id),\n      name: String(attachment.title || attachment.name || ''),\n      alternateLink: attachment.alternateLink || null,\n      shareMode: material.driveFile?.shareMode || null,\n    };\n  }\n  if (material.link) return { index, type: 'link', url: material.link.url || null, title: material.link.title || null };\n  if (material.youtubeVideo) return { index, type: 'youtubeVideo', id: material.youtubeVideo.id || null, title: material.youtubeVideo.title || null };\n  if (material.form) return { index, type: 'form', title: material.form.title || null, formUrl: material.form.formUrl || null };\n  return { index, type: 'other', metadata: material };\n});\n\nconst zipCandidates = normalized.filter((item) => item.type === 'driveFile' && /\\.zip$/i.test(item.name.trim()));\nconst weekToken = `w${data.weekPadded}`;\nconst score = (item) => {\n  const name = item.name.toLowerCase();\n  return (name.includes(data.course.toLowerCase()) ? 4 : 0) +\n    (name.includes(weekToken) || name.includes(`week-${data.weekPadded}`) || name.includes(`semana-${data.weekPadded}`) ? 4 : 0) +\n    (/(starter|kit-estudiante|student)/i.test(name) ? 2 : 0);\n};\nconst ranked = zipCandidates.map((item) => ({ item, score: score(item) })).sort((a, b) => b.score - a.score);\nif (ranked.length > 1 && ranked[0].score === ranked[1].score) {\n  throw new Error(`Hay múltiples ZIP ambiguos: ${ranked.map(({ item }) => item.name).join(', ')}`);\n}\nconst selected = ranked[0]?.item || null;\n\nreturn [{\n  json: {\n    ...data,\n    materialInventory: normalized,\n    starterFound: Boolean(selected),\n    starterDriveFileId: selected?.id || null,\n    starterName: selected?.name || null,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000024",
+      "name": "Inspect Materials"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000025",
+              "leftValue": "={{ $json.starterFound }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000026",
+      "name": "Starter ZIP Found?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    ...$json,\n    starter: {\n      found: false,\n      name: null,\n      driveFileId: null,\n      fileCount: 0,\n      files: [],\n      relevantFiles: [],\n      requiredFiles: [],\n      instructions: [],\n      commands: [],\n      acceptanceCriteria: [],\n      tests: [],\n      constraints: [],\n      rubric: [],\n      potentialConflicts: [],\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        40
+      ],
+      "id": "00000000-0000-4000-8000-000000000027",
+      "name": "No Starter Context"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent($json.starterDriveFileId) + '?fields=id,name,mimeType,size,md5Checksum,capabilities(canDownload),modifiedTime' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        700,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000028",
+      "name": "Drive - Starter Metadata",
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Google Classroom and Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Inspect Materials').item.json; return [{ json: { ...context, driveMetadata: $json } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000029",
+      "name": "Attach Drive Metadata"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst metadata = data.driveMetadata?.body ?? data.driveMetadata ?? {};\nif (!metadata.id) throw new Error('DriveFile inexistente o inaccesible');\nif (metadata.capabilities?.canDownload !== true) throw new Error(`Drive no permite descargar ${data.starterName}`);\nif (!/\\.zip$/i.test(metadata.name || data.starterName || '')) throw new Error('El starter seleccionado no tiene extensión .zip');\nconst maxBytes = Number($env.MAX_ZIP_SIZE_MB || 25) * 1024 * 1024;\nif (Number(metadata.size || 0) > maxBytes) throw new Error(`ZIP excede MAX_ZIP_SIZE_MB (${metadata.size} bytes)`);\nreturn [{ json: { ...data, driveFile: metadata, starterName: metadata.name || data.starterName } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000030",
+      "name": "Validate Drive File"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent($json.starterDriveFileId) + '?alt=media' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data",
+              "neverError": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1360,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000031",
+      "name": "Drive - Download Starter ZIP",
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Google Classroom and Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Validate Drive File').item.json; return [{ json: context, binary: $binary }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000032",
+      "name": "Attach Download Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst inputField = Object.keys($binary || {})[0];\nif (!inputField) throw new Error('Drive no devolvió contenido binario para el ZIP');\nconst buffer = await this.helpers.getBinaryDataBuffer(0, inputField);\nconst maxZip = Number($env.MAX_ZIP_SIZE_MB || 25) * 1024 * 1024;\nconst maxExtracted = Number($env.MAX_EXTRACTED_SIZE_MB || 100) * 1024 * 1024;\nconst maxFiles = Number($env.MAX_ZIP_FILES || 500);\nconst maxSingle = Number($env.MAX_SINGLE_FILE_MB || 10) * 1024 * 1024;\nif (buffer.length > maxZip) throw new Error(`ZIP excede el límite de ${maxZip} bytes`);\nif (buffer.length < 22 || buffer.readUInt32LE(0) !== 0x04034b50) throw new Error('ZIP corrupto o firma local inválida');\n\nlet eocd = -1;\nfor (let i = buffer.length - 22; i >= Math.max(0, buffer.length - 65557); i -= 1) {\n  if (buffer.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }\n}\nif (eocd < 0) throw new Error('ZIP corrupto: no se encontró el directorio central');\nconst entryCount = buffer.readUInt16LE(eocd + 10);\nconst centralSize = buffer.readUInt32LE(eocd + 12);\nconst centralOffset = buffer.readUInt32LE(eocd + 16);\nif (entryCount > maxFiles) throw new Error(`ZIP contiene ${entryCount} archivos; máximo ${maxFiles}`);\nif (centralOffset + centralSize > eocd) throw new Error('ZIP corrupto: directorio central fuera de rango');\n\nconst entries = [];\nlet cursor = centralOffset;\nlet totalUncompressed = 0;\nfor (let index = 0; index < entryCount; index += 1) {\n  if (cursor + 46 > buffer.length || buffer.readUInt32LE(cursor) !== 0x02014b50) throw new Error('ZIP corrupto: entrada central inválida');\n  const flags = buffer.readUInt16LE(cursor + 8);\n  const compressedSize = buffer.readUInt32LE(cursor + 20);\n  const uncompressedSize = buffer.readUInt32LE(cursor + 24);\n  const nameLength = buffer.readUInt16LE(cursor + 28);\n  const extraLength = buffer.readUInt16LE(cursor + 30);\n  const commentLength = buffer.readUInt16LE(cursor + 32);\n  const externalAttributes = buffer.readUInt32LE(cursor + 38);\n  const nameStart = cursor + 46;\n  const name = buffer.subarray(nameStart, nameStart + nameLength).toString((flags & 0x800) ? 'utf8' : 'latin1').replace(/\\\\/g, '/');\n  const segments = name.split('/');\n  const unixMode = (externalAttributes >>> 16) & 0xffff;\n  const isSymlink = (unixMode & 0xf000) === 0xa000;\n  if (!name || name.includes('\\0') || name.startsWith('/') || /^[a-z]:\\//i.test(name) || segments.includes('..')) throw new Error(`ZIP Slip/path inseguro: ${name}`);\n  if (isSymlink) throw new Error(`ZIP contiene symlink no permitido: ${name}`);\n  if (flags & 0x1) throw new Error(`ZIP cifrado no soportado: ${name}`);\n  if (uncompressedSize > maxSingle) throw new Error(`Archivo excede MAX_SINGLE_FILE_MB: ${name}`);\n  if (compressedSize > 0 && uncompressedSize / compressedSize > 100) throw new Error(`Posible compression bomb: ${name}`);\n  totalUncompressed += uncompressedSize;\n  if (totalUncompressed > maxExtracted) throw new Error('ZIP excede MAX_EXTRACTED_SIZE_MB');\n  entries.push({ path: name, compressedSize, uncompressedSize, directory: name.endsWith('/') });\n  cursor = nameStart + nameLength + extraLength + commentLength;\n}\n\nreturn [{\n  json: {\n    ...data,\n    zipValidation: { compressedBytes: buffer.length, extractedBytes: totalUncompressed, fileCount: entries.filter((e) => !e.directory).length, entries },\n  },\n  binary: $binary,\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000033",
+      "name": "Validate ZIP Security"
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "data",
+        "outputPrefix": "file_"
+      },
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        2020,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000034",
+      "name": "Extract Starter ZIP"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst binaries = $binary || {};\nconst maxFiles = Number($env.MAX_ZIP_FILES || 500);\nconst maxSingle = Number($env.MAX_SINGLE_FILE_MB || 10) * 1024 * 1024;\nconst entries = Object.entries(binaries).map(([field, meta]) => ({ field, meta, path: String(meta.fileName || field).replace(/\\\\/g, '/') }));\nif (entries.length > maxFiles) throw new Error(`Extracción produjo ${entries.length} archivos; máximo ${maxFiles}`);\nfor (const entry of entries) {\n  if (entry.path.startsWith('/') || /^[a-z]:\\//i.test(entry.path) || entry.path.split('/').includes('..')) throw new Error(`Ruta extraída insegura: ${entry.path}`);\n}\n\nconst priority = (path) => {\n  const name = path.toLowerCase();\n  if (/(activity_student_facing|starter_and_repository|rubric_public|readme)\\.md$/.test(name)) return 100;\n  if (/(requirements|instructions|activity|rubric).*\\.md$/.test(name)) return 90;\n  if (/(^|\\/)(package\\.json|makefile)$/.test(name)) return 80;\n  if (/\\.github\\/workflows\\//.test(name) || /(^|\\/)(tests?|specs?)\\//.test(name)) return 75;\n  if (/(tsconfig|eslint|vite|next|expo|app\\.json)/.test(name)) return 65;\n  if (/\\.(md|txt|json|ya?ml|toml|js|mjs|cjs|ts|tsx|jsx|py|java|kt|swift|go|rs|css|html|sql|sh)$/.test(name)) return 20;\n  return 0;\n};\nconst selected = entries.filter((entry) => priority(entry.path) > 0).sort((a, b) => priority(b.path) - priority(a.path) || a.path.localeCompare(b.path));\nconst relevantFiles = [];\nlet contextBytes = 0;\nconst maxContextBytes = 220000;\nfor (const entry of selected) {\n  const buffer = await this.helpers.getBinaryDataBuffer(0, entry.field);\n  if (buffer.length > maxSingle || contextBytes >= maxContextBytes) continue;\n  const slice = buffer.subarray(0, Math.min(buffer.length, 64000, maxContextBytes - contextBytes));\n  if (slice.includes(0)) continue;\n  const content = slice.toString('utf8');\n  contextBytes += Buffer.byteLength(content);\n  relevantFiles.push({ path: entry.path, content, truncated: slice.length < buffer.length });\n}\nconst corpus = relevantFiles.map((file) => `# ${file.path}\\n${file.content}`).join('\\n');\nconst lines = corpus.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);\nconst unique = (values, limit = 40) => [...new Set(values)].slice(0, limit);\nconst commands = unique(lines.filter((line) => /^(?:\\$\\s*)?(npm|pnpm|yarn|bun|npx|make|docker|go\\s+test|pytest|mvn|gradle|swift\\s+test)\\b/i.test(line)).map((line) => line.replace(/^\\$\\s*/, '')));\nconst acceptanceCriteria = unique(lines.filter((line) => /^[-*]\\s*\\[[ xX]\\]/.test(line)).map((line) => line.replace(/^[-*]\\s*\\[[ xX]\\]\\s*/, '')));\nconst constraints = unique(lines.filter((line) => /\\b(no\\s+(?:modificar|eliminar|usar)|debe|obligatorio|restricci[oó]n|prohibido|conservar|preservar)\\b/i.test(line)));\nconst rubric = unique(lines.filter((line) => /\\b(r[uú]brica|puntos?|criterio|excelente|satisfactorio)\\b/i.test(line)));\nconst requiredFiles = unique(lines.flatMap((line) => [...line.matchAll(/`([^`]+\\.[a-z0-9]+)`/gi)].map((match) => match[1])));\nconst tests = unique(entries.map((entry) => entry.path).filter((path) => /(^|\\/)(tests?|specs?)\\/|\\.(test|spec)\\.[^.]+$/i.test(path)));\n\nreturn [{\n  json: {\n    ...data,\n    starter: {\n      found: true,\n      name: data.starterName,\n      driveFileId: data.starterDriveFileId,\n      fileCount: entries.length,\n      files: entries.map((entry) => entry.path).sort(),\n      relevantFiles,\n      requiredFiles,\n      instructions: unique(lines.filter((line) => /^(?:\\d+\\.|[-*])\\s+/.test(line))),\n      commands,\n      acceptanceCriteria,\n      tests,\n      constraints,\n      rubric,\n      potentialConflicts: [],\n      security: data.zipValidation,\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000035",
+      "name": "Inspect Starter"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000036",
+      "name": "Activity Context"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -115,10 +618,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -1540,
-        80
+        2680,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000006",
+      "id": "00000000-0000-4000-8000-000000000037",
       "name": "GitHub - Repository",
       "credentials": {
         "githubApi": {
@@ -128,7 +631,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/issues?state=all&sort=created&direction=desc&per_page=100' }}",
+        "url": "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/issues?state=all&sort=created&direction=desc&per_page=100' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -156,10 +659,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -1320,
-        80
+        2900,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000007",
+      "id": "00000000-0000-4000-8000-000000000038",
       "name": "GitHub - Recent Issues",
       "credentials": {
         "githubApi": {
@@ -169,7 +672,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/search/issues?q=' + encodeURIComponent('repo:' + $('Parse and Route').item.json.repository + ' is:issue in:body \"classroom-message-id:' + $('Parse and Route').item.json.gmailMessageId + '\"') + '&per_page=100' }}",
+        "url": "={{ 'https://api.github.com/search/issues?q=' + encodeURIComponent('repo:' + $('Activity Context').item.json.repository + ' is:issue in:body \"classroom-coursework-id:' + $('Activity Context').item.json.courseWorkId + '\"') + '&per_page=100' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -197,11 +700,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -1100,
-        80
+        3120,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000008",
-      "name": "GitHub - Search Message ID",
+      "id": "00000000-0000-4000-8000-000000000039",
+      "name": "GitHub - Search CourseWork ID",
       "credentials": {
         "githubApi": {
           "name": "GitHub account"
@@ -210,7 +713,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/search/issues?q=' + encodeURIComponent('repo:' + $('Parse and Route').item.json.repository + ' is:issue in:body \"course:' + $('Parse and Route').item.json.course + '\" \"week:' + $('Parse and Route').item.json.weekPadded + '\"') + '&per_page=100' }}",
+        "url": "={{ 'https://api.github.com/search/issues?q=' + encodeURIComponent('repo:' + $('Activity Context').item.json.repository + ' is:issue in:body \"course:' + $('Activity Context').item.json.course + '\" \"week:' + $('Activity Context').item.json.weekPadded + '\"') + '&per_page=100' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -238,10 +741,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -880,
-        80
+        3340,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000009",
+      "id": "00000000-0000-4000-8000-000000000040",
       "name": "GitHub - Search Course Week",
       "credentials": {
         "githubApi": {
@@ -251,7 +754,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/pulls?state=open&per_page=30' }}",
+        "url": "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/pulls?state=open&per_page=30' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -279,10 +782,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -660,
-        80
+        3560,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000010",
+      "id": "00000000-0000-4000-8000-000000000041",
       "name": "GitHub - Open Pull Requests",
       "credentials": {
         "githubApi": {
@@ -292,7 +795,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/labels?per_page=100' }}",
+        "url": "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/labels?per_page=100' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -320,10 +823,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -440,
-        80
+        3780,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000011",
+      "id": "00000000-0000-4000-8000-000000000042",
       "name": "GitHub - Labels",
       "credentials": {
         "githubApi": {
@@ -333,7 +836,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/git/trees/' + encodeURIComponent($('GitHub - Repository').item.json.body.default_branch) + '?recursive=1' }}",
+        "url": "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/git/trees/' + encodeURIComponent($('GitHub - Repository').item.json.body.default_branch) + '?recursive=1' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -361,10 +864,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -220,
-        80
+        4000,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000012",
+      "id": "00000000-0000-4000-8000-000000000043",
       "name": "GitHub - Tree",
       "credentials": {
         "githubApi": {
@@ -374,7 +877,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/readme' }}",
+        "url": "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/readme' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -402,10 +905,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        0,
-        80
+        4220,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000013",
+      "id": "00000000-0000-4000-8000-000000000044",
       "name": "GitHub - README",
       "credentials": {
         "githubApi": {
@@ -415,15 +918,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const source = $('Parse and Route').item.json;\nconst outputSchema = {\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://local.example/schemas/classroom-issue-plan.schema.json\",\"title\":\"ClassroomIssuePlan\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"course\",\"week\",\"repository\",\"assignmentTitle\",\"deadline\",\"issues\"],\"properties\":{\"course\":{\"type\":\"string\",\"enum\":[\"DMI\",\"PWA\"]},\"week\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":99},\"repository\":{\"type\":\"string\",\"enum\":[\"Draggodeidad/campusops-dmi-team\",\"Draggodeidad/pwa-utt\"]},\"assignmentTitle\":{\"type\":\"string\",\"minLength\":3,\"maxLength\":240},\"deadline\":{\"type\":[\"string\",\"null\"]},\"issues\":{\"type\":\"array\",\"minItems\":3,\"maxItems\":12,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"key\",\"title\",\"assignee\",\"type\",\"priority\",\"dependsOn\",\"body\",\"expectedFiles\",\"acceptanceCriteria\",\"tests\",\"evidence\"],\"properties\":{\"key\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"},\"title\":{\"type\":\"string\",\"minLength\":8,\"maxLength\":240},\"assignee\":{\"type\":\"string\",\"enum\":[\"Draggodeidad\",\"JulianDele\",\"osbaldoXxC\"]},\"type\":{\"type\":\"string\",\"enum\":[\"feature\",\"test\",\"docs\",\"devops\",\"evidence\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\"]},\"dependsOn\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"}},\"body\":{\"type\":\"string\",\"minLength\":350},\"expectedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"acceptanceCriteria\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"type\":\"string\"}},\"tests\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"evidence\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}}}}}}};\nconst geminiAllowed = new Set([\n  'type', 'title', 'description', 'properties', 'required', 'additionalProperties',\n  'enum', 'format', 'minimum', 'maximum', 'items', 'prefixItems', 'minItems',\n  'maxItems', 'anyOf', '$ref',\n]);\nfunction geminiCompatibleSchema(value) {\n  if (Array.isArray(value)) return value.map(geminiCompatibleSchema);\n  if (!value || typeof value !== 'object') return value;\n  return Object.fromEntries(Object.entries(value)\n    .filter(([key]) => geminiAllowed.has(key))\n    .map(([key, child]) => [key, key === 'properties'\n      ? Object.fromEntries(Object.entries(child).map(([name, property]) => [name, geminiCompatibleSchema(property)]))\n      : geminiCompatibleSchema(child)]));\n}\nconst geminiSchema = geminiCompatibleSchema(outputSchema);\nconst responseBody = (name) => {\n  const value = $(name).item.json;\n  return value.body ?? value;\n};\nconst asArray = (value) => Array.isArray(value) ? value : [];\nconst decode = (value) => {\n  try { return Buffer.from(String(value || '').replace(/\\n/g, ''), 'base64').toString('utf8'); }\n  catch { return ''; }\n};\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\n\nconst repo = responseBody('GitHub - Repository');\nconst recentRaw = asArray(responseBody('GitHub - Recent Issues'));\nconst recentIssues = recentRaw.filter((entry) => !entry.pull_request);\nconst openPrs = asArray(responseBody('GitHub - Open Pull Requests'));\nconst labels = asArray(responseBody('GitHub - Labels'));\nconst searchByMessage = responseBody('GitHub - Search Message ID');\nconst searchByWeek = responseBody('GitHub - Search Course Week');\nconst tree = asArray(responseBody('GitHub - Tree').tree);\nconst readmePayload = responseBody('GitHub - README');\nconst readme = decode(readmePayload.content).slice(0, 12000);\n\nconst matches = [];\nfor (const issue of [\n  ...asArray(searchByMessage.items),\n  ...asArray(searchByWeek.items),\n  ...recentIssues,\n]) {\n  const body = String(issue.body || '');\n  const sameMessage = metadata(body, 'classroom-message-id') === source.gmailMessageId;\n  const sameCourseWeek = metadata(body, 'course') === source.course && metadata(body, 'week') === source.weekPadded;\n  if ((sameMessage || sameCourseWeek) && !matches.some((x) => x.number === issue.number)) matches.push(issue);\n}\n\nconst issueKeys = matches.map((issue) => metadata(issue.body, 'issue-key')).filter(Boolean);\nconst declaredPlanKeys = matches\n  .map((issue) => metadata(issue.body, 'plan-keys'))\n  .filter(Boolean)\n  .flatMap((value) => value.split(',').map((key) => key.trim()).filter(Boolean));\nconst planKeys = [...new Set(declaredPlanKeys)];\nconst completeExisting = matches.length > 0 && (planKeys.length === 0 || planKeys.every((key) => issueKeys.includes(key)));\nconst resumeKeys = matches.length > 0 && !completeExisting ? planKeys : [];\n\nconst tokens = `${source.assignmentTitle} ${source.emailText}`\n  .toLowerCase()\n  .split(/[^a-záéíóúüñ0-9._/-]+/i)\n  .filter((token) => token.length >= 4);\nconst relevantPaths = tree\n  .filter((entry) => entry.type === 'blob' && entry.path && entry.path.length < 180)\n  .map((entry) => entry.path)\n  .filter((path) => /readme|docs?|package\\.json|docker|compose|workflow|src|test|spec|\\.github/i.test(path))\n  .sort((a, b) => {\n    const score = (path) => tokens.reduce((sum, token) => sum + (path.toLowerCase().includes(token) ? 1 : 0), 0);\n    return score(b) - score(a);\n  })\n  .slice(0, 80);\n\nconst compactIssues = recentIssues.slice(0, 40).map((issue) => ({\n  number: issue.number,\n  state: issue.state,\n  title: issue.title,\n  labels: (issue.labels || []).map((label) => label.name || label),\n  assignees: (issue.assignees || []).map((assignee) => assignee.login),\n  createdAt: issue.created_at,\n  closedAt: issue.closed_at,\n  metadata: {\n    messageId: metadata(issue.body, 'classroom-message-id'),\n    course: metadata(issue.body, 'course'),\n    week: metadata(issue.body, 'week'),\n    key: metadata(issue.body, 'issue-key'),\n  },\n}));\n\nconst repoContext = {\n  repository: source.repository,\n  defaultBranch: repo.default_branch,\n  description: repo.description,\n  language: repo.language,\n  topics: repo.topics || [],\n  openIssues: compactIssues.filter((issue) => issue.state === 'open'),\n  recentClosedIssues: compactIssues.filter((issue) => issue.state === 'closed').slice(0, 20),\n  openPullRequests: openPrs.slice(0, 20).map((pr) => ({ number: pr.number, title: pr.title, head: pr.head?.ref, base: pr.base?.ref })),\n  labels: labels.map((label) => label.name),\n  relevantPaths,\n  readme,\n};\n\nconst systemPrompt = `Eres Tech Lead y Project Manager técnico. Devuelve exclusivamente JSON válido conforme al schema. Reglas: (1) course/week/repository coinciden con la entrada; (2) equipo: Draggodeidad, JulianDele, osbaldoXxC; (3) Draggodeidad recibe bootstrap sin dependencias y además al menos una implementación técnica sustancial que no sea sólo docs/evidencia/integración; (4) tras bootstrap Julian y Osbaldo trabajan en paralelo, sin cadenas cruzadas; (5) sus Issues explican qué hacer, dónde, archivos probables, qué no tocar, resultado, pruebas y evidencia, sin escribirles toda la solución; (6) keys estables kebab-case y dependsOn usa sólo keys; (7) no inventes evidencia, resultados, SHA, tags ni archivos confirmados; (8) si resumeKeys existe usa exactamente esas keys; (9) títulos [COURSE][WNN]. Cada body incluye exactamente y en orden: ## Historia de Usuario, ## Contexto, ## Objetivo técnico, ## Alcance, ## Fuera de alcance, ## Archivos esperados, ## Pasos sugeridos, ## Criterios de aceptación, ## Pruebas, ## Dependencias, ## Evidencia individual, ## Definition of Done. Definition of Done termina con checks de implementación, criterios, tests, evidencia y PR. No añadas metadata HTML.`;\nconst userPrompt = JSON.stringify({\n  assignment: {\n    course: source.course,\n    week: source.week,\n    repository: source.repository,\n    title: source.assignmentTitle,\n    email: source.emailText,\n  },\n  resumeKeys,\n  repositoryContext: repoContext,\n});\n\nreturn [{\n  json: {\n    ...source,\n    repoContext,\n    existingAutomationIssues: matches.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body })),\n    completeExisting,\n    resumeKeys,\n    schema: outputSchema,\n    geminiSchema,\n    systemPrompt,\n    userPrompt,\n  },\n}];"
+        "jsCode": "const source = $('Activity Context').item.json;\nconst outputSchema = {\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://local.example/schemas/classroom-issue-plan.schema.json\",\"title\":\"ClassroomIssuePlan\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"course\",\"week\",\"repository\",\"assignmentTitle\",\"deadline\",\"source\",\"issues\"],\"properties\":{\"course\":{\"type\":\"string\",\"enum\":[\"DMI\",\"PWA\"]},\"week\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":99},\"repository\":{\"type\":\"string\",\"enum\":[\"Draggodeidad/campusops-dmi-team\",\"Draggodeidad/pwa-utt\"]},\"assignmentTitle\":{\"type\":\"string\",\"minLength\":3,\"maxLength\":240},\"deadline\":{\"type\":[\"string\",\"null\"]},\"source\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"courseId\",\"courseWorkId\",\"updateTime\",\"starterName\"],\"properties\":{\"courseId\":{\"type\":\"string\",\"minLength\":1},\"courseWorkId\":{\"type\":\"string\",\"minLength\":1},\"updateTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"starterName\":{\"type\":[\"string\",\"null\"]}}},\"issues\":{\"type\":\"array\",\"minItems\":3,\"maxItems\":12,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"key\",\"title\",\"assignee\",\"type\",\"priority\",\"dependsOn\",\"body\",\"expectedFiles\",\"acceptanceCriteria\",\"tests\",\"evidence\"],\"properties\":{\"key\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"},\"title\":{\"type\":\"string\",\"minLength\":8,\"maxLength\":240},\"assignee\":{\"type\":\"string\",\"enum\":[\"Draggodeidad\",\"JulianDele\",\"osbaldoXxC\"]},\"type\":{\"type\":\"string\",\"enum\":[\"feature\",\"test\",\"docs\",\"devops\",\"evidence\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\"]},\"dependsOn\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"}},\"body\":{\"type\":\"string\",\"minLength\":350},\"expectedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"acceptanceCriteria\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"type\":\"string\"}},\"tests\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"evidence\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}}}}}}};\nconst geminiAllowed = new Set([\n  'type', 'title', 'description', 'properties', 'required', 'additionalProperties',\n  'enum', 'format', 'minimum', 'maximum', 'items', 'prefixItems', 'minItems',\n  'maxItems', 'anyOf', '$ref',\n]);\nfunction geminiCompatibleSchema(value) {\n  if (Array.isArray(value)) return value.map(geminiCompatibleSchema);\n  if (!value || typeof value !== 'object') return value;\n  return Object.fromEntries(Object.entries(value)\n    .filter(([key]) => geminiAllowed.has(key))\n    .map(([key, child]) => [key, key === 'properties'\n      ? Object.fromEntries(Object.entries(child).map(([name, property]) => [name, geminiCompatibleSchema(property)]))\n      : geminiCompatibleSchema(child)]));\n}\nconst responseBody = (name) => {\n  const value = $(name).item.json;\n  return value.body ?? value;\n};\nconst asArray = (value) => Array.isArray(value) ? value : [];\nconst decode = (value) => {\n  try { return Buffer.from(String(value || '').replace(/\\n/g, ''), 'base64').toString('utf8'); }\n  catch { return ''; }\n};\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\n\nconst repo = responseBody('GitHub - Repository');\nconst recentIssues = asArray(responseBody('GitHub - Recent Issues')).filter((entry) => !entry.pull_request);\nconst openPrs = asArray(responseBody('GitHub - Open Pull Requests'));\nconst labels = asArray(responseBody('GitHub - Labels'));\nconst searchByCourseWork = responseBody('GitHub - Search CourseWork ID');\nconst searchByWeek = responseBody('GitHub - Search Course Week');\nconst tree = asArray(responseBody('GitHub - Tree').tree);\nconst readme = decode(responseBody('GitHub - README').content).slice(0, 12000);\n\nconst matches = [];\nfor (const issue of [...asArray(searchByCourseWork.items), ...asArray(searchByWeek.items), ...recentIssues]) {\n  const body = String(issue.body || '');\n  const sameCourseWork = metadata(body, 'classroom-coursework-id') === source.courseWorkId && metadata(body, 'classroom-course-id') === source.courseId;\n  const sameCourseWeek = metadata(body, 'course') === source.course && metadata(body, 'week') === source.weekPadded;\n  if ((sameCourseWork || sameCourseWeek) && !matches.some((item) => item.number === issue.number)) matches.push(issue);\n}\nconst sameIdentity = matches.filter((issue) =>\n  metadata(issue.body, 'classroom-coursework-id') === source.courseWorkId &&\n  metadata(issue.body, 'classroom-course-id') === source.courseId);\nconst identityConflict = matches.some((issue) =>\n  metadata(issue.body, 'classroom-coursework-id') !== source.courseWorkId);\nconst storedUpdateTimes = sameIdentity.map((issue) => metadata(issue.body, 'classroom-update-time')).filter(Boolean);\nconst newestStoredUpdate = storedUpdateTimes.sort().at(-1) || null;\nconst courseworkUpdated = Boolean(newestStoredUpdate && Date.parse(source.updateTime) > Date.parse(newestStoredUpdate));\n\nconst issueKeys = sameIdentity.map((issue) => metadata(issue.body, 'issue-key')).filter(Boolean);\nconst planKeys = [...new Set(sameIdentity\n  .map((issue) => metadata(issue.body, 'plan-keys'))\n  .filter(Boolean)\n  .flatMap((value) => value.split(',').map((key) => key.trim()).filter(Boolean)))];\nconst unrecoverablePartialState = sameIdentity.length > 0 && planKeys.length === 0;\nconst completeExisting = sameIdentity.length > 0 && !courseworkUpdated && planKeys.length > 0 && planKeys.every((key) => issueKeys.includes(key));\nconst resumeKeys = sameIdentity.length > 0 && !completeExisting && !courseworkUpdated ? planKeys : [];\n\nconst starterPaths = source.starter?.files || [];\nconst repositoryPaths = tree.filter((entry) => entry.type === 'blob').map((entry) => entry.path);\nconst repositoryPathSet = new Set(repositoryPaths.map((path) => path.toLowerCase()));\nconst overlapping = starterPaths.filter((path) => repositoryPathSet.has(path.toLowerCase()));\nconst newPaths = starterPaths.filter((path) => !repositoryPathSet.has(path.toLowerCase()));\nsource.starter.potentialConflicts = overlapping.slice(0, 80);\n\nconst tokens = `${source.assignmentTitle} ${source.description} ${starterPaths.join(' ')}`\n  .toLowerCase().split(/[^a-záéíóúüñ0-9._/-]+/i).filter((token) => token.length >= 4);\nconst relevantPaths = repositoryPaths\n  .filter((path) => path.length < 180 && /readme|docs?|package\\.json|docker|compose|workflow|src|test|spec|\\.github/i.test(path))\n  .sort((a, b) => {\n    const score = (path) => tokens.reduce((sum, token) => sum + (path.toLowerCase().includes(token) ? 1 : 0), 0);\n    return score(b) - score(a);\n  }).slice(0, 80);\n\nconst compactIssues = recentIssues.slice(0, 40).map((issue) => ({\n  number: issue.number, state: issue.state, title: issue.title,\n  labels: (issue.labels || []).map((label) => label.name || label),\n  assignees: (issue.assignees || []).map((assignee) => assignee.login),\n  createdAt: issue.created_at, closedAt: issue.closed_at,\n  metadata: {\n    courseId: metadata(issue.body, 'classroom-course-id'),\n    courseWorkId: metadata(issue.body, 'classroom-coursework-id'),\n    updateTime: metadata(issue.body, 'classroom-update-time'),\n    course: metadata(issue.body, 'course'), week: metadata(issue.body, 'week'), key: metadata(issue.body, 'issue-key'),\n  },\n}));\nconst repoContext = {\n  repository: source.repository,\n  defaultBranch: repo.default_branch,\n  description: repo.description,\n  language: repo.language,\n  topics: repo.topics || [],\n  openIssues: compactIssues.filter((issue) => issue.state === 'open'),\n  recentClosedIssues: compactIssues.filter((issue) => issue.state === 'closed').slice(0, 20),\n  openPullRequests: openPrs.slice(0, 20).map((pr) => ({ number: pr.number, title: pr.title, head: pr.head?.ref, base: pr.base?.ref })),\n  labels: labels.map((label) => label.name), relevantPaths, readme,\n  starterComparison: { overlappingPaths: overlapping.slice(0, 80), newPaths: newPaths.slice(0, 80) },\n};\n\nconst systemPrompt = `Eres Tech Lead y Project Manager técnico. Devuelve sólo JSON conforme al schema. Usa CourseWork, starter real y repositorio; no inventes. Si starter.found=true, crea una Foundation inicial para Draggodeidad titulada exactamente [${source.course}][W${source.weekPadded}] Integrar ${source.starter.name} y establecer baseline semanal, sin dependencias y basada en archivos/comandos/criterios reales del starter. Draggodeidad recibe además implementación técnica sustancial. JulianDele y osbaldoXxC trabajan mayormente en paralelo y reciben especificaciones guiadas. Keys estables; dependencias sólo por key; no inventes evidencia. Cada body usa en orden: ## Historia de Usuario, ## Contexto, ## Objetivo técnico, ## Alcance, ## Fuera de alcance, ## Archivos esperados, ## Pasos sugeridos, ## Criterios de aceptación, ## Pruebas, ## Dependencias, ## Evidencia individual, ## Definition of Done. No añadas metadata HTML.`;\nconst userPrompt = JSON.stringify({\n  coursework: {\n    course: source.course, week: source.week, courseId: source.courseId, courseWorkId: source.courseWorkId,\n    title: source.assignmentTitle, description: source.description, deadline: source.dueAt,\n    updateTime: source.updateTime, alternateLink: source.alternateLink, maxPoints: source.maxPoints, workType: source.workType,\n    materials: source.materialInventory,\n  },\n  starter: source.starter,\n  repository: repoContext,\n  resumeKeys,\n});\n\nreturn [{ json: {\n  ...source, repoContext,\n  existingAutomationIssues: sameIdentity.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body })),\n  completeExisting, resumeKeys, courseworkUpdated, identityConflict: identityConflict || unrecoverablePartialState, newestStoredUpdate,\n  schema: outputSchema, geminiSchema: geminiCompatibleSchema(outputSchema), systemPrompt, userPrompt,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
-        80
+        4440,
+        -80
       ],
-      "id": "00000000-0000-4000-8000-000000000014",
+      "id": "00000000-0000-4000-8000-000000000045",
       "name": "Build Context & Dedup"
     },
     {
@@ -437,7 +940,112 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000015",
+              "id": "00000000-0000-4000-8000-000000000046",
+              "leftValue": "={{ $json.courseworkUpdated || $json.identityConflict }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4660,
+        -80
+      ],
+      "id": "00000000-0000-4000-8000-000000000047",
+      "name": "Needs Manual Review?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const reason=$json.courseworkUpdated?'CourseWork actualizado después de crear Issues':'otra identidad CourseWork ya usa la misma materia/semana'; return [{json:{...$json,executionResult:'coursework_updated',notificationSubject:`⚠️ Revisión manual ${$json.course} W${$json.weekPadded}`,notificationBody:`⚠️ No se modificó GitHub\\n\\nCourseWork: ${$json.courseWorkId}\\nRazón: ${reason}\\nUpdateTime actual: ${$json.updateTime}\\nUpdateTime almacenado: ${$json.newestStoredUpdate || 'n/a'}\\n\\nRevisa cambios antes de reconciliar.`}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4880,
+        -240
+      ],
+      "id": "00000000-0000-4000-8000-000000000048",
+      "name": "Build Manual Review Alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000049",
+              "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5100,
+        -240
+      ],
+      "id": "00000000-0000-4000-8000-000000000050",
+      "name": "Notify Manual Review?"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+        "subject": "={{ $json.notificationSubject }}",
+        "message": "={{ $json.notificationBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        5320,
+        -280
+      ],
+      "id": "00000000-0000-4000-8000-000000000051",
+      "name": "Gmail - Send Manual Review Alert",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail notifications (optional)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000052",
               "leftValue": "={{ $json.completeExisting }}",
               "rightValue": "",
               "operator": {
@@ -454,29 +1062,43 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        440,
-        80
+        4880,
+        20
       ],
-      "id": "00000000-0000-4000-8000-000000000016",
+      "id": "00000000-0000-4000-8000-000000000053",
       "name": "Existing Set Complete?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst numbers = data.existingAutomationIssues.map((issue) => `#${issue.number} ${issue.title}`).join('\\n');\nreturn [{\n  json: {\n    ...data,\n    notificationSubject: `✅ ${data.course} Semana ${data.weekPadded} ya estaba completa`,\n    notificationBody: `✅ ${data.course} W${data.weekPadded} ya estaba completa\\n\\nCourseWork ID: ${data.courseWorkId}\\nRepositorio: ${data.repository}\\nActividad: ${data.assignmentTitle}\\nStarter: ${data.starter?.name || 'sin ZIP'}\\n\\nEl conjunto ya existía en GitHub y no se duplicó.\\n\\n${numbers}`,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5100,
+        -20
+      ],
+      "id": "00000000-0000-4000-8000-000000000054",
+      "name": "Build Reconcile Summary"
     },
     {
       "parameters": {
         "conditions": {
           "options": {
-            "caseSensitive": false,
+            "caseSensitive": true,
             "leftValue": "",
             "typeValidation": "strict",
             "version": 2
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000017",
-              "leftValue": "={{ $json.automationMode }}",
-              "rightValue": "live",
+              "id": "00000000-0000-4000-8000-000000000055",
+              "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
+              "rightValue": "",
               "operator": {
-                "type": "string",
-                "operation": "equals"
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -487,59 +1109,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        660,
-        -140
+        5320,
+        -20
       ],
-      "id": "00000000-0000-4000-8000-000000000018",
-      "name": "Existing Reconcile Live?"
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{ json: { mode: 'dry-run', mutationsPerformed: false, duplicateDetected: true, course: $json.course, week: $json.week, repository: $json.repository, existingIssues: $json.existingAutomationIssues, note: 'El conjunto ya existe; no se modificó GitHub ni Gmail.' } }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        880,
-        -40
-      ],
-      "id": "00000000-0000-4000-8000-000000000019",
-      "name": "Existing Dry-Run Summary"
-    },
-    {
-      "parameters": {
-        "operation": "addLabels",
-        "messageId": "={{ $('Parse and Route').item.json.gmailMessageId }}",
-        "labelNames": [
-          "Automation/Classroom/Processed"
-        ]
-      },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [
-        880,
-        -240
-      ],
-      "id": "00000000-0000-4000-8000-000000000020",
-      "name": "Gmail - Mark Existing Processed",
-      "credentials": {
-        "gmailOAuth2": {
-          "name": "Gmail account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const data = $json;\nconst numbers = data.existingAutomationIssues.map((issue) => `#${issue.number} ${issue.title}`).join('\\n');\nreturn [{\n  json: {\n    ...data,\n    notificationSubject: `✅ ${data.course} Semana ${data.weekPadded} ya estaba completa`,\n    notificationBody: `✅ Semana ${data.weekPadded} reconciliada\\n\\nMateria: ${data.course}\\nRepositorio: ${data.repository}\\nActividad: ${data.assignmentTitle}\\n\\nEl conjunto ya existía en GitHub y no se duplicó.\\n\\n${numbers}\\n\\nEl correo fue marcado como procesado.`,\n  },\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1100,
-        -240
-      ],
-      "id": "00000000-0000-4000-8000-000000000021",
-      "name": "Build Reconcile Summary"
+      "id": "00000000-0000-4000-8000-000000000056",
+      "name": "Notify Reconcile?"
     },
     {
       "parameters": {
@@ -554,14 +1128,14 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        1320,
-        -240
+        5540,
+        -60
       ],
-      "id": "00000000-0000-4000-8000-000000000022",
+      "id": "00000000-0000-4000-8000-000000000057",
       "name": "Gmail - Send Reconcile Summary",
       "credentials": {
         "gmailOAuth2": {
-          "name": "Gmail account"
+          "name": "Gmail notifications (optional)"
         }
       }
     },
@@ -576,7 +1150,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000023",
+              "id": "00000000-0000-4000-8000-000000000058",
               "leftValue": "={{ $json.aiProvider }}",
               "rightValue": "gemini",
               "operator": {
@@ -592,10 +1166,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        660,
-        180
+        5100,
+        160
       ],
-      "id": "00000000-0000-4000-8000-000000000024",
+      "id": "00000000-0000-4000-8000-000000000059",
       "name": "AI Provider Gemini?"
     },
     {
@@ -628,10 +1202,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        880,
+        5320,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000025",
+      "id": "00000000-0000-4000-8000-000000000060",
       "name": "Gemini - Plan",
       "credentials": {
         "httpHeaderAuth": {
@@ -667,10 +1241,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        880,
-        280
+        5320,
+        240
       ],
-      "id": "00000000-0000-4000-8000-000000000026",
+      "id": "00000000-0000-4000-8000-000000000061",
       "name": "Ollama - Plan"
     },
     {
@@ -680,23 +1254,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
-        180
+        5540,
+        160
       ],
-      "id": "00000000-0000-4000-8000-000000000027",
+      "id": "00000000-0000-4000-8000-000000000062",
       "name": "Normalize AI Response"
     },
     {
       "parameters": {
-        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
+        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (plan.source?.courseId !== $json.courseId) errors.push('source.courseId no coincide con la entrada');\n  if (plan.source?.courseWorkId !== $json.courseWorkId) errors.push('source.courseWorkId no coincide con la entrada');\n  if (plan.source?.updateTime !== $json.updateTime) errors.push('source.updateTime no coincide con la entrada');\n  if ((plan.source?.starterName ?? null) !== ($json.starter?.name ?? null)) errors.push('source.starterName no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.starter?.found) {\n    const expectedTitle = `[${$json.course}][W${$json.weekPadded}] Integrar ${$json.starter.name} y establecer baseline semanal`;\n    const foundation = (plan.issues || []).find((issue) => issue.title === expectedTitle && issue.assignee === 'Draggodeidad' && issue.dependsOn?.length === 0);\n    if (!foundation) errors.push(`falta Foundation exacta: ${expectedTitle}`);\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1320,
-        180
+        5760,
+        160
       ],
-      "id": "00000000-0000-4000-8000-000000000028",
+      "id": "00000000-0000-4000-8000-000000000063",
       "name": "Validate Plan"
     },
     {
@@ -710,7 +1284,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000029",
+              "id": "00000000-0000-4000-8000-000000000064",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -727,10 +1301,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1540,
-        180
+        5980,
+        160
       ],
-      "id": "00000000-0000-4000-8000-000000000030",
+      "id": "00000000-0000-4000-8000-000000000065",
       "name": "Plan Valid?"
     },
     {
@@ -744,7 +1318,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000031",
+              "id": "00000000-0000-4000-8000-000000000066",
               "leftValue": "={{ $json.aiProvider }}",
               "rightValue": "gemini",
               "operator": {
@@ -760,10 +1334,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1760,
-        340
+        6200,
+        300
       ],
-      "id": "00000000-0000-4000-8000-000000000032",
+      "id": "00000000-0000-4000-8000-000000000067",
       "name": "Retry with Gemini?"
     },
     {
@@ -796,10 +1370,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1980,
-        280
+        6420,
+        240
       ],
-      "id": "00000000-0000-4000-8000-000000000033",
+      "id": "00000000-0000-4000-8000-000000000068",
       "name": "Gemini - Repair Once",
       "credentials": {
         "httpHeaderAuth": {
@@ -835,10 +1409,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1980,
-        420
+        6420,
+        380
       ],
-      "id": "00000000-0000-4000-8000-000000000034",
+      "id": "00000000-0000-4000-8000-000000000069",
       "name": "Ollama - Repair Once"
     },
     {
@@ -848,23 +1422,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2200,
-        340
+        6640,
+        300
       ],
-      "id": "00000000-0000-4000-8000-000000000035",
+      "id": "00000000-0000-4000-8000-000000000070",
       "name": "Normalize Repair Response"
     },
     {
       "parameters": {
-        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
+        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (plan.source?.courseId !== $json.courseId) errors.push('source.courseId no coincide con la entrada');\n  if (plan.source?.courseWorkId !== $json.courseWorkId) errors.push('source.courseWorkId no coincide con la entrada');\n  if (plan.source?.updateTime !== $json.updateTime) errors.push('source.updateTime no coincide con la entrada');\n  if ((plan.source?.starterName ?? null) !== ($json.starter?.name ?? null)) errors.push('source.starterName no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.starter?.found) {\n    const expectedTitle = `[${$json.course}][W${$json.weekPadded}] Integrar ${$json.starter.name} y establecer baseline semanal`;\n    const foundation = (plan.issues || []).find((issue) => issue.title === expectedTitle && issue.assignee === 'Draggodeidad' && issue.dependsOn?.length === 0);\n    if (!foundation) errors.push(`falta Foundation exacta: ${expectedTitle}`);\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2420,
-        340
+        6860,
+        300
       ],
-      "id": "00000000-0000-4000-8000-000000000036",
+      "id": "00000000-0000-4000-8000-000000000071",
       "name": "Validate Repaired Plan"
     },
     {
@@ -878,7 +1452,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000037",
+              "id": "00000000-0000-4000-8000-000000000072",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -895,36 +1469,36 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2640,
-        340
+        7080,
+        300
       ],
-      "id": "00000000-0000-4000-8000-000000000038",
+      "id": "00000000-0000-4000-8000-000000000073",
       "name": "Repaired Plan Valid?"
     },
     {
       "parameters": {
-        "jsCode": "throw new Error('LLM devolvió JSON inválido después de un reintento: ' + ($json.validationErrors || []).join('; ') + '. GitHub y Gmail no fueron modificados.');"
+        "jsCode": "throw new Error('LLM devolvió JSON inválido después de un reintento: ' + ($json.validationErrors || []).join('; ') + '. GitHub no fue modificado.');"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2860,
-        460
+        7300,
+        440
       ],
-      "id": "00000000-0000-4000-8000-000000000039",
+      "id": "00000000-0000-4000-8000-000000000074",
       "name": "Fail Closed - Invalid Plan"
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nconst plan = structuredClone(data.plan);\nconst issues = plan.issues;\nconst byKey = new Map(issues.map((issue) => [issue.key, issue]));\nconst indegree = new Map(issues.map((issue) => [issue.key, 0]));\nconst outgoing = new Map(issues.map((issue) => [issue.key, []]));\n\nfor (const issue of issues) {\n  for (const dependency of issue.dependsOn) {\n    indegree.set(issue.key, indegree.get(issue.key) + 1);\n    outgoing.get(dependency).push(issue.key);\n  }\n}\n\nconst queue = issues.filter((issue) => indegree.get(issue.key) === 0).map((issue) => issue.key);\nconst ordered = [];\nwhile (queue.length) {\n  const key = queue.shift();\n  ordered.push(byKey.get(key));\n  for (const next of outgoing.get(key)) {\n    indegree.set(next, indegree.get(next) - 1);\n    if (indegree.get(next) === 0) queue.push(next);\n  }\n}\nif (ordered.length !== issues.length) throw new Error('Plan rechazado: existen dependencias circulares. No se modificó GitHub.');\n\nconst bootstrap = ordered.find((issue) => issue.assignee === 'Draggodeidad' && issue.dependsOn.length === 0 && /bootstrap|baseline|inicio|starter/i.test(`${issue.key} ${issue.title} ${issue.body}`));\nif (!bootstrap) throw new Error('Plan rechazado: falta bootstrap/baseline sin dependencias para Draggodeidad.');\n\nconst substantial = issues.find((issue) =>\n  issue.assignee === 'Draggodeidad' &&\n  ['feature', 'devops', 'test'].includes(issue.type) &&\n  issue.key !== bootstrap.key &&\n  (issue.expectedFiles || []).length > 0 &&\n  /c[oó]digo|l[oó]gica|configuraci[oó]n|ci\\/cd|pipeline|arquitectura|implement|test/i.test(`${issue.title} ${issue.body}`)\n);\nif (!substantial) throw new Error('Plan rechazado: Draggodeidad no tiene implementación técnica sustancial independiente del bootstrap.');\n\nconst julian = issues.filter((issue) => issue.assignee === 'JulianDele');\nconst osbaldo = issues.filter((issue) => issue.assignee === 'osbaldoXxC');\nif (!julian.length || !osbaldo.length) throw new Error('Plan rechazado: JulianDele y osbaldoXxC deben tener trabajo explícito.');\nconst julianKeys = new Set(julian.map((issue) => issue.key));\nconst osbaldoKeys = new Set(osbaldo.map((issue) => issue.key));\nfor (const issue of julian) {\n  if (issue.dependsOn.some((key) => osbaldoKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Osbaldo → Julian.`);\n}\nfor (const issue of osbaldo) {\n  if (issue.dependsOn.some((key) => julianKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Julian → Osbaldo.`);\n}\n\nconst planKeys = ordered.map((issue) => issue.key);\nconst desiredLabels = [...new Set([\n  data.course,\n  `week-${data.weekPadded}`,\n  ...ordered.flatMap((issue) => [`type:${issue.type}`, `priority:${issue.priority}`]),\n])];\nconst existingLabels = new Set(data.repoContext.labels || []);\nconst missingLabels = desiredLabels.filter((label) => !existingLabels.has(label));\n\nreturn [{\n  json: {\n    ...data,\n    plan: { ...plan, issues: ordered },\n    planKeys,\n    desiredLabels,\n    missingLabels,\n    bootstrapKey: bootstrap.key,\n    substantialDraggodeidadKey: substantial.key,\n  },\n}];"
+        "jsCode": "const data = $json;\nconst plan = structuredClone(data.plan);\nconst issues = plan.issues;\nconst byKey = new Map(issues.map((issue) => [issue.key, issue]));\nconst indegree = new Map(issues.map((issue) => [issue.key, 0]));\nconst outgoing = new Map(issues.map((issue) => [issue.key, []]));\n\nfor (const issue of issues) {\n  for (const dependency of issue.dependsOn) {\n    indegree.set(issue.key, indegree.get(issue.key) + 1);\n    outgoing.get(dependency).push(issue.key);\n  }\n}\n\nconst queue = issues.filter((issue) => indegree.get(issue.key) === 0).map((issue) => issue.key);\nconst ordered = [];\nwhile (queue.length) {\n  const key = queue.shift();\n  ordered.push(byKey.get(key));\n  for (const next of outgoing.get(key)) {\n    indegree.set(next, indegree.get(next) - 1);\n    if (indegree.get(next) === 0) queue.push(next);\n  }\n}\nif (ordered.length !== issues.length) throw new Error('Plan rechazado: existen dependencias circulares. No se modificó GitHub.');\n\nconst bootstrap = ordered.find((issue) => issue.assignee === 'Draggodeidad' && issue.dependsOn.length === 0 && /bootstrap|baseline|inicio|starter|integrar/i.test(`${issue.key} ${issue.title} ${issue.body}`));\nif (data.starter?.found && !bootstrap) throw new Error('Plan rechazado: falta Foundation/baseline sin dependencias para Draggodeidad.');\n\nconst substantial = issues.find((issue) =>\n  issue.assignee === 'Draggodeidad' &&\n  ['feature', 'devops', 'test'].includes(issue.type) &&\n  issue.key !== bootstrap?.key &&\n  (issue.expectedFiles || []).length > 0 &&\n  /c[oó]digo|l[oó]gica|configuraci[oó]n|ci\\/cd|pipeline|arquitectura|implement|test/i.test(`${issue.title} ${issue.body}`)\n);\nif (!substantial) throw new Error('Plan rechazado: Draggodeidad no tiene implementación técnica sustancial independiente del bootstrap.');\n\nconst julian = issues.filter((issue) => issue.assignee === 'JulianDele');\nconst osbaldo = issues.filter((issue) => issue.assignee === 'osbaldoXxC');\nif (!julian.length || !osbaldo.length) throw new Error('Plan rechazado: JulianDele y osbaldoXxC deben tener trabajo explícito.');\nconst julianKeys = new Set(julian.map((issue) => issue.key));\nconst osbaldoKeys = new Set(osbaldo.map((issue) => issue.key));\nfor (const issue of julian) {\n  if (issue.dependsOn.some((key) => osbaldoKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Osbaldo → Julian.`);\n}\nfor (const issue of osbaldo) {\n  if (issue.dependsOn.some((key) => julianKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Julian → Osbaldo.`);\n}\n\nconst planKeys = ordered.map((issue) => issue.key);\nconst desiredLabels = [...new Set([\n  data.course,\n  `week-${data.weekPadded}`,\n  ...ordered.flatMap((issue) => [`type:${issue.type}`, `priority:${issue.priority}`]),\n])];\nconst existingLabels = new Set(data.repoContext.labels || []);\nconst missingLabels = desiredLabels.filter((label) => !existingLabels.has(label));\n\nreturn [{\n  json: {\n    ...data,\n    plan: { ...plan, issues: ordered },\n    planKeys,\n    desiredLabels,\n    missingLabels,\n    bootstrapKey: bootstrap?.key || null,\n    substantialDraggodeidadKey: substantial.key,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2860,
+        7300,
         120
       ],
-      "id": "00000000-0000-4000-8000-000000000040",
+      "id": "00000000-0000-4000-8000-000000000075",
       "name": "Plan and Topological Sort"
     },
     {
@@ -938,7 +1512,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000041",
+              "id": "00000000-0000-4000-8000-000000000076",
               "leftValue": "={{ $json.automationMode }}",
               "rightValue": "dry-run",
               "operator": {
@@ -954,23 +1528,23 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3080,
+        7520,
         120
       ],
-      "id": "00000000-0000-4000-8000-000000000042",
+      "id": "00000000-0000-4000-8000-000000000077",
       "name": "Dry Run?"
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nconst preview = data.plan.issues.map((issue, index) => ({\n  order: index + 1,\n  key: issue.key,\n  title: issue.title,\n  assignee: issue.assignee,\n  labels: [data.course, `week-${data.weekPadded}`, `type:${issue.type}`, `priority:${issue.priority}`],\n  dependsOn: issue.dependsOn,\n  body: `${issue.body.trim()}\\n\\n<!-- automation:classroom -->\\n<!-- classroom-message-id:${data.gmailMessageId} -->\\n<!-- course:${data.course} -->\\n<!-- week:${data.weekPadded} -->\\n<!-- issue-key:${issue.key} -->\\n<!-- plan-keys:${data.planKeys.join(',')} -->`,\n}));\nreturn [{\n  json: {\n    mode: 'dry-run',\n    mutationsPerformed: false,\n    gmailMessageId: data.gmailMessageId,\n    course: data.course,\n    week: data.week,\n    repository: data.repository,\n    assignmentTitle: data.plan.assignmentTitle,\n    deadline: data.plan.deadline,\n    missingLabelsThatWouldBeCreated: data.missingLabels,\n    issuesThatWouldBeCreated: preview,\n    note: 'No se crearon Issues, no se crearon labels y Gmail no fue modificado.',\n  },\n}];"
+        "jsCode": "const data = $json;\nconst preview = data.plan.issues.map((issue, index) => ({\n  order: index + 1,\n  key: issue.key,\n  title: issue.title,\n  assignee: issue.assignee,\n  labels: [data.course, `week-${data.weekPadded}`, `type:${issue.type}`, `priority:${issue.priority}`],\n  dependsOn: issue.dependsOn,\n  body: `${issue.body.trim()}\\n\\n<!-- automation:classroom -->\\n<!-- classroom-course-id:${data.courseId} -->\\n<!-- classroom-coursework-id:${data.courseWorkId} -->\\n<!-- classroom-update-time:${data.updateTime} -->\\n<!-- course:${data.course} -->\\n<!-- week:${data.weekPadded} -->\\n<!-- issue-key:${issue.key} -->\\n<!-- starter:${data.starter?.name || 'none'} -->\\n<!-- plan-keys:${data.planKeys.join(',')} -->`,\n}));\nreturn [{\n  json: {\n    mode: 'dry-run',\n    mutationsPerformed: false,\n    courseId: data.courseId,\n    courseWorkId: data.courseWorkId,\n    updateTime: data.updateTime,\n    starter: { found: data.starter?.found, name: data.starter?.name || null, fileCount: data.starter?.fileCount || 0 },\n    course: data.course,\n    week: data.week,\n    repository: data.repository,\n    assignmentTitle: data.plan.assignmentTitle,\n    deadline: data.plan.deadline,\n    missingLabelsThatWouldBeCreated: data.missingLabels,\n    issuesThatWouldBeCreated: preview,\n    note: 'No se crearon Issues ni labels; Classroom y Drive se consultaron en modo de sólo lectura.',\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3300,
+        7740,
         20
       ],
-      "id": "00000000-0000-4000-8000-000000000043",
+      "id": "00000000-0000-4000-8000-000000000078",
       "name": "Exact Dry-Run Preview"
     },
     {
@@ -984,7 +1558,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000044",
+              "id": "00000000-0000-4000-8000-000000000079",
               "leftValue": "={{ $json.missingLabels.length > 0 }}",
               "rightValue": "",
               "operator": {
@@ -1001,10 +1575,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3300,
+        7740,
         200
       ],
-      "id": "00000000-0000-4000-8000-000000000045",
+      "id": "00000000-0000-4000-8000-000000000080",
       "name": "Missing Labels?"
     },
     {
@@ -1014,10 +1588,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3520,
+        7960,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000046",
+      "id": "00000000-0000-4000-8000-000000000081",
       "name": "Prepare Missing Labels"
     },
     {
@@ -1054,10 +1628,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3740,
+        8180,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000047",
+      "id": "00000000-0000-4000-8000-000000000082",
       "name": "GitHub - Create Missing Label",
       "credentials": {
         "githubApi": {
@@ -1072,23 +1646,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3960,
+        8400,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000048",
+      "id": "00000000-0000-4000-8000-000000000083",
       "name": "Continue After Labels"
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst runKey = `${data.gmailMessageId}:${data.course}:${data.weekPadded}`;\nconst staticData = $getWorkflowStaticData('global');\nstaticData.classroomRuns ||= {};\nconst numbers = {};\nfor (const issue of data.existingAutomationIssues || []) {\n  const key = metadata(issue.body, 'issue-key');\n  if (key) numbers[key] = issue.number;\n}\nstaticData.classroomRuns[runKey] = {\n  messageId: data.gmailMessageId,\n  course: data.course,\n  week: data.weekPadded,\n  repository: data.repository,\n  planKeys: data.planKeys,\n  numbers,\n  updatedAt: new Date().toISOString(),\n};\n\nreturn data.plan.issues.map((issue, index) => ({\n  json: {\n    runKey,\n    index,\n    repository: data.repository,\n    gmailMessageId: data.gmailMessageId,\n    course: data.course,\n    weekPadded: data.weekPadded,\n    planKeys: data.planKeys,\n    issue,\n  },\n}));"
+        "jsCode": "const data = $json;\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst runKey = `${data.courseId}:${data.courseWorkId}`;\nconst staticData = $getWorkflowStaticData('global');\nstaticData.classroomRuns ||= {};\nconst numbers = {};\nfor (const issue of data.existingAutomationIssues || []) {\n  const key = metadata(issue.body, 'issue-key');\n  if (key) numbers[key] = issue.number;\n}\nstaticData.classroomRuns[runKey] = {\n  courseId: data.courseId,\n  courseWorkId: data.courseWorkId,\n  course: data.course,\n  week: data.weekPadded,\n  repository: data.repository,\n  planKeys: data.planKeys,\n  numbers,\n  updatedAt: new Date().toISOString(),\n};\n\nreturn data.plan.issues.map((issue, index) => ({\n  json: {\n    runKey,\n    index,\n    repository: data.repository,\n    courseId: data.courseId,\n    courseWorkId: data.courseWorkId,\n    updateTime: data.updateTime,\n    starterName: data.starter?.name || null,\n    course: data.course,\n    weekPadded: data.weekPadded,\n    planKeys: data.planKeys,\n    issue,\n  },\n}));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4180,
+        8620,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000049",
+      "id": "00000000-0000-4000-8000-000000000084",
       "name": "Prepare Issue Queue"
     },
     {
@@ -1099,23 +1673,23 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        4400,
+        8840,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000050",
+      "id": "00000000-0000-4000-8000-000000000085",
       "name": "Loop Issues Sequentially"
     },
     {
       "parameters": {
-        "jsCode": "const item = $json;\nconst staticData = $getWorkflowStaticData('global');\nconst state = staticData.classroomRuns?.[item.runKey];\nif (!state) throw new Error(`No existe estado de ejecución para ${item.runKey}`);\nconst issue = item.issue;\nconst existingNumber = state.numbers[issue.key];\nconst missingDependencies = issue.dependsOn.filter((key) => !state.numbers[key]);\nif (missingDependencies.length) throw new Error(`No se resolvieron dependencias de ${issue.key}: ${missingDependencies.join(', ')}`);\nconst dependencyLines = issue.dependsOn.length\n  ? issue.dependsOn.map((key) => `- #${state.numbers[key]} (${key})`).join('\\n')\n  : '- Ninguna.';\nlet body = String(issue.body).replace(\n  /## Dependencias[\\s\\S]*?(?=\\n## Evidencia individual)/,\n  `## Dependencias\\n\\n${dependencyLines}\\n`,\n);\nbody = `${body.trim()}\\n\\n<!-- automation:classroom -->\\n<!-- classroom-message-id:${item.gmailMessageId} -->\\n<!-- course:${item.course} -->\\n<!-- week:${item.weekPadded} -->\\n<!-- issue-key:${issue.key} -->\\n<!-- plan-keys:${item.planKeys.join(',')} -->`;\n\nreturn [{\n  json: {\n    ...item,\n    skipCreate: Boolean(existingNumber),\n    issueNumber: existingNumber || null,\n    issuePayload: {\n      title: issue.title,\n      body,\n      assignees: [issue.assignee],\n      labels: [item.course, `week-${item.weekPadded}`, `type:${issue.type}`, `priority:${issue.priority}`],\n    },\n  },\n}];"
+        "jsCode": "const item = $json;\nconst staticData = $getWorkflowStaticData('global');\nconst state = staticData.classroomRuns?.[item.runKey];\nif (!state) throw new Error(`No existe estado de ejecución para ${item.runKey}`);\nconst issue = item.issue;\nconst existingNumber = state.numbers[issue.key];\nconst missingDependencies = issue.dependsOn.filter((key) => !state.numbers[key]);\nif (missingDependencies.length) throw new Error(`No se resolvieron dependencias de ${issue.key}: ${missingDependencies.join(', ')}`);\nconst dependencyLines = issue.dependsOn.length\n  ? issue.dependsOn.map((key) => `- #${state.numbers[key]} (${key})`).join('\\n')\n  : '- Ninguna.';\nlet body = String(issue.body).replace(\n  /## Dependencias[\\s\\S]*?(?=\\n## Evidencia individual)/,\n  `## Dependencias\\n\\n${dependencyLines}\\n`,\n);\nbody = `${body.trim()}\\n\\n<!-- automation:classroom -->\\n<!-- classroom-course-id:${item.courseId} -->\\n<!-- classroom-coursework-id:${item.courseWorkId} -->\\n<!-- classroom-update-time:${item.updateTime} -->\\n<!-- course:${item.course} -->\\n<!-- week:${item.weekPadded} -->\\n<!-- issue-key:${issue.key} -->\\n<!-- starter:${item.starterName || 'none'} -->\\n<!-- plan-keys:${item.planKeys.join(',')} -->`;\n\nreturn [{\n  json: {\n    ...item,\n    skipCreate: Boolean(existingNumber),\n    issueNumber: existingNumber || null,\n    issuePayload: {\n      title: issue.title,\n      body,\n      assignees: [issue.assignee],\n      labels: [item.course, `week-${item.weekPadded}`, `type:${issue.type}`, `priority:${issue.priority}`],\n    },\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4620,
+        9060,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000051",
+      "id": "00000000-0000-4000-8000-000000000086",
       "name": "Resolve Dependencies"
     },
     {
@@ -1148,10 +1722,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        4840,
+        9280,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000052",
+      "id": "00000000-0000-4000-8000-000000000087",
       "name": "GitHub - Recheck Issue Key",
       "credentials": {
         "githubApi": {
@@ -1161,15 +1735,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const source = $('Resolve Dependencies').item.json;\nconst response = $json.body ?? $json;\nconst issues = Array.isArray(response) ? response : [];\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst existing = issues.find((issue) =>\n  metadata(issue.body, 'classroom-message-id') === source.gmailMessageId &&\n  metadata(issue.body, 'issue-key') === source.issue.key\n);\nif (existing) {\n  const staticData = $getWorkflowStaticData('global');\n  staticData.classroomRuns[source.runKey].numbers[source.issue.key] = existing.number;\n}\nreturn [{\n  json: {\n    ...source,\n    skipCreate: Boolean(existing || source.skipCreate),\n    issueNumber: existing?.number || source.issueNumber || null,\n  },\n}];"
+        "jsCode": "const source = $('Resolve Dependencies').item.json;\nconst response = $json.body ?? $json;\nconst issues = Array.isArray(response) ? response : [];\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst existing = issues.find((issue) =>\n  metadata(issue.body, 'classroom-course-id') === source.courseId &&\n  metadata(issue.body, 'classroom-coursework-id') === source.courseWorkId &&\n  metadata(issue.body, 'issue-key') === source.issue.key\n);\nif (existing) {\n  const staticData = $getWorkflowStaticData('global');\n  staticData.classroomRuns[source.runKey].numbers[source.issue.key] = existing.number;\n}\nreturn [{\n  json: {\n    ...source,\n    skipCreate: Boolean(existing || source.skipCreate),\n    issueNumber: existing?.number || source.issueNumber || null,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5060,
+        9500,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000053",
+      "id": "00000000-0000-4000-8000-000000000088",
       "name": "Apply Issue Recheck"
     },
     {
@@ -1183,7 +1757,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000054",
+              "id": "00000000-0000-4000-8000-000000000089",
               "leftValue": "={{ $json.skipCreate }}",
               "rightValue": "",
               "operator": {
@@ -1200,10 +1774,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        5280,
+        9720,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000055",
+      "id": "00000000-0000-4000-8000-000000000090",
       "name": "Issue Already Exists?"
     },
     {
@@ -1240,10 +1814,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        5500,
+        9940,
         260
       ],
-      "id": "00000000-0000-4000-8000-000000000056",
+      "id": "00000000-0000-4000-8000-000000000091",
       "name": "GitHub - Reconcile Existing Issue",
       "credentials": {
         "githubApi": {
@@ -1258,10 +1832,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5720,
+        10160,
         260
       ],
-      "id": "00000000-0000-4000-8000-000000000057",
+      "id": "00000000-0000-4000-8000-000000000092",
       "name": "Record Existing Issue"
     },
     {
@@ -1298,10 +1872,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        5500,
+        9940,
         420
       ],
-      "id": "00000000-0000-4000-8000-000000000058",
+      "id": "00000000-0000-4000-8000-000000000093",
       "name": "GitHub - Create Issue",
       "credentials": {
         "githubApi": {
@@ -1316,15 +1890,15 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5720,
+        10160,
         420
       ],
-      "id": "00000000-0000-4000-8000-000000000059",
+      "id": "00000000-0000-4000-8000-000000000094",
       "name": "Record Created Issue"
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/' + $('Parse and Route').item.json.repository + '/issues?state=all&sort=created&direction=desc&per_page=100' }}",
+        "url": "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/issues?state=all&sort=created&direction=desc&per_page=100' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "githubApi",
         "sendHeaders": true,
@@ -1352,10 +1926,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        4620,
+        9060,
         80
       ],
-      "id": "00000000-0000-4000-8000-000000000060",
+      "id": "00000000-0000-4000-8000-000000000095",
       "name": "GitHub - Verify Complete Set",
       "credentials": {
         "githubApi": {
@@ -1365,51 +1939,63 @@
     },
     {
       "parameters": {
-        "jsCode": "const planData = $('Plan and Topological Sort').item.json;\nconst response = $json.body ?? $json;\nconst issues = Array.isArray(response) ? response : [];\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst matching = issues.filter((issue) =>\n  metadata(issue.body, 'classroom-message-id') === planData.gmailMessageId &&\n  metadata(issue.body, 'course') === planData.course &&\n  metadata(issue.body, 'week') === planData.weekPadded\n);\nconst byKey = Object.fromEntries(matching.map((issue) => [metadata(issue.body, 'issue-key'), issue]));\nconst missing = planData.planKeys.filter((key) => !byKey[key]);\nif (missing.length) throw new Error(`Verificación falló; faltan Issues: ${missing.join(', ')}. Gmail NO fue marcado.`);\nconst configurationErrors = [];\nfor (const expected of planData.plan.issues) {\n  const actual = byKey[expected.key];\n  const assignees = (actual.assignees || []).map((assignee) => assignee.login);\n  const labels = (actual.labels || []).map((label) => label.name || label);\n  const expectedLabels = [planData.course, `week-${planData.weekPadded}`, `type:${expected.type}`, `priority:${expected.priority}`];\n  if (!assignees.includes(expected.assignee)) configurationErrors.push(`${expected.key}: falta assignee ${expected.assignee}`);\n  for (const label of expectedLabels) if (!labels.includes(label)) configurationErrors.push(`${expected.key}: falta label ${label}`);\n  if (!metadata(actual.body, 'plan-keys')) configurationErrors.push(`${expected.key}: falta plan-keys`);\n}\nif (configurationErrors.length) throw new Error(`Verificación de Issues falló: ${configurationErrors.join('; ')}. Gmail NO fue marcado.`);\nconst assignments = { Draggodeidad: 0, JulianDele: 0, osbaldoXxC: 0 };\nfor (const issue of planData.plan.issues) assignments[issue.assignee] += 1;\nreturn [{\n  json: {\n    ...planData,\n    verifiedIssues: planData.planKeys.map((key) => ({ key, number: byKey[key].number, title: byKey[key].title })),\n    assignments,\n    verified: true,\n  },\n}];"
+        "jsCode": "const planData = $('Plan and Topological Sort').item.json;\nconst response = $json.body ?? $json;\nconst issues = Array.isArray(response) ? response : [];\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\nconst matching = issues.filter((issue) =>\n  metadata(issue.body, 'classroom-course-id') === planData.courseId &&\n  metadata(issue.body, 'classroom-coursework-id') === planData.courseWorkId &&\n  metadata(issue.body, 'course') === planData.course &&\n  metadata(issue.body, 'week') === planData.weekPadded\n);\nconst byKey = Object.fromEntries(matching.map((issue) => [metadata(issue.body, 'issue-key'), issue]));\nconst missing = planData.planKeys.filter((key) => !byKey[key]);\nif (missing.length) throw new Error(`Verificación falló; faltan Issues: ${missing.join(', ')}.`);\nconst configurationErrors = [];\nfor (const expected of planData.plan.issues) {\n  const actual = byKey[expected.key];\n  const assignees = (actual.assignees || []).map((assignee) => assignee.login);\n  const labels = (actual.labels || []).map((label) => label.name || label);\n  const expectedLabels = [planData.course, `week-${planData.weekPadded}`, `type:${expected.type}`, `priority:${expected.priority}`];\n  if (!assignees.includes(expected.assignee)) configurationErrors.push(`${expected.key}: falta assignee ${expected.assignee}`);\n  for (const label of expectedLabels) if (!labels.includes(label)) configurationErrors.push(`${expected.key}: falta label ${label}`);\n  if (!metadata(actual.body, 'plan-keys')) configurationErrors.push(`${expected.key}: falta plan-keys`);\n}\nif (configurationErrors.length) throw new Error(`Verificación de Issues falló: ${configurationErrors.join('; ')}.`);\nconst assignments = { Draggodeidad: 0, JulianDele: 0, osbaldoXxC: 0 };\nfor (const issue of planData.plan.issues) assignments[issue.assignee] += 1;\nreturn [{\n  json: {\n    ...planData,\n    verifiedIssues: planData.planKeys.map((key) => ({ key, number: byKey[key].number, title: byKey[key].title })),\n    assignments,\n    verified: true,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4840,
+        9280,
         80
       ],
-      "id": "00000000-0000-4000-8000-000000000061",
+      "id": "00000000-0000-4000-8000-000000000096",
       "name": "Verify Complete Set"
     },
     {
       "parameters": {
-        "operation": "addLabels",
-        "messageId": "={{ $('Parse and Route').item.json.gmailMessageId }}",
-        "labelNames": [
-          "Automation/Classroom/Processed"
-        ]
-      },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [
-        5060,
-        80
-      ],
-      "id": "00000000-0000-4000-8000-000000000062",
-      "name": "Gmail - Mark Processed",
-      "credentials": {
-        "gmailOAuth2": {
-          "name": "Gmail account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const data = $json;\nconst issueLines = data.verifiedIssues.map((issue) => `${issue.key}: #${issue.number} ${issue.title}`).join('\\n');\nreturn [{\n  json: {\n    ...data,\n    notificationSubject: `✅ ${data.course} Semana ${data.weekPadded} procesada`,\n    notificationBody: `✅ Semana ${data.weekPadded} procesada\\n\\nMateria: ${data.course}\\nRepositorio: ${data.repository}\\nActividad: ${data.plan.assignmentTitle}\\nDeadline: ${data.plan.deadline || 'No indicada'}\\n\\nIssues verificadas: ${data.verifiedIssues.length}\\n\\nDraggodeidad: ${data.assignments.Draggodeidad}\\nJulianDele: ${data.assignments.JulianDele}\\nosbaldoXxC: ${data.assignments.osbaldoXxC}\\n\\n${issueLines}\\n\\nActividad marcada como procesada.`,\n  },\n}];"
+        "jsCode": "const data = $json;\nconst issueLines = data.verifiedIssues.map((issue) => `${issue.key}: #${issue.number} ${issue.title}`).join('\\n');\nreturn [{\n  json: {\n    ...data,\n    notificationSubject: `✅ ${data.course} Semana ${data.weekPadded} procesada`,\n    notificationBody: `✅ ${data.course} W${data.weekPadded} procesada\\n\\nCourseWork: ${data.plan.assignmentTitle}\\nCourseWork ID: ${data.courseWorkId}\\nStarter: ${data.starter?.name || 'sin ZIP'}\\nRepositorio: ${data.repository}\\nDeadline: ${data.plan.deadline || 'No indicada'}\\n\\nIssues verificadas: ${data.verifiedIssues.length}\\n\\nDraggodeidad: ${data.assignments.Draggodeidad}\\nJulianDele: ${data.assignments.JulianDele}\\nosbaldoXxC: ${data.assignments.osbaldoXxC}\\n\\n${issueLines}`,\n  },\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5280,
+        9500,
         80
       ],
-      "id": "00000000-0000-4000-8000-000000000063",
+      "id": "00000000-0000-4000-8000-000000000097",
       "name": "Build Success Summary"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000098",
+              "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        9720,
+        80
+      ],
+      "id": "00000000-0000-4000-8000-000000000099",
+      "name": "Notify Success?"
     },
     {
       "parameters": {
@@ -1424,67 +2010,373 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        5500,
-        80
+        9940,
+        40
       ],
-      "id": "00000000-0000-4000-8000-000000000064",
+      "id": "00000000-0000-4000-8000-000000000100",
       "name": "Gmail - Send Success Summary",
       "credentials": {
         "gmailOAuth2": {
-          "name": "Gmail account"
+          "name": "Gmail notifications (optional)"
         }
       }
     }
   ],
   "pinData": {},
   "connections": {
-    "Schedule Monday-Wednesday": {
+    "Schedule PWA Monday 09:10": {
       "main": [
         [
           {
-            "node": "Gmail - Search Candidates",
+            "node": "Route PWA",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Manual Dry Run": {
+    "Schedule DMI Tuesday 09:10": {
       "main": [
         [
           {
-            "node": "Gmail - Search Candidates",
+            "node": "Route DMI",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gmail - Search Candidates": {
+    "Manual Trigger": {
       "main": [
         [
           {
-            "node": "Parse and Route",
+            "node": "Manual Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse and Route": {
+    "Route PWA": {
       "main": [
         [
           {
-            "node": "Loop Messages Sequentially",
+            "node": "Prepare Classroom Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Loop Messages Sequentially": {
+    "Route DMI": {
       "main": [
-        [],
+        [
+          {
+            "node": "Prepare Classroom Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Request": {
+      "main": [
+        [
+          {
+            "node": "Prepare Classroom Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Classroom Request": {
+      "main": [
+        [
+          {
+            "node": "Classroom - List CourseWork Initial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classroom - List CourseWork Initial": {
+      "main": [
+        [
+          {
+            "node": "Attach Initial Classroom Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Initial Classroom Response": {
+      "main": [
+        [
+          {
+            "node": "Parse Initial CourseWork",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Initial CourseWork": {
+      "main": [
+        [
+          {
+            "node": "CourseWork Found Initial?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CourseWork Found Initial?": {
+      "main": [
+        [
+          {
+            "node": "Inspect Materials",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 30 Minutes Once",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 Minutes Once": {
+      "main": [
+        [
+          {
+            "node": "Increment Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Retry": {
+      "main": [
+        [
+          {
+            "node": "Classroom - List CourseWork Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classroom - List CourseWork Retry": {
+      "main": [
+        [
+          {
+            "node": "Attach Retry Classroom Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Retry Classroom Response": {
+      "main": [
+        [
+          {
+            "node": "Parse Retry CourseWork",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Retry CourseWork": {
+      "main": [
+        [
+          {
+            "node": "CourseWork Found Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CourseWork Found Retry?": {
+      "main": [
+        [
+          {
+            "node": "Inspect Materials",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build No Activity Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build No Activity Summary": {
+      "main": [
+        [
+          {
+            "node": "Notify No Activity?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify No Activity?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send No Activity Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspect Materials": {
+      "main": [
+        [
+          {
+            "node": "Starter ZIP Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Starter ZIP Found?": {
+      "main": [
+        [
+          {
+            "node": "Drive - Starter Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Starter Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive - Starter Metadata": {
+      "main": [
+        [
+          {
+            "node": "Attach Drive Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Drive Metadata": {
+      "main": [
+        [
+          {
+            "node": "Validate Drive File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Drive File": {
+      "main": [
+        [
+          {
+            "node": "Drive - Download Starter ZIP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive - Download Starter ZIP": {
+      "main": [
+        [
+          {
+            "node": "Attach Download Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Download Context": {
+      "main": [
+        [
+          {
+            "node": "Validate ZIP Security",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate ZIP Security": {
+      "main": [
+        [
+          {
+            "node": "Extract Starter ZIP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Starter ZIP": {
+      "main": [
+        [
+          {
+            "node": "Inspect Starter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspect Starter": {
+      "main": [
+        [
+          {
+            "node": "Activity Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Starter Context": {
+      "main": [
+        [
+          {
+            "node": "Activity Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Activity Context": {
+      "main": [
         [
           {
             "node": "GitHub - Repository",
@@ -1509,14 +2401,14 @@
       "main": [
         [
           {
-            "node": "GitHub - Search Message ID",
+            "node": "GitHub - Search CourseWork ID",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "GitHub - Search Message ID": {
+    "GitHub - Search CourseWork ID": {
       "main": [
         [
           {
@@ -1586,7 +2478,47 @@
       "main": [
         [
           {
+            "node": "Needs Manual Review?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Manual Review?": {
+      "main": [
+        [
+          {
+            "node": "Build Manual Review Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Existing Set Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Manual Review Alert": {
+      "main": [
+        [
+          {
+            "node": "Notify Manual Review?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Manual Review?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Manual Review Alert",
             "type": "main",
             "index": 0
           }
@@ -1597,7 +2529,7 @@
       "main": [
         [
           {
-            "node": "Existing Reconcile Live?",
+            "node": "Build Reconcile Summary",
             "type": "main",
             "index": 0
           }
@@ -1611,62 +2543,22 @@
         ]
       ]
     },
-    "Existing Reconcile Live?": {
-      "main": [
-        [
-          {
-            "node": "Gmail - Mark Existing Processed",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Existing Dry-Run Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gmail - Mark Existing Processed": {
-      "main": [
-        [
-          {
-            "node": "Build Reconcile Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Build Reconcile Summary": {
       "main": [
         [
           {
+            "node": "Notify Reconcile?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Reconcile?": {
+      "main": [
+        [
+          {
             "node": "Gmail - Send Reconcile Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gmail - Send Reconcile Summary": {
-      "main": [
-        [
-          {
-            "node": "Loop Messages Sequentially",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Existing Dry-Run Summary": {
-      "main": [
-        [
-          {
-            "node": "Loop Messages Sequentially",
             "type": "main",
             "index": 0
           }
@@ -1856,17 +2748,6 @@
         [
           {
             "node": "Missing Labels?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Exact Dry-Run Preview": {
-      "main": [
-        [
-          {
-            "node": "Loop Messages Sequentially",
             "type": "main",
             "index": 0
           }
@@ -2063,17 +2944,6 @@
       "main": [
         [
           {
-            "node": "Gmail - Mark Processed",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gmail - Mark Processed": {
-      "main": [
-        [
-          {
             "node": "Build Success Summary",
             "type": "main",
             "index": 0
@@ -2085,18 +2955,18 @@
       "main": [
         [
           {
-            "node": "Gmail - Send Success Summary",
+            "node": "Notify Success?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gmail - Send Success Summary": {
+    "Notify Success?": {
       "main": [
         [
           {
-            "node": "Loop Messages Sequentially",
+            "node": "Gmail - Send Success Summary",
             "type": "main",
             "index": 0
           }
@@ -2111,9 +2981,9 @@
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
     "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all"
+    "saveDataSuccessExecution": "none"
   },
-  "versionId": "10000000-0000-4000-8000-000000000001",
+  "versionId": "10000000-0000-4000-8000-000000000002",
   "meta": {
     "templateCredsSetupCompleted": false
   },

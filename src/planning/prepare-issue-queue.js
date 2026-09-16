@@ -3,7 +3,7 @@ const metadata = (body, key) => {
   const match = String(body || '').match(new RegExp(`<!--\\s*${key}:([^>]+?)\\s*-->`, 'i'));
   return match ? match[1].trim() : null;
 };
-const runKey = `${data.gmailMessageId}:${data.course}:${data.weekPadded}`;
+const runKey = `${data.courseId}:${data.courseWorkId}`;
 const staticData = $getWorkflowStaticData('global');
 staticData.classroomRuns ||= {};
 const numbers = {};
@@ -12,7 +12,8 @@ for (const issue of data.existingAutomationIssues || []) {
   if (key) numbers[key] = issue.number;
 }
 staticData.classroomRuns[runKey] = {
-  messageId: data.gmailMessageId,
+  courseId: data.courseId,
+  courseWorkId: data.courseWorkId,
   course: data.course,
   week: data.weekPadded,
   repository: data.repository,
@@ -26,7 +27,10 @@ return data.plan.issues.map((issue, index) => ({
     runKey,
     index,
     repository: data.repository,
-    gmailMessageId: data.gmailMessageId,
+    courseId: data.courseId,
+    courseWorkId: data.courseWorkId,
+    updateTime: data.updateTime,
+    starterName: data.starter?.name || null,
     course: data.course,
     weekPadded: data.weekPadded,
     planKeys: data.planKeys,
