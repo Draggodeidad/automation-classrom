@@ -79,4 +79,4 @@ Configurar credenciales e IDs con `docs/SETUP-CLASSROOM.md`, importar los workfl
 
 ## Último commit estable
 
-`3cdc3e7`
+`9bf6494`
