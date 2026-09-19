@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +15,10 @@ const codeFiles = {
   'no-starter.js': 'src/drive/no-starter.js',
   'build-context.js': 'src/github/build-context.js',
   'normalize-ai.js': 'src/ai/normalize-ai.js',
+  'parse-structured-plan.js': 'src/ai/parse-structured-plan.js',
+  'enforce-foundation.js': 'src/ai/enforce-foundation.js',
+  'normalize-plan.js': 'src/ai/normalize-plan.js',
+  'build-bodies.js': 'src/ai/build-bodies.js',
   'validate-plan.js': 'src/ai/validate-plan.js',
   'plan-toposort.js': 'src/planning/plan-toposort.js',
   'prepare-issue-queue.js': 'src/planning/prepare-issue-queue.js',
@@ -33,7 +38,7 @@ const schema = JSON.parse(fs.readFileSync(path.join(root, 'schemas/issue-plan.sc
 const contextCode = code('build-context.js').replace('__ISSUE_PLAN_SCHEMA__', JSON.stringify(schema));
 
 let idCounter = 0;
-const id = () => `00000000-0000-4000-8000-${String(++idCounter).padStart(12, '0')}`;
+const id = () => randomUUID();
 const nodes = [];
 const connections = {};
 function add(name, type, position, parameters = {}, extra = {}) {
@@ -100,7 +105,7 @@ add('Route DMI', 'n8n-nodes-base.code', [-2380, -80], {
 }, { typeVersion: 2 });
 add('Manual Trigger', 'n8n-nodes-base.manualTrigger', [-2600, 120], {}, { typeVersion: 1 });
 add('Manual Request', 'n8n-nodes-base.code', [-2380, 120], {
-  jsCode: "// Edita únicamente estos valores para backfill/recuperación manual.\nconst request = { course: 'PWA', week: 3 };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];",
+  jsCode: "// Edita únicamente estos valores para backfill/recuperación manual.\nconst request = { course: 'PWA', week: 1 };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];",
 }, { typeVersion: 2 });
 add('Prepare Classroom Request', 'n8n-nodes-base.code', [-2160, -80], { jsCode: code('prepare-request.js') }, { typeVersion: 2 });
 
@@ -186,28 +191,34 @@ add('Gemini - Plan', 'n8n-nodes-base.httpRequest', [5320, 100], {
 add('Ollama - Plan', 'n8n-nodes-base.httpRequest', [5320, 240], {
   method: 'POST', url: "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}", sendHeaders: true,
   headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userPrompt }], stream: false, format: $json.schema, options: { temperature: 0.1 } }) }}", options: fullResponse,
+  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userPrompt }], stream: false, think: false, format: $json.schema, options: { temperature: 0.1, num_ctx: 8192, num_predict: 5000 } }) }}", options: fullResponse,
 }, { typeVersion: 4.3 });
 add('Normalize AI Response', 'n8n-nodes-base.code', [5540, 160], { jsCode: code('normalize-ai.js') }, { typeVersion: 2 });
-add('Validate Plan', 'n8n-nodes-base.code', [5760, 160], { jsCode: code('validate-plan.js') }, { typeVersion: 2 });
-boolIf('Plan Valid?', [5980, 160], '={{ $json.valid }}');
-equalsIf('Retry with Gemini?', [6200, 300], '={{ $json.aiProvider }}', 'gemini');
-add('Gemini - Repair Once', 'n8n-nodes-base.httpRequest', [6420, 240], {
+add('Parse Structured Plan', 'n8n-nodes-base.code', [5760, 160], { jsCode: code('parse-structured-plan.js') }, { typeVersion: 2 });
+add('Enforce Foundation', 'n8n-nodes-base.code', [5980, 160], { jsCode: code('enforce-foundation.js') }, { typeVersion: 2 });
+add('Normalize Titles & Keys & Dependencies', 'n8n-nodes-base.code', [6200, 160], { jsCode: code('normalize-plan.js') }, { typeVersion: 2 });
+add('Build GitHub Issue Bodies', 'n8n-nodes-base.code', [6420, 160], { jsCode: code('build-bodies.js') }, { typeVersion: 2 });
+add('Validate Final Plan', 'n8n-nodes-base.code', [6640, 160], { jsCode: code('validate-plan.js') }, { typeVersion: 2 });
+boolIf('Plan Valid?', [6860, 160], '={{ $json.valid }}');
+add('LLM Retry Attempt Left?', 'n8n-nodes-base.if', [7080, 300], {
+  conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+    conditions: [{ id: id(), leftValue: "={{ Number($json.llmAttempt || 0) < 2 && Boolean($json.retryable) }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {},
+}, { typeVersion: 2.2 });
+equalsIf('Retry with Gemini?', [7300, 300], '={{ $json.aiProvider }}', 'gemini');
+add('Gemini - Repair Once', 'n8n-nodes-base.httpRequest', [7520, 240], {
   method: 'POST', url: "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
   authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth', sendHeaders: true,
   headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
   jsonBody: "={{ ({ systemInstruction: { parts: [{ text: $json.systemPrompt }] }, contents: [{ role: 'user', parts: [{ text: $json.retryPrompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json', responseJsonSchema: $json.geminiSchema } }) }}", options: fullResponse,
 }, { typeVersion: 4.3, credentials: geminiCredentials });
-add('Ollama - Repair Once', 'n8n-nodes-base.httpRequest', [6420, 380], {
+add('Ollama - Repair Once', 'n8n-nodes-base.httpRequest', [7520, 380], {
   method: 'POST', url: "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}", sendHeaders: true,
   headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.retryPrompt }], stream: false, format: $json.schema, options: { temperature: 0 } }) }}", options: fullResponse,
+  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.retryPrompt }], stream: false, think: false, format: $json.schema, options: { temperature: 0, num_ctx: 8192, num_predict: 5000 } }) }}", options: fullResponse,
 }, { typeVersion: 4.3 });
-add('Normalize Repair Response', 'n8n-nodes-base.code', [6640, 300], { jsCode: code('normalize-ai.js') }, { typeVersion: 2 });
-add('Validate Repaired Plan', 'n8n-nodes-base.code', [6860, 300], { jsCode: code('validate-plan.js') }, { typeVersion: 2 });
-boolIf('Repaired Plan Valid?', [7080, 300], '={{ $json.valid }}');
-add('Fail Closed - Invalid Plan', 'n8n-nodes-base.code', [7300, 440], {
-  jsCode: "throw new Error('LLM devolvió JSON inválido después de un reintento: ' + ($json.validationErrors || []).join('; ') + '. GitHub no fue modificado.');",
+add('Normalize Repair Response', 'n8n-nodes-base.code', [7740, 300], { jsCode: code('normalize-ai.js') }, { typeVersion: 2 });
+add('Fail Closed - Invalid Plan', 'n8n-nodes-base.code', [7960, 440], {
+  jsCode: "const errors = ($json.validationErrors || []).map((e) => '[' + (e.code || 'ERROR') + '] ' + (e.message || e)).join('; '); throw new Error('Plan inválido tras reintento: ' + (errors || 'sin errores') + '. GitHub no fue modificado.');",
 }, { typeVersion: 2 });
 
 add('Plan and Topological Sort', 'n8n-nodes-base.code', [7300, 120], { jsCode: code('plan-toposort.js') }, { typeVersion: 2 });
@@ -299,18 +310,21 @@ connect('AI Provider Gemini?', 'Gemini - Plan', 0);
 connect('AI Provider Gemini?', 'Ollama - Plan', 1);
 connect('Gemini - Plan', 'Normalize AI Response');
 connect('Ollama - Plan', 'Normalize AI Response');
-connect('Normalize AI Response', 'Validate Plan');
-connect('Validate Plan', 'Plan Valid?');
+connect('Normalize AI Response', 'Parse Structured Plan');
+connect('Normalize Repair Response', 'Parse Structured Plan');
+connect('Parse Structured Plan', 'Enforce Foundation');
+connect('Enforce Foundation', 'Normalize Titles & Keys & Dependencies');
+connect('Normalize Titles & Keys & Dependencies', 'Build GitHub Issue Bodies');
+connect('Build GitHub Issue Bodies', 'Validate Final Plan');
+connect('Validate Final Plan', 'Plan Valid?');
 connect('Plan Valid?', 'Plan and Topological Sort', 0);
-connect('Plan Valid?', 'Retry with Gemini?', 1);
+connect('Plan Valid?', 'LLM Retry Attempt Left?', 1);
+connect('LLM Retry Attempt Left?', 'Retry with Gemini?', 0);
+connect('LLM Retry Attempt Left?', 'Fail Closed - Invalid Plan', 1);
 connect('Retry with Gemini?', 'Gemini - Repair Once', 0);
 connect('Retry with Gemini?', 'Ollama - Repair Once', 1);
 connect('Gemini - Repair Once', 'Normalize Repair Response');
 connect('Ollama - Repair Once', 'Normalize Repair Response');
-connect('Normalize Repair Response', 'Validate Repaired Plan');
-connect('Validate Repaired Plan', 'Repaired Plan Valid?');
-connect('Repaired Plan Valid?', 'Plan and Topological Sort', 0);
-connect('Repaired Plan Valid?', 'Fail Closed - Invalid Plan', 1);
 connect('Plan and Topological Sort', 'Dry Run?');
 connect('Dry Run?', 'Exact Dry-Run Preview', 0);
 connect('Dry Run?', 'Missing Labels?', 1);
@@ -346,10 +360,10 @@ const workflow = {
 };
 
 const errorNodes = [
-  { parameters: {}, type: 'n8n-nodes-base.errorTrigger', typeVersion: 1, position: [0, 0], id: '20000000-0000-4000-8000-000000000001', name: 'Error Trigger' },
-  { parameters: { jsCode: "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];" }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [220, 0], id: '20000000-0000-4000-8000-000000000002', name: 'Build Error Summary' },
-  { parameters: { conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [{ id: '20000000-0000-4000-8000-000000000005', leftValue: "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {} }, type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [440, 0], id: '20000000-0000-4000-8000-000000000003', name: 'Notifications Enabled?' },
-  { parameters: { operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false } }, type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: [660, -40], id: '20000000-0000-4000-8000-000000000004', name: 'Gmail - Send Error Summary', credentials: gmailCredentials },
+  { parameters: {}, type: 'n8n-nodes-base.errorTrigger', typeVersion: 1, position: [0, 0], id: id(), name: 'Error Trigger' },
+  { parameters: { jsCode: "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];" }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [220, 0], id: id(), name: 'Build Error Summary' },
+  { parameters: { conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [{ id: id(), leftValue: "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {} }, type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [440, 0], id: id(), name: 'Notifications Enabled?' },
+  { parameters: { operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false } }, type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: [660, -40], id: id(), name: 'Gmail - Send Error Summary', credentials: gmailCredentials },
 ];
 const errorWorkflow = {
   id: 'classroomError2026', name: 'Classroom to GitHub - Error Handler', nodes: errorNodes, pinData: {}, active: false,
@@ -359,7 +373,7 @@ const errorWorkflow = {
     'Notifications Enabled?': { main: [[{ node: 'Gmail - Send Error Summary', type: 'main', index: 0 }], []] },
   },
   settings: { executionOrder: 'v1', timezone: 'America/Mexico_City' },
-  versionId: '20000000-0000-4000-8000-000000000006', meta: { templateCredsSetupCompleted: false }, tags: [],
+  versionId: id(), meta: { templateCredsSetupCompleted: false }, tags: [],
 };
 
 fs.writeFileSync(path.join(root, 'workflows', 'classroom-to-github.json'), `${JSON.stringify(workflow, null, 2)}\n`);

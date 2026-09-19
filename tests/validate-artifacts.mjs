@@ -11,22 +11,30 @@ const schema = readJson('schemas/issue-plan.schema.json');
 const fixtures = readJson('tests/fixtures/coursework.json');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
-async function runCode(relative, { json = {}, env = {}, binary = {}, buffers = {}, nodes = {} } = {}) {
+async function runCode(relative, { json = {}, env = {}, binary = {}, buffers = {}, nodes = {}, runIndex } = {}) {
   const source = fs.readFileSync(path.join(root, relative), 'utf8').replace('__ISSUE_PLAN_SCHEMA__', JSON.stringify(schema));
-  const fn = new AsyncFunction('$json', '$env', '$input', '$binary', '$', '$getWorkflowStaticData', 'Buffer', 'structuredClone', source);
+  const fn = new AsyncFunction('$json', '$env', '$input', '$binary', '$', '$getWorkflowStaticData', 'Buffer', 'structuredClone', '$runIndex', source);
   const input = { first: () => ({ json, binary }), all: () => [{ json, binary }] };
   const getNode = (name) => ({ item: { json: nodes[name] || {} } });
   const staticData = {};
   const context = { helpers: { getBinaryDataBuffer: async (_index, field) => buffers[field] } };
-  return fn.call(context, json, env, input, binary, getNode, () => staticData, Buffer, structuredClone);
+  return fn.call(context, json, env, input, binary, getNode, () => staticData, Buffer, structuredClone, runIndex);
 }
 
 assert.equal(workflow.name, 'Classroom API to GitHub Issues - DMI and PWA');
 assert.equal(workflow.active, false);
 assert.equal(errorWorkflow.nodes[0].type, 'n8n-nodes-base.errorTrigger');
 assert.equal(schema.type, 'object');
-assert.ok(schema.required.includes('source'));
-assert.deepEqual(schema.properties.source.required, ['courseId', 'courseWorkId', 'updateTime', 'starterName']);
+assert.ok(schema.required.includes('issues'));
+assert.deepEqual(schema.properties.issues.items.required, ['key', 'title', 'assignee', 'type', 'priority', 'dependsOn', 'sections']);
+assert.deepEqual(schema.properties.issues.items.properties.sections.required, [
+  'historiaUsuario', 'contexto', 'objetivoTecnico', 'alcance', 'fueraDeAlcance',
+  'archivosEsperados', 'pasosSugeridos', 'criteriosAceptacion', 'pruebas',
+  'dependencias', 'evidenciaIndividual', 'definitionOfDone',
+]);
+assert.equal(schema.properties.issues.minItems, 3);
+assert.equal(schema.properties.issues.maxItems, 6);
+assert.equal(schema.properties.issues.items.additionalProperties, false);
 
 const names = workflow.nodes.map((node) => node.name);
 const nodeNames = new Set(names);
@@ -35,9 +43,14 @@ for (const required of [
   'Classroom - List CourseWork Initial', 'Wait 30 Minutes Once', 'Classroom - List CourseWork Retry',
   'Inspect Materials', 'Drive - Starter Metadata', 'Drive - Download Starter ZIP',
   'Validate ZIP Security', 'Extract Starter ZIP', 'Inspect Starter', 'GitHub - Search CourseWork ID',
-  'Needs Manual Review?', 'Validate Plan', 'Plan and Topological Sort', 'Exact Dry-Run Preview',
+  'Needs Manual Review?', 'Parse Structured Plan', 'Enforce Foundation',
+  'Normalize Titles & Keys & Dependencies', 'Build GitHub Issue Bodies', 'Validate Final Plan',
+  'LLM Retry Attempt Left?', 'Plan and Topological Sort', 'Exact Dry-Run Preview',
   'Loop Issues Sequentially', 'Verify Complete Set',
 ]) assert.ok(nodeNames.has(required), `Falta nodo ${required}`);
+for (const removed of ['Validate Plan', 'Validate Repaired Plan', 'Repaired Plan Valid?']) {
+  assert.equal(nodeNames.has(removed), false, `Nodo obsoleto presente: ${removed}`);
+}
 
 const scheduleNodes = workflow.nodes.filter((node) => node.type === 'n8n-nodes-base.scheduleTrigger');
 assert.equal(scheduleNodes.length, 2);
@@ -146,36 +159,150 @@ await assert.rejects(() => runCode('src/drive/validate-zip.js', {
   json: {}, env: zipEnv, binary: { data: {} }, buffers: { data: Buffer.from('not-a-zip') },
 }), /ZIP corrupto/);
 
-const issueBody = [
-  '## Historia de Usuario', 'Como integrante quiero implementar para entregar.',
-  '## Contexto', 'Contexto técnico suficiente.', '## Objetivo técnico', 'Implementar código verificable.',
-  '## Alcance', '- Código', '## Fuera de alcance', '- Despliegue', '## Archivos esperados', '- src/app.ts',
-  '## Pasos sugeridos', '1. Implementar', '## Criterios de aceptación', '- [ ] Funciona', '- [ ] Se prueba',
-  '## Pruebas', 'npm test', '## Dependencias', '- Ninguna.', '## Evidencia individual', 'PR con diff y tests.',
-  '## Definition of Done', '- [ ] Implementación terminada.', '- [ ] Criterios cumplidos.', '- [ ] Tests pasando.', '- [ ] Evidencia disponible.', '- [ ] PR abierto.',
-].join('\n\n');
-const foundationTitle = '[PWA][W03] Integrar PWA-w03-kit-estudiante.zip y establecer baseline semanal';
-const basePlan = {
-  course: 'PWA', week: 3, repository: 'Draggodeidad/pwa-utt', assignmentTitle: 'Semana 03', deadline: null,
-  source: { courseId: 'course-pwa', courseWorkId: 'cw-pwa-03', updateTime: '2026-09-15T14:00:00Z', starterName: 'PWA-w03-kit-estudiante.zip' },
-  issues: [
-    { key: 'foundation', title: foundationTitle, assignee: 'Draggodeidad', type: 'devops', priority: 'high', dependsOn: [], body: issueBody, expectedFiles: ['package.json'], acceptanceCriteria: ['a', 'b'], tests: ['npm test'], evidence: ['PR'] },
-    { key: 'core', title: '[PWA][W03] Implementar núcleo', assignee: 'Draggodeidad', type: 'feature', priority: 'high', dependsOn: ['foundation'], body: issueBody, expectedFiles: ['src/app.ts'], acceptanceCriteria: ['a', 'b'], tests: ['npm test'], evidence: ['PR'] },
-    { key: 'julian', title: '[PWA][W03] Pruebas offline', assignee: 'JulianDele', type: 'test', priority: 'medium', dependsOn: ['foundation'], body: issueBody, expectedFiles: ['tests/offline.spec.ts'], acceptanceCriteria: ['a', 'b'], tests: ['npm test'], evidence: ['PR'] },
-    { key: 'osbaldo', title: '[PWA][W03] UI offline', assignee: 'osbaldoXxC', type: 'feature', priority: 'medium', dependsOn: ['foundation'], body: issueBody, expectedFiles: ['src/ui.ts'], acceptanceCriteria: ['a', 'b'], tests: ['npm test'], evidence: ['PR'] },
-  ],
+const HEADINGS = [
+  '## Historia de Usuario',
+  '## Contexto',
+  '## Objetivo técnico',
+  '## Alcance',
+  '## Fuera de alcance',
+  '## Archivos esperados',
+  '## Pasos sugeridos',
+  '## Criterios de aceptación',
+  '## Pruebas',
+  '## Dependencias',
+  '## Evidencia individual',
+  '## Definition of Done',
+];
+const llmContext = {
+  course: 'PWA', week: 1, weekPadded: '01', repository: 'Draggodeidad/pwa-utt',
+  assignmentTitle: 'Semana 01', dueAt: null, courseId: 'course-pwa', courseWorkId: 'cw-pwa-01',
+  updateTime: '2026-09-15T14:00:00Z', aiProvider: 'ollama', resumeKeys: [], userPrompt: '{}',
+  starter: { found: true, name: 'PWA-w01-kit-estudiante.zip' },
 };
-const validationInput = {
-  course: 'PWA', week: 3, weekPadded: '03', repository: 'Draggodeidad/pwa-utt', courseId: 'course-pwa', courseWorkId: 'cw-pwa-03',
-  updateTime: '2026-09-15T14:00:00Z', starter: { found: true, name: 'PWA-w03-kit-estudiante.zip' }, userPrompt: '{}', rawModelText: JSON.stringify(basePlan),
-};
-let [validation] = await runCode('src/ai/validate-plan.js', { json: validationInput });
-assert.equal(validation.json.valid, true, validation.json.validationErrors?.join('; '));
-const wrongFoundation = structuredClone(basePlan);
-wrongFoundation.issues[0].title = '[PWA][W03] Baseline genérico';
-[validation] = await runCode('src/ai/validate-plan.js', { json: { ...validationInput, rawModelText: JSON.stringify(wrongFoundation) } });
-assert.equal(validation.json.valid, false);
-assert.ok(validation.json.validationErrors.some((error) => error.includes('Foundation exacta')));
+const sectionsFor = (key, label) => ({
+  historiaUsuario: `Como integrante quiero ${label} para entregar la semana.`,
+  contexto: `La actividad requiere ${label}.`,
+  objetivoTecnico: [`Implementar ${label}`],
+  alcance: ['Código'],
+  fueraDeAlcance: ['Despliegue'],
+  archivosEsperados: [`src/${key}.ts`],
+  pasosSugeridos: ['Revisar la actividad', `Implementar ${label}`],
+  criteriosAceptacion: ['Funciona', 'Se prueba'],
+  pruebas: ['npm test'],
+  dependencias: ['Requiere baseline'],
+  evidenciaIndividual: ['PR con diff y tests'],
+  definitionOfDone: ['Implementación terminada', 'Criterios cumplidos', 'PR abierto'],
+});
+const validIssues = [
+  { key: 'foundation', title: 'Integrar starter y establecer baseline', assignee: 'Draggodeidad', type: 'devops', priority: 'high', dependsOn: [], sections: sectionsFor('foundation', 'baseline') },
+  { key: 'core', title: 'Implementar núcleo', assignee: 'Draggodeidad', type: 'feature', priority: 'high', dependsOn: ['foundation'], sections: sectionsFor('core', 'el núcleo') },
+  { key: 'tests', title: 'Pruebas offline', assignee: 'JulianDele', type: 'test', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('tests', 'pruebas offline') },
+  { key: 'ui', title: 'UI offline', assignee: 'osbaldoXxC', type: 'feature', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('ui', 'la UI offline') },
+];
+async function runPipeline(rawModelText, contextJson) {
+  let out;
+  [out] = await runCode('src/ai/parse-structured-plan.js', { json: { ...contextJson, rawModelText } });
+  [out] = await runCode('src/ai/enforce-foundation.js', { json: out.json });
+  [out] = await runCode('src/ai/normalize-plan.js', { json: out.json });
+  [out] = await runCode('src/ai/build-bodies.js', { json: out.json });
+  [out] = await runCode('src/ai/validate-plan.js', { json: out.json });
+  return out;
+}
+const codes = (result) => (result.json.validationErrors || []).map((error) => error.code);
+
+// Caso A — plan válido con starter: Foundation forzada + 12 headers en cada body.
+let result = await runPipeline(JSON.stringify({ issues: validIssues }), llmContext);
+assert.equal(result.json.valid, true, codes(result).join(','));
+const foundation = result.json.plan.issues[0];
+assert.equal(foundation.key, 'foundation');
+assert.equal(foundation.assignee, 'Draggodeidad');
+assert.deepEqual(foundation.dependsOn, []);
+assert.equal(foundation.title, '[PWA][W01] Integrar PWA-w01-kit-estudiante.zip y establecer baseline semanal');
+for (const issue of result.json.plan.issues) {
+  for (const heading of HEADINGS) {
+    assert.equal(issue.body.split(heading).length - 1, 1, `${issue.key}: header "${heading}" debe aparecer 1 vez`);
+  }
+}
+
+// Caso B — LLM devuelve prefijo incorrecto: se normaliza al prefijo correcto.
+const bIssues = validIssues.map((issue) => issue.key === 'core' ? { ...issue, title: '[PWA][W99] Implementar núcleo' } : issue);
+result = await runPipeline(JSON.stringify({ issues: bIssues }), llmContext);
+assert.equal(result.json.valid, true, codes(result).join(','));
+assert.equal(result.json.plan.issues.find((issue) => issue.key === 'core').title, '[PWA][W01] Implementar núcleo');
+
+// Caso C — dependencia inexistente: detectada antes de topological sort.
+const cIssues = validIssues.map((issue) => issue.key === 'core' ? { ...issue, dependsOn: ['service-worker'] } : issue);
+result = await runPipeline(JSON.stringify({ issues: cIssues }), llmContext);
+assert.equal(result.json.valid, false);
+assert.ok(codes(result).includes('INVALID_DEPENDENCY'), codes(result).join(','));
+assert.equal(result.json.retryable, true);
+assert.ok(result.json.normalization.droppedDependencies.some((d) => d.reason === 'INVALID_DEPENDENCY'));
+
+// Caso D — self dependency: detectada.
+const dIssues = validIssues.map((issue) => issue.key === 'core' ? { ...issue, dependsOn: ['core'] } : issue);
+result = await runPipeline(JSON.stringify({ issues: dIssues }), llmContext);
+assert.equal(result.json.valid, false);
+assert.ok(codes(result).includes('SELF_DEPENDENCY'), codes(result).join(','));
+assert.ok(result.json.normalization.droppedDependencies.some((d) => d.reason === 'SELF_DEPENDENCY'));
+
+// Caso E — LLM omite contenido de una sección: los 12 headers siguen presentes con "No aplica.".
+const eIssues = validIssues.map((issue) => issue.key === 'ui' ? { ...issue, sections: { ...issue.sections, alcance: [] } } : issue);
+[result] = await runCode('src/ai/parse-structured-plan.js', { json: { ...llmContext, rawModelText: JSON.stringify({ issues: eIssues }) } });
+[result] = await runCode('src/ai/enforce-foundation.js', { json: result.json });
+[result] = await runCode('src/ai/normalize-plan.js', { json: result.json });
+[result] = await runCode('src/ai/build-bodies.js', { json: result.json });
+const uiBody = result.json.plan.issues.find((issue) => issue.key === 'ui').body;
+assert.ok(uiBody.includes('## Alcance'));
+assert.ok(uiBody.includes('- No aplica.'));
+for (const heading of HEADINGS) assert.equal(uiBody.split(heading).length - 1, 1);
+
+// Caso F — headers usan exactamente ## y nunca #.
+assert.ok(!uiBody.includes('\n# Historia de Usuario'));
+assert.ok(uiBody.includes('## Historia de Usuario'));
+
+// Caso G — basura fuera del schema: rechazado (LLM_SCHEMA_INVALID).
+result = await runPipeline('esto no es json', llmContext);
+assert.equal(result.json.valid, false);
+assert.ok(codes(result).includes('LLM_SCHEMA_INVALID'), codes(result).join(','));
+
+// Caso H — ciclo: detectado antes de GitHub (validator) y rechazado por toposort.
+const hIssues = [
+  { key: 'core', title: 'Implementar núcleo', assignee: 'Draggodeidad', type: 'feature', priority: 'high', dependsOn: ['tests'], sections: sectionsFor('core', 'el núcleo') },
+  { key: 'tests', title: 'Pruebas offline', assignee: 'JulianDele', type: 'test', priority: 'medium', dependsOn: ['core'], sections: sectionsFor('tests', 'pruebas offline') },
+  { key: 'ui', title: 'UI offline', assignee: 'osbaldoXxC', type: 'feature', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('ui', 'la UI offline') },
+];
+result = await runPipeline(JSON.stringify({ issues: hIssues }), llmContext);
+assert.equal(result.json.valid, false);
+assert.ok(codes(result).includes('DEPENDENCY_CYCLE'), codes(result).join(','));
+await assert.rejects(() => runCode('src/planning/plan-toposort.js', { json: {
+  course: 'PWA', weekPadded: '01', repoContext: { labels: [] }, starter: { found: false },
+  plan: { issues: [
+    { key: 'a', assignee: 'Draggodeidad', type: 'feature', priority: 'high', dependsOn: ['b'], expectedFiles: ['a.ts'], title: 'Implementar a', body: 'implementa código y lógica' },
+    { key: 'b', assignee: 'JulianDele', type: 'test', priority: 'medium', dependsOn: ['a'], expectedFiles: ['b.spec.ts'], title: 'Probar b', body: 'tests' },
+    { key: 'c', assignee: 'osbaldoXxC', type: 'feature', priority: 'low', dependsOn: [], expectedFiles: ['c.ts'], title: 'UI c', body: 'ui' },
+  ] },
+} }), /circulares/);
+
+// Caso I — Draggodeidad sin implementación técnica sustancial: retryable.
+const iIssues = [
+  validIssues[0],
+  { key: 'docs', title: 'Documentar requisitos', assignee: 'Draggodeidad', type: 'docs', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('docs', 'documentación') },
+  validIssues[2],
+  validIssues[3],
+];
+result = await runPipeline(JSON.stringify({ issues: iIssues }), llmContext);
+assert.equal(result.json.valid, false);
+assert.ok(codes(result).includes('MISSING_SUBSTANTIAL'), codes(result).join(','));
+assert.equal(result.json.retryable, true);
+await assert.rejects(() => runCode('src/planning/plan-toposort.js', { json: result.json }), /no tiene implementación técnica sustancial/);
+
+// Caso J — el contador de retries no se reinicia en el circuito de reparación.
+const [firstParse] = await runCode('src/ai/parse-structured-plan.js', { json: { ...llmContext, rawModelText: '{"issues":[]}' }, runIndex: 0 });
+assert.equal(firstParse.json.llmAttempt, 1);
+const [repairParse] = await runCode('src/ai/parse-structured-plan.js', { json: { ...llmContext, rawModelText: '{"issues":[]}' }, runIndex: 1 });
+assert.equal(repairParse.json.llmAttempt, 2);
+const gateAllowsRetry = Number(repairParse.json.llmAttempt || 0) < 2 && Boolean(repairParse.json.retryable);
+assert.equal(gateAllowsRetry, false, 'El gate debe detener el circuito tras un reintento');
 
 const metadataBody = (key, updateTime, planKeys = 'foundation,core') => `<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-03 -->\n<!-- classroom-update-time:${updateTime} -->\n<!-- course:PWA -->\n<!-- week:03 -->\n<!-- issue-key:${key} -->\n<!-- plan-keys:${planKeys} -->`;
 const sourceContext = {

@@ -19,7 +19,7 @@
         -2600,
         -260
       ],
-      "id": "00000000-0000-4000-8000-000000000001",
+      "id": "87eb359d-495f-4528-9f39-a63b070f47c9",
       "name": "Schedule PWA Monday 09:10"
     },
     {
@@ -32,7 +32,7 @@
         -2380,
         -260
       ],
-      "id": "00000000-0000-4000-8000-000000000002",
+      "id": "380816f2-36d8-49ea-859a-7d7c02c3c0cb",
       "name": "Route PWA"
     },
     {
@@ -52,7 +52,7 @@
         -2600,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000003",
+      "id": "91255ca9-23c2-48df-9b16-c677f569b7d5",
       "name": "Schedule DMI Tuesday 09:10"
     },
     {
@@ -65,7 +65,7 @@
         -2380,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000004",
+      "id": "e74ac977-285a-47ae-9013-4e3741c5aee1",
       "name": "Route DMI"
     },
     {
@@ -76,12 +76,12 @@
         -2600,
         120
       ],
-      "id": "00000000-0000-4000-8000-000000000005",
+      "id": "d686d12a-3075-40cd-b20b-3d600553f095",
       "name": "Manual Trigger"
     },
     {
       "parameters": {
-        "jsCode": "// Edita únicamente estos valores para backfill/recuperación manual.\nconst request = { course: 'PWA', week: 3 };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];"
+        "jsCode": "// Edita únicamente estos valores para backfill/recuperación manual.\nconst request = { course: 'PWA', week: 1 };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -89,7 +89,7 @@
         -2380,
         120
       ],
-      "id": "00000000-0000-4000-8000-000000000006",
+      "id": "b27e5d99-2481-45fa-8837-1d5334a38c59",
       "name": "Manual Request"
     },
     {
@@ -102,7 +102,7 @@
         -2160,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000007",
+      "id": "bf084c71-d316-4b72-8c77-3b28dba9cd8f",
       "name": "Prepare Classroom Request"
     },
     {
@@ -125,7 +125,7 @@
         -1940,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000008",
+      "id": "067a8df0-1cb9-4821-b677-118d7d844f86",
       "name": "Classroom - List CourseWork Initial",
       "credentials": {
         "oAuth2Api": {
@@ -143,7 +143,7 @@
         -1720,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000009",
+      "id": "f214a376-a4bf-47d2-981a-01eb3fca37ea",
       "name": "Attach Initial Classroom Response"
     },
     {
@@ -156,7 +156,7 @@
         -1500,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000010",
+      "id": "bd77f291-607c-4cbd-ba2a-f82e5819177d",
       "name": "Parse Initial CourseWork"
     },
     {
@@ -170,7 +170,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000011",
+              "id": "5442a774-bf8b-4129-b865-3a7018406d0a",
               "leftValue": "={{ $json.found }}",
               "rightValue": "",
               "operator": {
@@ -190,7 +190,7 @@
         -1280,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000012",
+      "id": "eb3b028b-e99d-43b3-a01e-3c176fbe00c4",
       "name": "CourseWork Found Initial?"
     },
     {
@@ -204,7 +204,7 @@
         -1060,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000013",
+      "id": "6be3d0eb-70e4-44b6-9087-cb3eab99f4d3",
       "name": "Wait 30 Minutes Once"
     },
     {
@@ -217,7 +217,7 @@
         -840,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000014",
+      "id": "d6b72e4e-0ab1-4d55-8b41-368b5e4b3440",
       "name": "Increment Retry"
     },
     {
@@ -240,7 +240,7 @@
         -620,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000015",
+      "id": "83763589-260f-4599-9b0e-4a0131709120",
       "name": "Classroom - List CourseWork Retry",
       "credentials": {
         "oAuth2Api": {
@@ -258,7 +258,7 @@
         -400,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000016",
+      "id": "ef54a224-ec44-41b1-b097-ed2df188038b",
       "name": "Attach Retry Classroom Response"
     },
     {
@@ -271,7 +271,7 @@
         -180,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000017",
+      "id": "4df1b6ed-17b1-40f1-bf94-a54ace54204b",
       "name": "Parse Retry CourseWork"
     },
     {
@@ -285,7 +285,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000018",
+              "id": "ba88bec1-e3a6-4d58-86fa-ecedbb7f3e6b",
               "leftValue": "={{ $json.found }}",
               "rightValue": "",
               "operator": {
@@ -305,7 +305,7 @@
         40,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000019",
+      "id": "7a69e60d-1f67-4504-8f40-46e1f343674d",
       "name": "CourseWork Found Retry?"
     },
     {
@@ -318,7 +318,7 @@
         260,
         260
       ],
-      "id": "00000000-0000-4000-8000-000000000020",
+      "id": "aaf0fe62-d09b-4a30-8f4c-f66dd8ff10ce",
       "name": "Build No Activity Summary"
     },
     {
@@ -332,7 +332,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000021",
+              "id": "b75245ce-f70b-4c58-b7c2-8bd59c1cd033",
               "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
               "rightValue": "",
               "operator": {
@@ -352,7 +352,7 @@
         480,
         260
       ],
-      "id": "00000000-0000-4000-8000-000000000022",
+      "id": "6f6e77a8-669a-4256-9191-061535c32d80",
       "name": "Notify No Activity?"
     },
     {
@@ -371,7 +371,7 @@
         700,
         220
       ],
-      "id": "00000000-0000-4000-8000-000000000023",
+      "id": "e165bbef-a122-4388-b509-69d9d65d43b6",
       "name": "Gmail - Send No Activity Alert",
       "credentials": {
         "gmailOAuth2": {
@@ -389,7 +389,7 @@
         260,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000024",
+      "id": "9089d0e3-cd02-4603-8be2-6260ab29fc4c",
       "name": "Inspect Materials"
     },
     {
@@ -403,7 +403,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000025",
+              "id": "e28dfd53-f92f-491d-ae2e-e4dcb99dbcbd",
               "leftValue": "={{ $json.starterFound }}",
               "rightValue": "",
               "operator": {
@@ -423,7 +423,7 @@
         480,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000026",
+      "id": "e651169a-f008-4813-9d8e-87bdc2ec3257",
       "name": "Starter ZIP Found?"
     },
     {
@@ -436,7 +436,7 @@
         700,
         40
       ],
-      "id": "00000000-0000-4000-8000-000000000027",
+      "id": "f6afd3e2-1fc3-4677-bcb0-b06fa477a4ad",
       "name": "No Starter Context"
     },
     {
@@ -459,7 +459,7 @@
         700,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000028",
+      "id": "ed377c43-d3bf-49ac-b28f-2d72f21b70d9",
       "name": "Drive - Starter Metadata",
       "credentials": {
         "oAuth2Api": {
@@ -477,12 +477,12 @@
         920,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000029",
+      "id": "96eea4aa-8cf6-4e11-8310-bf137c267c1e",
       "name": "Attach Drive Metadata"
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nconst metadata = data.driveMetadata?.body ?? data.driveMetadata ?? {};\nif (!metadata.id) throw new Error('DriveFile inexistente o inaccesible');\nif (metadata.capabilities?.canDownload !== true) throw new Error(`Drive no permite descargar ${data.starterName}`);\nif (!/\\.zip$/i.test(metadata.name || data.starterName || '')) throw new Error('El starter seleccionado no tiene extensión .zip');\nconst maxBytes = Number($env.MAX_ZIP_SIZE_MB || 25) * 1024 * 1024;\nif (Number(metadata.size || 0) > maxBytes) throw new Error(`ZIP excede MAX_ZIP_SIZE_MB (${metadata.size} bytes)`);\nreturn [{ json: { ...data, driveFile: metadata, starterName: metadata.name || data.starterName } }];"
+        "jsCode": "const data = $json;\nconst metadata = data.driveMetadata?.body ?? data.driveMetadata ?? {};\nif (!metadata.id) throw new Error(\"DriveFile inexistente o inaccesible\");\nif (metadata.capabilities?.canDownload !== true)\n  throw new Error(`Drive no permite descargar ${data.starterName}`);\nif (!/\\.zip$/i.test(metadata.name || data.starterName || \"\"))\n  throw new Error(\"El starter seleccionado no tiene extensión .zip\");\nconst maxBytes = Number($env.MAX_ZIP_SIZE_MB || 25) * 1024 * 1024;\nif (Number(metadata.size || 0) > maxBytes)\n  throw new Error(`ZIP excede MAX_ZIP_SIZE_MB (${metadata.size} bytes)`);\nreturn [\n  {\n    json: {\n      ...data,\n      driveFile: metadata,\n      starterName: metadata.name || data.starterName,\n    },\n  },\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -490,7 +490,7 @@
         1140,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000030",
+      "id": "65a18dc0-c10e-4317-841d-043e1654531a",
       "name": "Validate Drive File"
     },
     {
@@ -514,7 +514,7 @@
         1360,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000031",
+      "id": "12c3e73e-f7ef-4abb-821c-9de7043b55e9",
       "name": "Drive - Download Starter ZIP",
       "credentials": {
         "oAuth2Api": {
@@ -532,7 +532,7 @@
         1580,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000032",
+      "id": "c733fb20-0eff-4485-903a-6d4b4a80ba4a",
       "name": "Attach Download Context"
     },
     {
@@ -545,7 +545,7 @@
         1800,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000033",
+      "id": "2805ca3c-ef09-4cd9-8221-936a8f515307",
       "name": "Validate ZIP Security"
     },
     {
@@ -559,7 +559,7 @@
         2020,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000034",
+      "id": "849a6fb2-2e5d-4b10-a04d-871d2af1db16",
       "name": "Extract Starter ZIP"
     },
     {
@@ -572,7 +572,7 @@
         2240,
         -200
       ],
-      "id": "00000000-0000-4000-8000-000000000035",
+      "id": "156b5e08-6054-49fe-8aed-c0be757d186b",
       "name": "Inspect Starter"
     },
     {
@@ -585,7 +585,7 @@
         2460,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000036",
+      "id": "8f822158-f373-4dbb-b4a2-68c085c5e542",
       "name": "Activity Context"
     },
     {
@@ -621,7 +621,7 @@
         2680,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000037",
+      "id": "eda72977-29e0-4364-82a2-a8542eb239c2",
       "name": "GitHub - Repository",
       "credentials": {
         "githubApi": {
@@ -662,7 +662,7 @@
         2900,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000038",
+      "id": "eae598c9-7748-4c15-8127-b1a229a216f9",
       "name": "GitHub - Recent Issues",
       "credentials": {
         "githubApi": {
@@ -703,7 +703,7 @@
         3120,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000039",
+      "id": "7f993bca-edce-44d8-b3bb-c63eaa247cac",
       "name": "GitHub - Search CourseWork ID",
       "credentials": {
         "githubApi": {
@@ -744,7 +744,7 @@
         3340,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000040",
+      "id": "c57e872b-dccb-4d89-9dde-96442c37d6e7",
       "name": "GitHub - Search Course Week",
       "credentials": {
         "githubApi": {
@@ -785,7 +785,7 @@
         3560,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000041",
+      "id": "5f548342-5a63-4648-ab96-b2486708fa3f",
       "name": "GitHub - Open Pull Requests",
       "credentials": {
         "githubApi": {
@@ -826,7 +826,7 @@
         3780,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000042",
+      "id": "7c7c5e63-a39a-49b8-97b6-60d897a53b4d",
       "name": "GitHub - Labels",
       "credentials": {
         "githubApi": {
@@ -867,7 +867,7 @@
         4000,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000043",
+      "id": "78287213-f8a3-4753-b920-70dfd8b06e33",
       "name": "GitHub - Tree",
       "credentials": {
         "githubApi": {
@@ -908,7 +908,7 @@
         4220,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000044",
+      "id": "725b4ca4-7b17-4104-8182-a6c470d13c07",
       "name": "GitHub - README",
       "credentials": {
         "githubApi": {
@@ -918,7 +918,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const source = $('Activity Context').item.json;\nconst outputSchema = {\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://local.example/schemas/classroom-issue-plan.schema.json\",\"title\":\"ClassroomIssuePlan\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"course\",\"week\",\"repository\",\"assignmentTitle\",\"deadline\",\"source\",\"issues\"],\"properties\":{\"course\":{\"type\":\"string\",\"enum\":[\"DMI\",\"PWA\"]},\"week\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":99},\"repository\":{\"type\":\"string\",\"enum\":[\"Draggodeidad/campusops-dmi-team\",\"Draggodeidad/pwa-utt\"]},\"assignmentTitle\":{\"type\":\"string\",\"minLength\":3,\"maxLength\":240},\"deadline\":{\"type\":[\"string\",\"null\"]},\"source\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"courseId\",\"courseWorkId\",\"updateTime\",\"starterName\"],\"properties\":{\"courseId\":{\"type\":\"string\",\"minLength\":1},\"courseWorkId\":{\"type\":\"string\",\"minLength\":1},\"updateTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"starterName\":{\"type\":[\"string\",\"null\"]}}},\"issues\":{\"type\":\"array\",\"minItems\":3,\"maxItems\":12,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"key\",\"title\",\"assignee\",\"type\",\"priority\",\"dependsOn\",\"body\",\"expectedFiles\",\"acceptanceCriteria\",\"tests\",\"evidence\"],\"properties\":{\"key\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"},\"title\":{\"type\":\"string\",\"minLength\":8,\"maxLength\":240},\"assignee\":{\"type\":\"string\",\"enum\":[\"Draggodeidad\",\"JulianDele\",\"osbaldoXxC\"]},\"type\":{\"type\":\"string\",\"enum\":[\"feature\",\"test\",\"docs\",\"devops\",\"evidence\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\"]},\"dependsOn\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"}},\"body\":{\"type\":\"string\",\"minLength\":350},\"expectedFiles\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"acceptanceCriteria\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"type\":\"string\"}},\"tests\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"evidence\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}}}}}}};\nconst geminiAllowed = new Set([\n  'type', 'title', 'description', 'properties', 'required', 'additionalProperties',\n  'enum', 'format', 'minimum', 'maximum', 'items', 'prefixItems', 'minItems',\n  'maxItems', 'anyOf', '$ref',\n]);\nfunction geminiCompatibleSchema(value) {\n  if (Array.isArray(value)) return value.map(geminiCompatibleSchema);\n  if (!value || typeof value !== 'object') return value;\n  return Object.fromEntries(Object.entries(value)\n    .filter(([key]) => geminiAllowed.has(key))\n    .map(([key, child]) => [key, key === 'properties'\n      ? Object.fromEntries(Object.entries(child).map(([name, property]) => [name, geminiCompatibleSchema(property)]))\n      : geminiCompatibleSchema(child)]));\n}\nconst responseBody = (name) => {\n  const value = $(name).item.json;\n  return value.body ?? value;\n};\nconst asArray = (value) => Array.isArray(value) ? value : [];\nconst decode = (value) => {\n  try { return Buffer.from(String(value || '').replace(/\\n/g, ''), 'base64').toString('utf8'); }\n  catch { return ''; }\n};\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\n\nconst repo = responseBody('GitHub - Repository');\nconst recentIssues = asArray(responseBody('GitHub - Recent Issues')).filter((entry) => !entry.pull_request);\nconst openPrs = asArray(responseBody('GitHub - Open Pull Requests'));\nconst labels = asArray(responseBody('GitHub - Labels'));\nconst searchByCourseWork = responseBody('GitHub - Search CourseWork ID');\nconst searchByWeek = responseBody('GitHub - Search Course Week');\nconst tree = asArray(responseBody('GitHub - Tree').tree);\nconst readme = decode(responseBody('GitHub - README').content).slice(0, 12000);\n\nconst matches = [];\nfor (const issue of [...asArray(searchByCourseWork.items), ...asArray(searchByWeek.items), ...recentIssues]) {\n  const body = String(issue.body || '');\n  const sameCourseWork = metadata(body, 'classroom-coursework-id') === source.courseWorkId && metadata(body, 'classroom-course-id') === source.courseId;\n  const sameCourseWeek = metadata(body, 'course') === source.course && metadata(body, 'week') === source.weekPadded;\n  if ((sameCourseWork || sameCourseWeek) && !matches.some((item) => item.number === issue.number)) matches.push(issue);\n}\nconst sameIdentity = matches.filter((issue) =>\n  metadata(issue.body, 'classroom-coursework-id') === source.courseWorkId &&\n  metadata(issue.body, 'classroom-course-id') === source.courseId);\nconst identityConflict = matches.some((issue) =>\n  metadata(issue.body, 'classroom-coursework-id') !== source.courseWorkId);\nconst storedUpdateTimes = sameIdentity.map((issue) => metadata(issue.body, 'classroom-update-time')).filter(Boolean);\nconst newestStoredUpdate = storedUpdateTimes.sort().at(-1) || null;\nconst courseworkUpdated = Boolean(newestStoredUpdate && Date.parse(source.updateTime) > Date.parse(newestStoredUpdate));\n\nconst issueKeys = sameIdentity.map((issue) => metadata(issue.body, 'issue-key')).filter(Boolean);\nconst planKeys = [...new Set(sameIdentity\n  .map((issue) => metadata(issue.body, 'plan-keys'))\n  .filter(Boolean)\n  .flatMap((value) => value.split(',').map((key) => key.trim()).filter(Boolean)))];\nconst unrecoverablePartialState = sameIdentity.length > 0 && planKeys.length === 0;\nconst completeExisting = sameIdentity.length > 0 && !courseworkUpdated && planKeys.length > 0 && planKeys.every((key) => issueKeys.includes(key));\nconst resumeKeys = sameIdentity.length > 0 && !completeExisting && !courseworkUpdated ? planKeys : [];\n\nconst starterPaths = source.starter?.files || [];\nconst repositoryPaths = tree.filter((entry) => entry.type === 'blob').map((entry) => entry.path);\nconst repositoryPathSet = new Set(repositoryPaths.map((path) => path.toLowerCase()));\nconst overlapping = starterPaths.filter((path) => repositoryPathSet.has(path.toLowerCase()));\nconst newPaths = starterPaths.filter((path) => !repositoryPathSet.has(path.toLowerCase()));\nsource.starter.potentialConflicts = overlapping.slice(0, 80);\n\nconst tokens = `${source.assignmentTitle} ${source.description} ${starterPaths.join(' ')}`\n  .toLowerCase().split(/[^a-záéíóúüñ0-9._/-]+/i).filter((token) => token.length >= 4);\nconst relevantPaths = repositoryPaths\n  .filter((path) => path.length < 180 && /readme|docs?|package\\.json|docker|compose|workflow|src|test|spec|\\.github/i.test(path))\n  .sort((a, b) => {\n    const score = (path) => tokens.reduce((sum, token) => sum + (path.toLowerCase().includes(token) ? 1 : 0), 0);\n    return score(b) - score(a);\n  }).slice(0, 80);\n\nconst compactIssues = recentIssues.slice(0, 40).map((issue) => ({\n  number: issue.number, state: issue.state, title: issue.title,\n  labels: (issue.labels || []).map((label) => label.name || label),\n  assignees: (issue.assignees || []).map((assignee) => assignee.login),\n  createdAt: issue.created_at, closedAt: issue.closed_at,\n  metadata: {\n    courseId: metadata(issue.body, 'classroom-course-id'),\n    courseWorkId: metadata(issue.body, 'classroom-coursework-id'),\n    updateTime: metadata(issue.body, 'classroom-update-time'),\n    course: metadata(issue.body, 'course'), week: metadata(issue.body, 'week'), key: metadata(issue.body, 'issue-key'),\n  },\n}));\nconst repoContext = {\n  repository: source.repository,\n  defaultBranch: repo.default_branch,\n  description: repo.description,\n  language: repo.language,\n  topics: repo.topics || [],\n  openIssues: compactIssues.filter((issue) => issue.state === 'open'),\n  recentClosedIssues: compactIssues.filter((issue) => issue.state === 'closed').slice(0, 20),\n  openPullRequests: openPrs.slice(0, 20).map((pr) => ({ number: pr.number, title: pr.title, head: pr.head?.ref, base: pr.base?.ref })),\n  labels: labels.map((label) => label.name), relevantPaths, readme,\n  starterComparison: { overlappingPaths: overlapping.slice(0, 80), newPaths: newPaths.slice(0, 80) },\n};\n\nconst systemPrompt = `Eres Tech Lead y Project Manager técnico. Devuelve sólo JSON conforme al schema. Usa CourseWork, starter real y repositorio; no inventes. Si starter.found=true, crea una Foundation inicial para Draggodeidad titulada exactamente [${source.course}][W${source.weekPadded}] Integrar ${source.starter.name} y establecer baseline semanal, sin dependencias y basada en archivos/comandos/criterios reales del starter. Draggodeidad recibe además implementación técnica sustancial. JulianDele y osbaldoXxC trabajan mayormente en paralelo y reciben especificaciones guiadas. Keys estables; dependencias sólo por key; no inventes evidencia. Cada body usa en orden: ## Historia de Usuario, ## Contexto, ## Objetivo técnico, ## Alcance, ## Fuera de alcance, ## Archivos esperados, ## Pasos sugeridos, ## Criterios de aceptación, ## Pruebas, ## Dependencias, ## Evidencia individual, ## Definition of Done. No añadas metadata HTML.`;\nconst userPrompt = JSON.stringify({\n  coursework: {\n    course: source.course, week: source.week, courseId: source.courseId, courseWorkId: source.courseWorkId,\n    title: source.assignmentTitle, description: source.description, deadline: source.dueAt,\n    updateTime: source.updateTime, alternateLink: source.alternateLink, maxPoints: source.maxPoints, workType: source.workType,\n    materials: source.materialInventory,\n  },\n  starter: source.starter,\n  repository: repoContext,\n  resumeKeys,\n});\n\nreturn [{ json: {\n  ...source, repoContext,\n  existingAutomationIssues: sameIdentity.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body })),\n  completeExisting, resumeKeys, courseworkUpdated, identityConflict: identityConflict || unrecoverablePartialState, newestStoredUpdate,\n  schema: outputSchema, geminiSchema: geminiCompatibleSchema(outputSchema), systemPrompt, userPrompt,\n} }];"
+        "jsCode": "const source = $('Activity Context').item.json;\nconst outputSchema = {\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://local.example/schemas/classroom-issue-plan.schema.json\",\"title\":\"ClassroomIssuePlan\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"issues\"],\"properties\":{\"issues\":{\"type\":\"array\",\"minItems\":3,\"maxItems\":6,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"key\",\"title\",\"assignee\",\"type\",\"priority\",\"dependsOn\",\"sections\"],\"properties\":{\"key\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"},\"title\":{\"type\":\"string\",\"minLength\":3,\"maxLength\":240},\"assignee\":{\"type\":\"string\",\"enum\":[\"Draggodeidad\",\"JulianDele\",\"osbaldoXxC\"]},\"type\":{\"type\":\"string\",\"enum\":[\"feature\",\"test\",\"docs\",\"devops\",\"evidence\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\"]},\"dependsOn\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"pattern\":\"^[a-z0-9][a-z0-9-]{1,39}$\"}},\"sections\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"historiaUsuario\",\"contexto\",\"objetivoTecnico\",\"alcance\",\"fueraDeAlcance\",\"archivosEsperados\",\"pasosSugeridos\",\"criteriosAceptacion\",\"pruebas\",\"dependencias\",\"evidenciaIndividual\",\"definitionOfDone\"],\"properties\":{\"historiaUsuario\":{\"type\":\"string\",\"minLength\":3},\"contexto\":{\"type\":\"string\",\"minLength\":3},\"objetivoTecnico\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"alcance\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"fueraDeAlcance\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"archivosEsperados\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"pasosSugeridos\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"criteriosAceptacion\":{\"type\":\"array\",\"minItems\":2,\"items\":{\"type\":\"string\"}},\"pruebas\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"dependencias\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"evidenciaIndividual\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}},\"definitionOfDone\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}}}}}}}}};\nconst geminiAllowed = new Set([\n  'type', 'title', 'description', 'properties', 'required', 'additionalProperties',\n  'enum', 'format', 'minimum', 'maximum', 'items', 'prefixItems', 'minItems',\n  'maxItems', 'minLength', 'maxLength', 'pattern', 'uniqueItems', 'anyOf', '$ref',\n]);\nfunction geminiCompatibleSchema(value) {\n  if (Array.isArray(value)) return value.map(geminiCompatibleSchema);\n  if (!value || typeof value !== 'object') return value;\n  return Object.fromEntries(Object.entries(value)\n    .filter(([key]) => geminiAllowed.has(key))\n    .map(([key, child]) => [key, key === 'properties'\n      ? Object.fromEntries(Object.entries(child).map(([name, property]) => [name, geminiCompatibleSchema(property)]))\n      : geminiCompatibleSchema(child)]));\n}\nconst responseBody = (name) => {\n  const value = $(name).item.json;\n  return value.body ?? value;\n};\nconst asArray = (value) => Array.isArray(value) ? value : [];\nconst decode = (value) => {\n  try { return Buffer.from(String(value || '').replace(/\\n/g, ''), 'base64').toString('utf8'); }\n  catch { return ''; }\n};\nconst metadata = (body, key) => {\n  const match = String(body || '').match(new RegExp(`<!--\\\\s*${key}:([^>]+?)\\\\s*-->`, 'i'));\n  return match ? match[1].trim() : null;\n};\n\nconst repo = responseBody('GitHub - Repository');\nconst recentIssues = asArray(responseBody('GitHub - Recent Issues')).filter((entry) => !entry.pull_request);\nconst openPrs = asArray(responseBody('GitHub - Open Pull Requests'));\nconst labels = asArray(responseBody('GitHub - Labels'));\nconst searchByCourseWork = responseBody('GitHub - Search CourseWork ID');\nconst searchByWeek = responseBody('GitHub - Search Course Week');\nconst tree = asArray(responseBody('GitHub - Tree').tree);\nconst readme = decode(responseBody('GitHub - README').content).slice(0, 2500);\n\nconst matches = [];\nfor (const issue of [...asArray(searchByCourseWork.items), ...asArray(searchByWeek.items), ...recentIssues]) {\n  const body = String(issue.body || '');\n  const sameCourseWork = metadata(body, 'classroom-coursework-id') === source.courseWorkId && metadata(body, 'classroom-course-id') === source.courseId;\n  const sameCourseWeek = metadata(body, 'course') === source.course && metadata(body, 'week') === source.weekPadded;\n  if ((sameCourseWork || sameCourseWeek) && !matches.some((item) => item.number === issue.number)) matches.push(issue);\n}\nconst sameIdentity = matches.filter((issue) =>\n  metadata(issue.body, 'classroom-coursework-id') === source.courseWorkId &&\n  metadata(issue.body, 'classroom-course-id') === source.courseId);\nconst identityConflict = matches.some((issue) =>\n  metadata(issue.body, 'classroom-coursework-id') !== source.courseWorkId);\nconst storedUpdateTimes = sameIdentity.map((issue) => metadata(issue.body, 'classroom-update-time')).filter(Boolean);\nconst newestStoredUpdate = storedUpdateTimes.sort().at(-1) || null;\nconst courseworkUpdated = Boolean(newestStoredUpdate && Date.parse(source.updateTime) > Date.parse(newestStoredUpdate));\n\nconst issueKeys = sameIdentity.map((issue) => metadata(issue.body, 'issue-key')).filter(Boolean);\nconst planKeys = [...new Set(sameIdentity\n  .map((issue) => metadata(issue.body, 'plan-keys'))\n  .filter(Boolean)\n  .flatMap((value) => value.split(',').map((key) => key.trim()).filter(Boolean)))];\nconst unrecoverablePartialState = sameIdentity.length > 0 && planKeys.length === 0;\nconst completeExisting = sameIdentity.length > 0 && !courseworkUpdated && planKeys.length > 0 && planKeys.every((key) => issueKeys.includes(key));\nconst resumeKeys = sameIdentity.length > 0 && !completeExisting && !courseworkUpdated ? planKeys : [];\n\nconst starterPaths = source.starter?.files || [];\nconst repositoryPaths = tree.filter((entry) => entry.type === 'blob').map((entry) => entry.path);\nconst repositoryPathSet = new Set(repositoryPaths.map((path) => path.toLowerCase()));\nconst overlapping = starterPaths.filter((path) => repositoryPathSet.has(path.toLowerCase()));\nconst newPaths = starterPaths.filter((path) => !repositoryPathSet.has(path.toLowerCase()));\nsource.starter.potentialConflicts = overlapping.slice(0, 30);\n\nconst tokens = `${source.assignmentTitle} ${source.description} ${starterPaths.join(' ')}`\n  .toLowerCase().split(/[^a-záéíóúüñ0-9._/-]+/i).filter((token) => token.length >= 4);\nconst relevantPaths = repositoryPaths\n  .filter((path) => path.length < 180 && /readme|docs?|package\\.json|docker|compose|workflow|src|test|spec|\\.github/i.test(path))\n  .sort((a, b) => {\n    const score = (path) => tokens.reduce((sum, token) => sum + (path.toLowerCase().includes(token) ? 1 : 0), 0);\n    return score(b) - score(a);\n  }).slice(0, 30);\n\nconst compactIssues = recentIssues.slice(0, 15).map((issue) => ({\n  number: issue.number, state: issue.state, title: issue.title,\n  labels: (issue.labels || []).map((label) => label.name || label),\n  assignees: (issue.assignees || []).map((assignee) => assignee.login),\n  createdAt: issue.created_at, closedAt: issue.closed_at,\n  metadata: {\n    courseId: metadata(issue.body, 'classroom-course-id'),\n    courseWorkId: metadata(issue.body, 'classroom-coursework-id'),\n    updateTime: metadata(issue.body, 'classroom-update-time'),\n    course: metadata(issue.body, 'course'), week: metadata(issue.body, 'week'), key: metadata(issue.body, 'issue-key'),\n  },\n}));\nconst repoContext = {\n  repository: source.repository,\n  defaultBranch: repo.default_branch,\n  description: repo.description,\n  language: repo.language,\n  topics: repo.topics || [],\n  openIssues: compactIssues.filter((issue) => issue.state === 'open'),\n  recentClosedIssues: compactIssues.filter((issue) => issue.state === 'closed').slice(0, 8),\n  openPullRequests: openPrs.slice(0, 10).map((pr) => ({ number: pr.number, title: pr.title, head: pr.head?.ref, base: pr.base?.ref })),\n  labels: labels.map((label) => label.name), relevantPaths, readme,\n  starterComparison: { overlappingPaths: overlapping.slice(0, 30), newPaths: newPaths.slice(0, 30) },\n};\n\nconst trimList = (value, limit, itemLimit = 500) => asArray(value).slice(0, limit).map((item) => String(item).slice(0, itemLimit));\nconst compactStarter = source.starter?.found ? {\n  found: true,\n  name: source.starter.name,\n  fileCount: source.starter.fileCount,\n  files: trimList(source.starter.files, 30, 180),\n  relevantFiles: asArray(source.starter.relevantFiles).slice(0, 4).map((file) => ({\n    path: String(file.path || '').slice(0, 180),\n    content: String(file.content || '').slice(0, 1200),\n    truncated: Boolean(file.truncated) || String(file.content || '').length > 1200,\n  })),\n  requiredFiles: trimList(source.starter.requiredFiles, 25, 180),\n  instructions: trimList(source.starter.instructions, 20, 300),\n  commands: trimList(source.starter.commands, 15, 180),\n  acceptanceCriteria: trimList(source.starter.acceptanceCriteria, 20, 300),\n  tests: trimList(source.starter.tests, 20, 180),\n  constraints: trimList(source.starter.constraints, 15, 300),\n  rubric: trimList(source.starter.rubric, 15, 300),\n  potentialConflicts: trimList(source.starter.potentialConflicts, 30, 180),\n} : { found: false, name: null };\n\nconst exactIdentity = {\n  course: source.course,\n  week: source.week,\n  weekPadded: source.weekPadded,\n  repository: source.repository,\n  assignmentTitle: source.assignmentTitle,\n  deadline: source.dueAt,\n  source: {\n    courseId: source.courseId,\n    courseWorkId: source.courseWorkId,\n    updateTime: source.updateTime,\n    starterName: source.starter?.name ?? null,\n  },\n};\nconst systemPrompt = `Eres Tech Lead. Analiza exclusivamente el contexto proporcionado (CourseWork, starter y repositorio) y divide la actividad en unidades de trabajo implementables. Devuelve entre 3 y 6 Issues.\n\nTu única responsabilidad es determinar:\n- trabajo requerido;\n- división en Issues;\n- integrante responsable (sólo Draggodeidad, JulianDele, osbaldoXxC);\n- tipo (feature|test|docs|devops|evidence);\n- prioridad (high|medium|low);\n- dependencias conceptuales entre Issues (por key);\n- contenido semántico de cada sección del schema.\n\nReglas de distribución:\n- Draggodeidad recibe además al menos una Issue sustancial de implementación técnica real: type feature, devops o test, con archivosEsperados y contenido de implementación verificable (código, lógica, configuración, CI/CD o arquitectura). Una Issue de docs o evidence no cumple esta regla.\n- JulianDele y osbaldoXxC reciben especificaciones guiadas pequeñas que avanzan mayormente en paralelo; evita cadenas entre ellos.\n- Si el starter existe, la primera Issue debe llamarse foundation; el sistema completa su título y metadatos, así que aporta sólo el contenido semántico basado en datos reales del ZIP.\n\nRestricciones:\n- No generes Markdown.\n- No agregues prefijos de curso/semana a los títulos.\n- No inventes repositorios, universidades, archivos, comandos, resultados de pruebas, commits, SHAs, tags ni evidencia ya producida.\n- No afirmes que algo fue ejecutado ni que una actividad está terminada.\n- Si una afirmación no está respaldada por el contexto, omítela.\n- Usa keys estables en kebab-case. dependsOn sólo con keys que existan en este plan.\n- Si se indican resumeKeys, devuelve exactamente ese conjunto de keys.`;\nconst userPrompt = JSON.stringify({\n  identity: exactIdentity,\n  coursework: {\n    description: String(source.description || '').slice(0, 4500),\n    alternateLink: source.alternateLink,\n    maxPoints: source.maxPoints,\n    workType: source.workType,\n    materials: asArray(source.materialInventory).slice(0, 15),\n  },\n  starter: compactStarter,\n  repository: repoContext,\n  resumeKeys,\n});\n\nreturn [{ json: {\n  ...source, repoContext,\n  existingAutomationIssues: sameIdentity.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body })),\n  completeExisting, resumeKeys, courseworkUpdated, identityConflict: identityConflict || unrecoverablePartialState, newestStoredUpdate,\n  schema: outputSchema, geminiSchema: geminiCompatibleSchema(outputSchema), systemPrompt, userPrompt,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -926,7 +926,7 @@
         4440,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000045",
+      "id": "0e9e3325-e06e-46a0-93bc-a3afeeb5bf60",
       "name": "Build Context & Dedup"
     },
     {
@@ -940,7 +940,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000046",
+              "id": "cfcd1de5-a2da-4f5b-b61c-88a6acae89a1",
               "leftValue": "={{ $json.courseworkUpdated || $json.identityConflict }}",
               "rightValue": "",
               "operator": {
@@ -960,7 +960,7 @@
         4660,
         -80
       ],
-      "id": "00000000-0000-4000-8000-000000000047",
+      "id": "fb6ccf23-9653-4a3f-ba31-5fba00a96147",
       "name": "Needs Manual Review?"
     },
     {
@@ -973,7 +973,7 @@
         4880,
         -240
       ],
-      "id": "00000000-0000-4000-8000-000000000048",
+      "id": "461c2b7f-49a0-44cb-a62d-5d7080e2e076",
       "name": "Build Manual Review Alert"
     },
     {
@@ -987,7 +987,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000049",
+              "id": "788639a2-e841-464b-8748-282b1a8b4c71",
               "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
               "rightValue": "",
               "operator": {
@@ -1007,7 +1007,7 @@
         5100,
         -240
       ],
-      "id": "00000000-0000-4000-8000-000000000050",
+      "id": "0ce8aadb-0dcc-4c5d-af3a-9738886b18b1",
       "name": "Notify Manual Review?"
     },
     {
@@ -1026,7 +1026,7 @@
         5320,
         -280
       ],
-      "id": "00000000-0000-4000-8000-000000000051",
+      "id": "59084660-e26a-4a5f-8805-93564c4fe358",
       "name": "Gmail - Send Manual Review Alert",
       "credentials": {
         "gmailOAuth2": {
@@ -1045,7 +1045,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000052",
+              "id": "1b72d972-68c1-4e6e-9997-72904eac46b7",
               "leftValue": "={{ $json.completeExisting }}",
               "rightValue": "",
               "operator": {
@@ -1065,7 +1065,7 @@
         4880,
         20
       ],
-      "id": "00000000-0000-4000-8000-000000000053",
+      "id": "b11f85a7-ee5f-4430-8193-0d68270b5563",
       "name": "Existing Set Complete?"
     },
     {
@@ -1078,7 +1078,7 @@
         5100,
         -20
       ],
-      "id": "00000000-0000-4000-8000-000000000054",
+      "id": "11bee401-c9db-4c2d-b80d-3efe6319efd9",
       "name": "Build Reconcile Summary"
     },
     {
@@ -1092,7 +1092,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000055",
+              "id": "9d3b67e3-4b5f-4440-924d-f3c8a65b866d",
               "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
               "rightValue": "",
               "operator": {
@@ -1112,7 +1112,7 @@
         5320,
         -20
       ],
-      "id": "00000000-0000-4000-8000-000000000056",
+      "id": "e0a90abd-c14c-44bc-b8c7-3194cac4a474",
       "name": "Notify Reconcile?"
     },
     {
@@ -1131,7 +1131,7 @@
         5540,
         -60
       ],
-      "id": "00000000-0000-4000-8000-000000000057",
+      "id": "b8bb3353-47b3-4973-8f92-95247b14938f",
       "name": "Gmail - Send Reconcile Summary",
       "credentials": {
         "gmailOAuth2": {
@@ -1150,7 +1150,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000058",
+              "id": "35457707-ff95-4ced-8587-d4dd9a03b50f",
               "leftValue": "={{ $json.aiProvider }}",
               "rightValue": "gemini",
               "operator": {
@@ -1169,7 +1169,7 @@
         5100,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000059",
+      "id": "4d738126-2baa-4398-bd8a-dd0b6d465382",
       "name": "AI Provider Gemini?"
     },
     {
@@ -1205,7 +1205,7 @@
         5320,
         100
       ],
-      "id": "00000000-0000-4000-8000-000000000060",
+      "id": "98512d4d-d54a-458d-83ed-080ce22924b3",
       "name": "Gemini - Plan",
       "credentials": {
         "httpHeaderAuth": {
@@ -1228,7 +1228,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userPrompt }], stream: false, format: $json.schema, options: { temperature: 0.1 } }) }}",
+        "jsonBody": "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userPrompt }], stream: false, think: false, format: $json.schema, options: { temperature: 0.1, num_ctx: 8192, num_predict: 5000 } }) }}",
         "options": {
           "response": {
             "response": {
@@ -1244,7 +1244,7 @@
         5320,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000061",
+      "id": "c690203b-42d0-42bf-b079-ed9a6f610e42",
       "name": "Ollama - Plan"
     },
     {
@@ -1257,12 +1257,12 @@
         5540,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000062",
+      "id": "c7203e12-0909-4258-aa78-06edec081077",
       "name": "Normalize AI Response"
     },
     {
       "parameters": {
-        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (plan.source?.courseId !== $json.courseId) errors.push('source.courseId no coincide con la entrada');\n  if (plan.source?.courseWorkId !== $json.courseWorkId) errors.push('source.courseWorkId no coincide con la entrada');\n  if (plan.source?.updateTime !== $json.updateTime) errors.push('source.updateTime no coincide con la entrada');\n  if ((plan.source?.starterName ?? null) !== ($json.starter?.name ?? null)) errors.push('source.starterName no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.starter?.found) {\n    const expectedTitle = `[${$json.course}][W${$json.weekPadded}] Integrar ${$json.starter.name} y establecer baseline semanal`;\n    const foundation = (plan.issues || []).find((issue) => issue.title === expectedTitle && issue.assignee === 'Draggodeidad' && issue.dependsOn?.length === 0);\n    if (!foundation) errors.push(`falta Foundation exacta: ${expectedTitle}`);\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
+        "jsCode": "const context = $json;\nconst raw = String(context.rawModelText || '').trim();\nlet parsed = null;\nlet parseError = null;\n\ntry {\n  parsed = JSON.parse(raw);\n} catch (error) {\n  parseError = `LLM_SCHEMA_INVALID: JSON no parseable (${error.message})`;\n}\n\nconst issues = parsed && Array.isArray(parsed.issues) ? parsed.issues : [];\nif (!parseError && issues.length === 0) {\n  parseError = 'LLM_SCHEMA_INVALID: falta el array \"issues\"';\n}\n\nconst week = Number(context.week);\nconst weekPadded = String(context.weekPadded || (Number.isFinite(week) ? String(week).padStart(2, '0') : ''));\nconst identity = {\n  course: context.course,\n  week: Number.isFinite(week) ? week : null,\n  weekPadded,\n  repository: context.repository,\n  assignmentTitle: context.assignmentTitle,\n  deadline: context.dueAt ?? null,\n  source: {\n    courseId: context.courseId,\n    courseWorkId: context.courseWorkId,\n    updateTime: context.updateTime,\n    starterName: context.starter?.name ?? null,\n  },\n};\n\nconst plan = { ...identity, issues };\nconst llmAttempt = Number($runIndex ?? context.llmAttempt ?? 0) + 1;\n\nreturn [{ json: { ...context, llmAttempt, parseError, plan } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1270,8 +1270,60 @@
         5760,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000063",
-      "name": "Validate Plan"
+      "id": "b0f3354e-d2e0-4880-bedf-4f9d75baba11",
+      "name": "Parse Structured Plan"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst plan = data.plan || { issues: [] };\nconst hasStarter = Boolean(data.starter?.found);\nconst weekPadded = String(plan.weekPadded || String(plan.week || '').padStart(2, '0'));\nconst prefix = `[${plan.course}][W${weekPadded}]`;\nconst starterName = plan.source?.starterName ?? null;\nconst issues = Array.isArray(plan.issues) ? plan.issues : [];\n\nlet next;\nif (hasStarter) {\n  const llmFoundation = issues.find((issue) => issue && issue.key === 'foundation');\n  const foundation = {\n    ...(llmFoundation || {}),\n    key: 'foundation',\n    title: `${prefix} Integrar ${starterName} y establecer baseline semanal`,\n    assignee: 'Draggodeidad',\n    dependsOn: [],\n  };\n  if (!llmFoundation) {\n    foundation.type = foundation.type || 'devops';\n    foundation.priority = foundation.priority || 'high';\n  }\n  next = [foundation, ...issues.filter((issue) => issue && issue.key !== 'foundation')];\n} else {\n  next = issues.filter((issue) => issue && issue.key !== 'foundation');\n}\n\nreturn [{ json: { ...data, plan: { ...plan, issues: next } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5980,
+        160
+      ],
+      "id": "12296527-a112-4f68-9be4-5f95cfd80bd8",
+      "name": "Enforce Foundation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst plan = data.plan || { issues: [] };\nconst weekPadded = String(plan.weekPadded || String(plan.week || '').padStart(2, '0'));\nconst prefix = `[${plan.course}][W${weekPadded}]`;\n\nconst slug = (value) => {\n  const out = String(value || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '');\n  return out || 'issue';\n};\nconst stripPrefix = (title) => String(title || '').replace(/^\\s*\\[[A-Za-z0-9]+\\]\\[W\\d{1,2}\\]\\s*/, '');\nconst keyOk = (key) => /^[a-z0-9][a-z0-9-]{1,39}$/.test(key) && !/^\\d+$/.test(key);\n\nconst issues = Array.isArray(plan.issues) ? plan.issues : [];\nconst usedKeys = new Set();\nconst keyMap = new Map();\n\nconst normalized = issues.map((issue, index) => {\n  const originalKey = String(issue.key || '').trim().toLowerCase();\n  const baseKey = keyOk(originalKey)\n    ? originalKey\n    : slug(issue.title || `issue-${index + 1}`).slice(0, 40);\n  let key = baseKey;\n  let suffix = 1;\n  while (usedKeys.has(key)) {\n    key = `${baseKey}-${++suffix}`;\n  }\n  usedKeys.add(key);\n  keyMap.set(originalKey, key);\n  keyMap.set(issue.key, key);\n\n  const semanticTitle = stripPrefix(issue.title);\n  const title = `${prefix} ${semanticTitle}`.replace(/\\s+/g, ' ').trim();\n  return { ...issue, key, title };\n});\n\nconst validKeys = new Set(normalized.map((issue) => issue.key));\nconst droppedDependencies = [];\nfor (const issue of normalized) {\n  const deps = Array.isArray(issue.dependsOn) ? issue.dependsOn : [];\n  const cleaned = [];\n  const seen = new Set();\n  for (const dependency of deps) {\n    const target = keyMap.get(dependency) || String(dependency || '').trim().toLowerCase();\n    if (target === issue.key) {\n      droppedDependencies.push({ issue: issue.key, dependency: target, reason: 'SELF_DEPENDENCY' });\n      continue;\n    }\n    if (!validKeys.has(target)) {\n      droppedDependencies.push({ issue: issue.key, dependency: target, reason: 'INVALID_DEPENDENCY' });\n      continue;\n    }\n    if (seen.has(target)) continue;\n    seen.add(target);\n    cleaned.push(target);\n  }\n  issue.dependsOn = cleaned;\n}\n\nreturn [{\n  json: {\n    ...data,\n    plan: { ...plan, issues: normalized },\n    normalization: { droppedDependencies, keyMap: Object.fromEntries(keyMap) },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6200,
+        160
+      ],
+      "id": "8d75250d-1552-41f0-b8b1-4fbb1f4f0f05",
+      "name": "Normalize Titles & Keys & Dependencies"
+    },
+    {
+      "parameters": {
+        "jsCode": "const HEADINGS = [\n  '## Historia de Usuario',\n  '## Contexto',\n  '## Objetivo técnico',\n  '## Alcance',\n  '## Fuera de alcance',\n  '## Archivos esperados',\n  '## Pasos sugeridos',\n  '## Criterios de aceptación',\n  '## Pruebas',\n  '## Dependencias',\n  '## Evidencia individual',\n  '## Definition of Done',\n];\n\nconst asList = (value) => {\n  if (!value) return [];\n  return Array.isArray(value) ? value.filter(Boolean) : [String(value)];\n};\nconst bullets = (value) => {\n  const items = asList(value);\n  return items.length ? items.map((item) => `- ${item}`).join('\\n') : '- No aplica.';\n};\nconst numbered = (value) => {\n  const items = asList(value);\n  return items.length ? items.map((item, index) => `${index + 1}. ${item}`).join('\\n') : '1. No aplica.';\n};\nconst paragraph = (value) => {\n  if (!value) return 'No aplica.';\n  return Array.isArray(value) ? value.join('\\n') : String(value);\n};\nconst buildBody = (sections = {}) => [\n  '## Historia de Usuario', paragraph(sections.historiaUsuario),\n  '## Contexto', paragraph(sections.contexto),\n  '## Objetivo técnico', bullets(sections.objetivoTecnico),\n  '## Alcance', bullets(sections.alcance),\n  '## Fuera de alcance', bullets(sections.fueraDeAlcance),\n  '## Archivos esperados', bullets(sections.archivosEsperados),\n  '## Pasos sugeridos', numbered(sections.pasosSugeridos),\n  '## Criterios de aceptación', bullets(sections.criteriosAceptacion),\n  '## Pruebas', bullets(sections.pruebas),\n  '## Dependencias', bullets(sections.dependencias),\n  '## Evidencia individual', bullets(sections.evidenciaIndividual),\n  '## Definition of Done', bullets(sections.definitionOfDone),\n].join('\\n\\n');\n\nconst data = $json;\nconst plan = data.plan || { issues: [] };\nconst issues = (Array.isArray(plan.issues) ? plan.issues : []).map((issue) => {\n  const sections = issue.sections || {};\n  return {\n    ...issue,\n    expectedFiles: asList(sections.archivosEsperados),\n    acceptanceCriteria: asList(sections.criteriosAceptacion),\n    tests: asList(sections.pruebas),\n    evidence: asList(sections.evidenciaIndividual),\n    body: buildBody(sections),\n  };\n});\n\nreturn [{ json: { ...data, plan: { ...plan, issues } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6420,
+        160
+      ],
+      "id": "18a8249f-9121-43f6-a7c8-b5d156f045fe",
+      "name": "Build GitHub Issue Bodies"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst plan = data.plan || {};\nconst issues = Array.isArray(plan.issues) ? plan.issues : [];\nconst errors = [];\nconst addError = (code, message, retryable) => errors.push({ code, message, retryable });\n\nif (data.parseError) {\n  addError('LLM_SCHEMA_INVALID', data.parseError, true);\n}\n\nif (!data.parseError) {\n  const weekPadded = String(plan.weekPadded || String(plan.week || '').padStart(2, '0'));\n  const prefix = `[${plan.course}][W${weekPadded}]`;\n  const allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\n  const allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\n  const allowedPriorities = new Set(['high', 'medium', 'low']);\n  const HEADINGS = [\n    '## Historia de Usuario',\n    '## Contexto',\n    '## Objetivo técnico',\n    '## Alcance',\n    '## Fuera de alcance',\n    '## Archivos esperados',\n    '## Pasos sugeridos',\n    '## Criterios de aceptación',\n    '## Pruebas',\n    '## Dependencias',\n    '## Evidencia individual',\n    '## Definition of Done',\n  ];\n\n  if (issues.length < 3 || issues.length > 6) {\n    addError('INVALID_ISSUE_COUNT', `issues=${issues.length}; se requieren entre 3 y 6`, true);\n  }\n\n  const allKeys = new Set(issues.map((issue) => issue.key));\n  const seenKeys = new Set();\n  const seenTitles = new Set();\n\n  for (const [index, issue] of issues.entries()) {\n    const where = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) {\n      addError('INVALID_KEY', `${where}: key \"${issue.key}\" no es kebab-case válida`, true);\n    }\n    if (seenKeys.has(issue.key)) {\n      addError('DUPLICATE_KEY', `${where}: key duplicada \"${issue.key}\"`, false);\n    }\n    seenKeys.add(issue.key);\n\n    if (!allowedAssignees.has(issue.assignee)) {\n      addError('INVALID_ASSIGNEE', `${where}: assignee \"${issue.assignee}\" no permitido`, true);\n    }\n    if (!allowedTypes.has(issue.type)) {\n      addError('INVALID_TYPE', `${where}: type \"${issue.type}\" no permitido`, true);\n    }\n    if (!allowedPriorities.has(issue.priority)) {\n      addError('INVALID_PRIORITY', `${where}: priority \"${issue.priority}\" no permitida`, true);\n    }\n\n    if (!String(issue.title || '').startsWith(`${prefix} `)) {\n      addError('INVALID_TITLE', `${where}: title sin prefijo ${prefix}`, false);\n    }\n    const semanticTitle = String(issue.title || '').replace(/^\\s*\\[[A-Za-z0-9]+\\]\\[W\\d{1,2}\\]\\s*/, '');\n    if (seenTitles.has(semanticTitle)) {\n      addError('DUPLICATE_TITLE', `${where}: título semántico duplicado \"${semanticTitle}\"`, true);\n    }\n    seenTitles.add(semanticTitle);\n\n    const sections = issue.sections || {};\n    if (!String(sections.historiaUsuario || '').trim()) addError('MISSING_CONTENT', `${where}: falta historiaUsuario`, true);\n    if (!String(sections.contexto || '').trim()) addError('MISSING_CONTENT', `${where}: falta contexto`, true);\n    if ((sections.objetivoTecnico || []).length < 1) addError('MISSING_CONTENT', `${where}: objetivoTecnico vacío`, true);\n    if ((sections.criteriosAceptacion || []).length < 2) addError('MISSING_CONTENT', `${where}: criteriosAceptacion < 2`, true);\n    if ((sections.pruebas || []).length < 1) addError('MISSING_CONTENT', `${where}: pruebas vacías`, true);\n    if ((sections.evidenciaIndividual || []).length < 1) addError('MISSING_CONTENT', `${where}: evidenciaIndividual vacía`, true);\n\n    const body = String(issue.body || '');\n    for (const heading of HEADINGS) {\n      const occurrences = body.split(heading).length - 1;\n      if (occurrences !== 1) addError('INVALID_BODY', `${where}: header \"${heading}\" aparece ${occurrences} veces`, false);\n    }\n    let last = -1;\n    for (const heading of HEADINGS) {\n      const position = body.indexOf(heading);\n      if (position >= 0 && position < last) addError('INVALID_BODY', `${where}: headers fuera de orden`, false);\n      last = Math.max(last, position);\n    }\n\n    const seenDeps = new Set();\n    for (const dependency of Array.isArray(issue.dependsOn) ? issue.dependsOn : []) {\n      if (dependency === issue.key) {\n        addError('SELF_DEPENDENCY', `${where}: depende de sí misma`, true);\n      } else if (!allKeys.has(dependency)) {\n        addError('INVALID_DEPENDENCY', `${where}: depende de key inexistente \"${dependency}\"`, true);\n      }\n      if (seenDeps.has(dependency)) {\n        addError('INVALID_DEPENDENCY', `${where}: dependency duplicada \"${dependency}\"`, true);\n      }\n      seenDeps.add(dependency);\n    }\n  }\n\n  for (const dropped of data.normalization?.droppedDependencies || []) {\n    const code = dropped.reason === 'SELF_DEPENDENCY' ? 'SELF_DEPENDENCY' : 'INVALID_DEPENDENCY';\n    addError(code, `${dropped.issue} → ${dropped.dependency}: ${dropped.reason}`, true);\n  }\n\n  if (data.starter?.found) {\n    const expectedTitle = `${prefix} Integrar ${plan.source?.starterName} y establecer baseline semanal`;\n    const foundation = issues.find((issue) => issue.key === 'foundation');\n    if (!foundation) {\n      addError('INVALID_FOUNDATION', 'falta la Issue foundation', false);\n    } else {\n      if (issues.indexOf(foundation) !== 0) addError('INVALID_FOUNDATION', 'foundation no es la primera Issue', false);\n      if (foundation.assignee !== 'Draggodeidad') addError('INVALID_FOUNDATION', 'foundation no asignada a Draggodeidad', false);\n      if ((foundation.dependsOn || []).length) addError('INVALID_FOUNDATION', 'foundation no debe tener dependencias', false);\n      if (foundation.title !== expectedTitle) addError('INVALID_FOUNDATION', `foundation title incorrecto: ${foundation.title}`, false);\n    }\n  } else if (issues.some((issue) => issue.key === 'foundation')) {\n    addError('INVALID_FOUNDATION', 'foundation no debe existir sin starter', false);\n  }\n\n  const bootstrapKey = data.starter?.found ? 'foundation' : null;\n  const substantial = issues.find((issue) =>\n    issue.assignee === 'Draggodeidad' &&\n    ['feature', 'devops', 'test'].includes(issue.type) &&\n    issue.key !== bootstrapKey &&\n    (issue.expectedFiles || []).length > 0 &&\n    /c[oó]digo|l[oó]gica|configuraci[oó]n|ci\\/cd|pipeline|arquitectura|implement|test/i.test(`${issue.title} ${issue.body}`));\n  if (!substantial) {\n    addError('MISSING_SUBSTANTIAL', 'Draggodeidad no tiene implementación técnica sustancial independiente de la Foundation', true);\n  }\n\n  const byKey = new Map(issues.map((issue) => [issue.key, issue]));\n  const indegree = new Map(issues.map((issue) => [issue.key, 0]));\n  const outgoing = new Map(issues.map((issue) => [issue.key, []]));\n  for (const issue of issues) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!byKey.has(dependency)) continue;\n      indegree.set(issue.key, indegree.get(issue.key) + 1);\n      outgoing.get(dependency).push(issue.key);\n    }\n  }\n  const queue = issues.filter((issue) => indegree.get(issue.key) === 0).map((issue) => issue.key);\n  let visited = 0;\n  while (queue.length) {\n    const key = queue.shift();\n    visited += 1;\n    for (const next of outgoing.get(key)) {\n      indegree.set(next, indegree.get(next) - 1);\n      if (indegree.get(next) === 0) queue.push(next);\n    }\n  }\n  if (visited !== issues.length) addError('DEPENDENCY_CYCLE', 'el grafo de dependencias contiene ciclos', true);\n\n  if (Array.isArray(data.resumeKeys) && data.resumeKeys.length) {\n    const expected = [...new Set(data.resumeKeys)].sort().join(',');\n    const actual = [...new Set(issues.map((issue) => issue.key))].sort().join(',');\n    if (actual !== expected) addError('RESUME_KEYS_MISMATCH', `keys esperadas ${expected}; recibidas ${actual}`, true);\n  }\n}\n\nconst valid = errors.length === 0;\nconst retryable = errors.some((error) => error.retryable);\nconst validationErrors = errors;\n\nlet retryPrompt = null;\nif (!valid) {\n  const previousIssues = issues.map((issue) => ({\n    key: issue.key,\n    title: issue.title,\n    assignee: issue.assignee,\n    type: issue.type,\n    priority: issue.priority,\n    dependsOn: issue.dependsOn,\n    sections: issue.sections || {},\n  }));\n  let originalRequest = null;\n  try { originalRequest = JSON.parse(data.userPrompt); } catch { /* contexto ausente */ }\n  retryPrompt = JSON.stringify({\n    instruction: 'Corrige el plan estructurado anterior atendiendo únicamente los errores listados. Devuelve sólo el objeto con el array issues. Conserva las mismas keys cuando no se indique lo contrario. No generes Markdown ni prefijos de curso/semana. No expliques.',\n    validationErrors: errors.map((error) => `[${error.code}] ${error.message}`),\n    previousPlan: { issues: previousIssues },\n    originalRequest,\n  });\n}\n\nreturn [{ json: { ...data, valid, retryable, validationErrors, retryPrompt } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6640,
+        160
+      ],
+      "id": "d63f2bb1-7b47-4d7a-a550-c90b1d4b9e3a",
+      "name": "Validate Final Plan"
     },
     {
       "parameters": {
@@ -1284,7 +1336,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000064",
+              "id": "2f85b532-6b44-4383-ab30-4e03adb8bffd",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -1301,11 +1353,45 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        5980,
+        6860,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000065",
+      "id": "200cab79-71da-4b66-bad5-f06cd65f3a1d",
       "name": "Plan Valid?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a838fff2-1cb3-409f-80bc-867238be643e",
+              "leftValue": "={{ Number($json.llmAttempt || 0) < 2 && Boolean($json.retryable) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7080,
+        300
+      ],
+      "id": "8893a670-4689-4c60-a81f-7ba2b6c19a30",
+      "name": "LLM Retry Attempt Left?"
     },
     {
       "parameters": {
@@ -1318,7 +1404,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000066",
+              "id": "c64f60ff-3f0d-4bc6-bbdc-b883709af4b6",
               "leftValue": "={{ $json.aiProvider }}",
               "rightValue": "gemini",
               "operator": {
@@ -1334,10 +1420,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        6200,
+        7300,
         300
       ],
-      "id": "00000000-0000-4000-8000-000000000067",
+      "id": "f52340e1-12a0-43a2-8d61-7e8ae61e33a1",
       "name": "Retry with Gemini?"
     },
     {
@@ -1370,10 +1456,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        6420,
+        7520,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000068",
+      "id": "f69fa302-24ed-4950-a040-b55b4b75c4b3",
       "name": "Gemini - Repair Once",
       "credentials": {
         "httpHeaderAuth": {
@@ -1396,7 +1482,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.retryPrompt }], stream: false, format: $json.schema, options: { temperature: 0 } }) }}",
+        "jsonBody": "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.retryPrompt }], stream: false, think: false, format: $json.schema, options: { temperature: 0, num_ctx: 8192, num_predict: 5000 } }) }}",
         "options": {
           "response": {
             "response": {
@@ -1409,10 +1495,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        6420,
+        7520,
         380
       ],
-      "id": "00000000-0000-4000-8000-000000000069",
+      "id": "31d8593a-b7b4-46e7-b9f1-2ca562cff74c",
       "name": "Ollama - Repair Once"
     },
     {
@@ -1422,75 +1508,28 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6640,
+        7740,
         300
       ],
-      "id": "00000000-0000-4000-8000-000000000070",
+      "id": "8e004cfb-576c-4073-815b-059753879238",
       "name": "Normalize Repair Response"
     },
     {
       "parameters": {
-        "jsCode": "const requiredHeadings = [\n  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',\n  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',\n  '## Criterios de aceptación', '## Pruebas', '## Dependencias',\n  '## Evidencia individual', '## Definition of Done',\n];\nconst allowedAssignees = new Set(['Draggodeidad', 'JulianDele', 'osbaldoXxC']);\nconst allowedTypes = new Set(['feature', 'test', 'docs', 'devops', 'evidence']);\nconst allowedPriorities = new Set(['high', 'medium', 'low']);\nconst errors = [];\nlet plan;\ntry { plan = JSON.parse($json.rawModelText); }\ncatch (error) { errors.push(`JSON inválido: ${error.message}`); }\n\nif (plan) {\n  if (plan.course !== $json.course) errors.push('course no coincide con la entrada');\n  if (plan.week !== $json.week) errors.push('week no coincide con la entrada');\n  if (plan.repository !== $json.repository) errors.push('repository no coincide con la entrada');\n  if (plan.source?.courseId !== $json.courseId) errors.push('source.courseId no coincide con la entrada');\n  if (plan.source?.courseWorkId !== $json.courseWorkId) errors.push('source.courseWorkId no coincide con la entrada');\n  if (plan.source?.updateTime !== $json.updateTime) errors.push('source.updateTime no coincide con la entrada');\n  if ((plan.source?.starterName ?? null) !== ($json.starter?.name ?? null)) errors.push('source.starterName no coincide con la entrada');\n  if (typeof plan.assignmentTitle !== 'string' || plan.assignmentTitle.length < 3) errors.push('assignmentTitle inválido');\n  if (!Array.isArray(plan.issues) || plan.issues.length < 3 || plan.issues.length > 12) errors.push('issues debe contener entre 3 y 12 elementos');\n  const keys = new Set();\n  for (const [index, issue] of (plan.issues || []).entries()) {\n    const prefix = `issues[${index}]`;\n    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(issue.key || '')) errors.push(`${prefix}.key inválida`);\n    if (keys.has(issue.key)) errors.push(`${prefix}.key duplicada`);\n    keys.add(issue.key);\n    if (!String(issue.title || '').startsWith(`[${$json.course}][W${$json.weekPadded}]`)) errors.push(`${prefix}.title no usa el prefijo requerido`);\n    if (!allowedAssignees.has(issue.assignee)) errors.push(`${prefix}.assignee inválido`);\n    if (!allowedTypes.has(issue.type)) errors.push(`${prefix}.type inválido`);\n    if (!allowedPriorities.has(issue.priority)) errors.push(`${prefix}.priority inválida`);\n    if (!Array.isArray(issue.dependsOn)) errors.push(`${prefix}.dependsOn debe ser array`);\n    for (const field of ['expectedFiles', 'acceptanceCriteria', 'tests', 'evidence']) {\n      if (!Array.isArray(issue[field])) errors.push(`${prefix}.${field} debe ser array`);\n    }\n    if ((issue.acceptanceCriteria || []).length < 2) errors.push(`${prefix} requiere al menos 2 criterios`);\n    if ((issue.tests || []).length < 1) errors.push(`${prefix} requiere pruebas`);\n    if ((issue.evidence || []).length < 1) errors.push(`${prefix} requiere evidencia futura`);\n    let last = -1;\n    for (const heading of requiredHeadings) {\n      const position = String(issue.body || '').indexOf(heading);\n      if (position < 0) errors.push(`${prefix}.body no contiene ${heading}`);\n      if (position >= 0 && position < last) errors.push(`${prefix}.body tiene encabezados fuera de orden`);\n      last = Math.max(last, position);\n    }\n  }\n  for (const issue of plan.issues || []) {\n    for (const dependency of issue.dependsOn || []) {\n      if (!keys.has(dependency)) errors.push(`${issue.key} depende de key inexistente: ${dependency}`);\n      if (dependency === issue.key) errors.push(`${issue.key} depende de sí misma`);\n    }\n  }\n  if ($json.starter?.found) {\n    const expectedTitle = `[${$json.course}][W${$json.weekPadded}] Integrar ${$json.starter.name} y establecer baseline semanal`;\n    const foundation = (plan.issues || []).find((issue) => issue.title === expectedTitle && issue.assignee === 'Draggodeidad' && issue.dependsOn?.length === 0);\n    if (!foundation) errors.push(`falta Foundation exacta: ${expectedTitle}`);\n  }\n  if ($json.resumeKeys?.length) {\n    const expected = [...$json.resumeKeys].sort().join(',');\n    const actual = [...keys].sort().join(',');\n    if (actual !== expected) errors.push(`reanudación insegura: keys esperadas ${expected}; recibidas ${actual}`);\n  }\n}\n\nconst retryPrompt = JSON.stringify({\n  instruction: 'Corrige la respuesta anterior. Devuelve sólo JSON conforme al schema; no expliques.',\n  validationErrors: errors,\n  previousResponse: $json.rawModelText,\n  originalRequest: JSON.parse($json.userPrompt),\n});\n\nreturn [{ json: { ...$json, valid: errors.length === 0, validationErrors: errors, plan, retryPrompt } }];"
+        "jsCode": "const errors = ($json.validationErrors || []).map((e) => '[' + (e.code || 'ERROR') + '] ' + (e.message || e)).join('; '); throw new Error('Plan inválido tras reintento: ' + (errors || 'sin errores') + '. GitHub no fue modificado.');"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6860,
-        300
-      ],
-      "id": "00000000-0000-4000-8000-000000000071",
-      "name": "Validate Repaired Plan"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "00000000-0000-4000-8000-000000000072",
-              "leftValue": "={{ $json.valid }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        7080,
-        300
-      ],
-      "id": "00000000-0000-4000-8000-000000000073",
-      "name": "Repaired Plan Valid?"
-    },
-    {
-      "parameters": {
-        "jsCode": "throw new Error('LLM devolvió JSON inválido después de un reintento: ' + ($json.validationErrors || []).join('; ') + '. GitHub no fue modificado.');"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        7300,
+        7960,
         440
       ],
-      "id": "00000000-0000-4000-8000-000000000074",
+      "id": "a5e77402-0548-46ad-bf8e-6ef33c7b60e4",
       "name": "Fail Closed - Invalid Plan"
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nconst plan = structuredClone(data.plan);\nconst issues = plan.issues;\nconst byKey = new Map(issues.map((issue) => [issue.key, issue]));\nconst indegree = new Map(issues.map((issue) => [issue.key, 0]));\nconst outgoing = new Map(issues.map((issue) => [issue.key, []]));\n\nfor (const issue of issues) {\n  for (const dependency of issue.dependsOn) {\n    indegree.set(issue.key, indegree.get(issue.key) + 1);\n    outgoing.get(dependency).push(issue.key);\n  }\n}\n\nconst queue = issues.filter((issue) => indegree.get(issue.key) === 0).map((issue) => issue.key);\nconst ordered = [];\nwhile (queue.length) {\n  const key = queue.shift();\n  ordered.push(byKey.get(key));\n  for (const next of outgoing.get(key)) {\n    indegree.set(next, indegree.get(next) - 1);\n    if (indegree.get(next) === 0) queue.push(next);\n  }\n}\nif (ordered.length !== issues.length) throw new Error('Plan rechazado: existen dependencias circulares. No se modificó GitHub.');\n\nconst bootstrap = ordered.find((issue) => issue.assignee === 'Draggodeidad' && issue.dependsOn.length === 0 && /bootstrap|baseline|inicio|starter|integrar/i.test(`${issue.key} ${issue.title} ${issue.body}`));\nif (data.starter?.found && !bootstrap) throw new Error('Plan rechazado: falta Foundation/baseline sin dependencias para Draggodeidad.');\n\nconst substantial = issues.find((issue) =>\n  issue.assignee === 'Draggodeidad' &&\n  ['feature', 'devops', 'test'].includes(issue.type) &&\n  issue.key !== bootstrap?.key &&\n  (issue.expectedFiles || []).length > 0 &&\n  /c[oó]digo|l[oó]gica|configuraci[oó]n|ci\\/cd|pipeline|arquitectura|implement|test/i.test(`${issue.title} ${issue.body}`)\n);\nif (!substantial) throw new Error('Plan rechazado: Draggodeidad no tiene implementación técnica sustancial independiente del bootstrap.');\n\nconst julian = issues.filter((issue) => issue.assignee === 'JulianDele');\nconst osbaldo = issues.filter((issue) => issue.assignee === 'osbaldoXxC');\nif (!julian.length || !osbaldo.length) throw new Error('Plan rechazado: JulianDele y osbaldoXxC deben tener trabajo explícito.');\nconst julianKeys = new Set(julian.map((issue) => issue.key));\nconst osbaldoKeys = new Set(osbaldo.map((issue) => issue.key));\nfor (const issue of julian) {\n  if (issue.dependsOn.some((key) => osbaldoKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Osbaldo → Julian.`);\n}\nfor (const issue of osbaldo) {\n  if (issue.dependsOn.some((key) => julianKeys.has(key))) throw new Error(`Plan rechazado: ${issue.key} crea dependencia Julian → Osbaldo.`);\n}\n\nconst planKeys = ordered.map((issue) => issue.key);\nconst desiredLabels = [...new Set([\n  data.course,\n  `week-${data.weekPadded}`,\n  ...ordered.flatMap((issue) => [`type:${issue.type}`, `priority:${issue.priority}`]),\n])];\nconst existingLabels = new Set(data.repoContext.labels || []);\nconst missingLabels = desiredLabels.filter((label) => !existingLabels.has(label));\n\nreturn [{\n  json: {\n    ...data,\n    plan: { ...plan, issues: ordered },\n    planKeys,\n    desiredLabels,\n    missingLabels,\n    bootstrapKey: bootstrap?.key || null,\n    substantialDraggodeidadKey: substantial.key,\n  },\n}];"
+        "jsCode": "const data = $json;\n\nif (!data.plan || !Array.isArray(data.plan.issues)) {\n  throw new Error('Plan rechazado: data.plan.issues no existe o no es un array.');\n}\n\nconst plan = JSON.parse(JSON.stringify(data.plan));\nconst issues = plan.issues;\nconst byKey = new Map(issues.map((issue) => [issue.key, issue]));\nconst indegree = new Map(issues.map((issue) => [issue.key, 0]));\nconst outgoing = new Map(issues.map((issue) => [issue.key, []]));\n\nfor (const issue of issues) {\n  if (!Array.isArray(issue.dependsOn)) issue.dependsOn = [];\n  for (const dependency of issue.dependsOn) {\n    if (!byKey.has(dependency)) {\n      throw new Error(`Plan rechazado: ${issue.key} depende de \"${dependency}\", que no existe en el plan. No se modificó GitHub.`);\n    }\n    indegree.set(issue.key, indegree.get(issue.key) + 1);\n    outgoing.get(dependency).push(issue.key);\n  }\n}\n\nconst queue = issues.filter((issue) => indegree.get(issue.key) === 0).map((issue) => issue.key);\nconst ordered = [];\nwhile (queue.length) {\n  const key = queue.shift();\n  ordered.push(byKey.get(key));\n  for (const next of outgoing.get(key)) {\n    indegree.set(next, indegree.get(next) - 1);\n    if (indegree.get(next) === 0) queue.push(next);\n  }\n}\n\nif (ordered.length !== issues.length) {\n  throw new Error('Plan rechazado: existen dependencias circulares. No se modificó GitHub.');\n}\n\nconst hasStarter = Boolean(data.starter?.found);\nconst bootstrapKey = hasStarter ? 'foundation' : null;\n\nif (hasStarter) {\n  const foundation = issues.find((issue) => issue.key === 'foundation');\n  if (!foundation) throw new Error('Plan rechazado: falta Foundation determinista.');\n  if (foundation.assignee !== 'Draggodeidad' || (foundation.dependsOn || []).length) {\n    throw new Error('Plan rechazado: Foundation con assignee o dependencias incorrectas.');\n  }\n}\n\nconst substantial = issues.find((issue) =>\n  issue.assignee === 'Draggodeidad' &&\n  ['feature', 'devops', 'test'].includes(issue.type) &&\n  issue.key !== bootstrapKey &&\n  (issue.expectedFiles || []).length > 0 &&\n  /c[oó]digo|l[oó]gica|configuraci[oó]n|ci\\/cd|pipeline|arquitectura|implement|test/i.test(`${issue.title} ${issue.body}`));\n\nif (!substantial) {\n  throw new Error('Plan rechazado: Draggodeidad no tiene implementación técnica sustancial independiente del bootstrap.');\n}\n\nconst julian = issues.filter((issue) => issue.assignee === 'JulianDele');\nconst osbaldo = issues.filter((issue) => issue.assignee === 'osbaldoXxC');\nif (!julian.length || !osbaldo.length) {\n  throw new Error('Plan rechazado: JulianDele y osbaldoXxC deben tener trabajo explícito.');\n}\nconst julianKeys = new Set(julian.map((issue) => issue.key));\nconst osbaldoKeys = new Set(osbaldo.map((issue) => issue.key));\n\nfor (const issue of julian) {\n  if (issue.dependsOn.some((key) => osbaldoKeys.has(key))) {\n    throw new Error(`Plan rechazado: ${issue.key} crea dependencia Osbaldo → Julian.`);\n  }\n}\nfor (const issue of osbaldo) {\n  if (issue.dependsOn.some((key) => julianKeys.has(key))) {\n    throw new Error(`Plan rechazado: ${issue.key} crea dependencia Julian → Osbaldo.`);\n  }\n}\n\nconst planKeys = ordered.map((issue) => issue.key);\nconst desiredLabels = [...new Set([\n  data.course,\n  `week-${data.weekPadded}`,\n  ...ordered.flatMap((issue) => [`type:${issue.type}`, `priority:${issue.priority}`]),\n])].filter(Boolean);\nconst existingLabels = new Set(data.repoContext?.labels || []);\nconst missingLabels = desiredLabels.filter((label) => !existingLabels.has(label));\n\nreturn [{ json: {\n  ...data,\n  plan: { ...plan, issues: ordered },\n  planKeys,\n  desiredLabels,\n  missingLabels,\n  bootstrapKey,\n  substantialDraggodeidadKey: substantial.key,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1498,7 +1537,7 @@
         7300,
         120
       ],
-      "id": "00000000-0000-4000-8000-000000000075",
+      "id": "ffe44adc-6e11-48af-b7a6-b912509bb8b6",
       "name": "Plan and Topological Sort"
     },
     {
@@ -1512,7 +1551,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000076",
+              "id": "e09b1005-a603-4feb-887e-32028f772422",
               "leftValue": "={{ $json.automationMode }}",
               "rightValue": "dry-run",
               "operator": {
@@ -1531,7 +1570,7 @@
         7520,
         120
       ],
-      "id": "00000000-0000-4000-8000-000000000077",
+      "id": "2625bcd8-ac46-4575-8d9b-6ab1bd6f22bb",
       "name": "Dry Run?"
     },
     {
@@ -1544,7 +1583,7 @@
         7740,
         20
       ],
-      "id": "00000000-0000-4000-8000-000000000078",
+      "id": "93cfbc7d-6a3f-4385-9a46-3e9436a85237",
       "name": "Exact Dry-Run Preview"
     },
     {
@@ -1558,7 +1597,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000079",
+              "id": "dd8e0ab8-b2b7-4bd4-b466-876b11501ff3",
               "leftValue": "={{ $json.missingLabels.length > 0 }}",
               "rightValue": "",
               "operator": {
@@ -1578,7 +1617,7 @@
         7740,
         200
       ],
-      "id": "00000000-0000-4000-8000-000000000080",
+      "id": "f26c99fe-44dc-45f0-8515-189626295ca7",
       "name": "Missing Labels?"
     },
     {
@@ -1591,7 +1630,7 @@
         7960,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000081",
+      "id": "c0426661-e2ce-4627-b339-ba9d130054eb",
       "name": "Prepare Missing Labels"
     },
     {
@@ -1631,7 +1670,7 @@
         8180,
         160
       ],
-      "id": "00000000-0000-4000-8000-000000000082",
+      "id": "9526fe2f-ab95-48fb-94fb-43d9ac3e1693",
       "name": "GitHub - Create Missing Label",
       "credentials": {
         "githubApi": {
@@ -1649,7 +1688,7 @@
         8400,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000083",
+      "id": "0c8c1532-0d25-4c62-9c46-f1833de7e717",
       "name": "Continue After Labels"
     },
     {
@@ -1662,7 +1701,7 @@
         8620,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000084",
+      "id": "a30f9028-fb4a-4dcf-a91f-fa55abdf46a0",
       "name": "Prepare Issue Queue"
     },
     {
@@ -1676,7 +1715,7 @@
         8840,
         240
       ],
-      "id": "00000000-0000-4000-8000-000000000085",
+      "id": "469641ac-a951-440a-b9f8-fe56adfed037",
       "name": "Loop Issues Sequentially"
     },
     {
@@ -1689,7 +1728,7 @@
         9060,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000086",
+      "id": "774878a3-7031-4c57-8b5b-cfa853b800f5",
       "name": "Resolve Dependencies"
     },
     {
@@ -1725,7 +1764,7 @@
         9280,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000087",
+      "id": "076092ce-461e-49ac-89d0-3c512106c69d",
       "name": "GitHub - Recheck Issue Key",
       "credentials": {
         "githubApi": {
@@ -1743,7 +1782,7 @@
         9500,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000088",
+      "id": "805fe09a-5f5c-4fb0-b1ac-ab86a37cdb17",
       "name": "Apply Issue Recheck"
     },
     {
@@ -1757,7 +1796,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000089",
+              "id": "8aeadc80-84ce-4366-a131-3fbd07c8a2c8",
               "leftValue": "={{ $json.skipCreate }}",
               "rightValue": "",
               "operator": {
@@ -1777,7 +1816,7 @@
         9720,
         340
       ],
-      "id": "00000000-0000-4000-8000-000000000090",
+      "id": "17551ad7-040b-49b9-8ac0-a9345f415fc5",
       "name": "Issue Already Exists?"
     },
     {
@@ -1817,7 +1856,7 @@
         9940,
         260
       ],
-      "id": "00000000-0000-4000-8000-000000000091",
+      "id": "9b26f6c7-dc05-4683-baeb-8628c1f4b8e6",
       "name": "GitHub - Reconcile Existing Issue",
       "credentials": {
         "githubApi": {
@@ -1835,7 +1874,7 @@
         10160,
         260
       ],
-      "id": "00000000-0000-4000-8000-000000000092",
+      "id": "d03341a5-3329-4366-890a-c75d26a1688b",
       "name": "Record Existing Issue"
     },
     {
@@ -1875,7 +1914,7 @@
         9940,
         420
       ],
-      "id": "00000000-0000-4000-8000-000000000093",
+      "id": "1f309021-2f3a-4267-b3f0-d2f69bd621b6",
       "name": "GitHub - Create Issue",
       "credentials": {
         "githubApi": {
@@ -1893,7 +1932,7 @@
         10160,
         420
       ],
-      "id": "00000000-0000-4000-8000-000000000094",
+      "id": "26623d3e-a674-40b3-964e-354d0fa036ca",
       "name": "Record Created Issue"
     },
     {
@@ -1929,7 +1968,7 @@
         9060,
         80
       ],
-      "id": "00000000-0000-4000-8000-000000000095",
+      "id": "56c55692-28d1-4717-afbf-ca362a5ffc92",
       "name": "GitHub - Verify Complete Set",
       "credentials": {
         "githubApi": {
@@ -1947,7 +1986,7 @@
         9280,
         80
       ],
-      "id": "00000000-0000-4000-8000-000000000096",
+      "id": "959d8fff-1e9d-4427-b55a-e10702d5b54b",
       "name": "Verify Complete Set"
     },
     {
@@ -1960,7 +1999,7 @@
         9500,
         80
       ],
-      "id": "00000000-0000-4000-8000-000000000097",
+      "id": "ea405d5a-1fa0-433d-aa1a-a1a03fd5af83",
       "name": "Build Success Summary"
     },
     {
@@ -1974,7 +2013,7 @@
           },
           "conditions": [
             {
-              "id": "00000000-0000-4000-8000-000000000098",
+              "id": "8fc8a6f0-461e-4582-b0b7-7b18e97ff522",
               "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
               "rightValue": "",
               "operator": {
@@ -1994,7 +2033,7 @@
         9720,
         80
       ],
-      "id": "00000000-0000-4000-8000-000000000099",
+      "id": "a8c49fda-28a6-4dc7-bef0-9c34f2386ecf",
       "name": "Notify Success?"
     },
     {
@@ -2013,7 +2052,7 @@
         9940,
         40
       ],
-      "id": "00000000-0000-4000-8000-000000000100",
+      "id": "5cdf270c-6937-4df4-9e88-3c371f21af80",
       "name": "Gmail - Send Success Summary",
       "credentials": {
         "gmailOAuth2": {
@@ -2609,14 +2648,69 @@
       "main": [
         [
           {
-            "node": "Validate Plan",
+            "node": "Parse Structured Plan",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate Plan": {
+    "Normalize Repair Response": {
+      "main": [
+        [
+          {
+            "node": "Parse Structured Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Structured Plan": {
+      "main": [
+        [
+          {
+            "node": "Enforce Foundation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enforce Foundation": {
+      "main": [
+        [
+          {
+            "node": "Normalize Titles & Keys & Dependencies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Titles & Keys & Dependencies": {
+      "main": [
+        [
+          {
+            "node": "Build GitHub Issue Bodies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build GitHub Issue Bodies": {
+      "main": [
+        [
+          {
+            "node": "Validate Final Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Final Plan": {
       "main": [
         [
           {
@@ -2638,7 +2732,25 @@
         ],
         [
           {
+            "node": "LLM Retry Attempt Left?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Retry Attempt Left?": {
+      "main": [
+        [
+          {
             "node": "Retry with Gemini?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fail Closed - Invalid Plan",
             "type": "main",
             "index": 0
           }
@@ -2679,46 +2791,6 @@
         [
           {
             "node": "Normalize Repair Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalize Repair Response": {
-      "main": [
-        [
-          {
-            "node": "Validate Repaired Plan",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate Repaired Plan": {
-      "main": [
-        [
-          {
-            "node": "Repaired Plan Valid?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Repaired Plan Valid?": {
-      "main": [
-        [
-          {
-            "node": "Plan and Topological Sort",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Fail Closed - Invalid Plan",
             "type": "main",
             "index": 0
           }
