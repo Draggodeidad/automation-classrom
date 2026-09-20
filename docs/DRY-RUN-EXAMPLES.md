@@ -31,12 +31,27 @@ La salida `Exact Dry-Run Preview` incluye, de forma abreviada:
   },
   "issuesThatWouldBeCreated": [
     {
-      "title": "[PWA][W03] Integrar PWA-w03-kit-estudiante.zip y establecer baseline semanal",
-      "assignee": "Draggodeidad"
+      "key": "foundation",
+      "title": "[PWA][W03] Preparar PWA-w03-kit-estudiante.zip y establecer baseline de trabajo",
+      "assignee": "Draggodeidad",
+      "category": "setup",
+      "difficulty": "easy",
+      "weight": 1,
+      "functionalWeight": 0,
+      "risk": "low",
+      "dependsOn": [],
+      "groundingStatus": "grounded"
     }
-  ]
+  ],
+  "assignmentPolicy": {
+    "strategy": "capability-aware-weighted-load",
+    "operationalExcludedFromFunctionalBalance": true
+  },
+  "gapAnalysis": { "excludedCompletedWork": [] }
 }
 ```
+
+La preview completa incluye también provenance, requirementKind, capacidades requeridas, carga por integrante y la tarea final `classroom-delivery` asignada a `Draggodeidad`.
 
 ## DMI W03
 

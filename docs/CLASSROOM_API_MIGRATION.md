@@ -33,7 +33,7 @@ Migración terminada y validada. El workflow usa Classroom/Drive, conserva el pi
 
 ## Decisiones tomadas
 
-- Se conservan Docker Compose, n8n Community, GitHub context, Gemini/Ollama, JSON Schema, orden topológico, dry-run/live, recuperación parcial y error workflow.
+- Se conservan Docker Compose, n8n Community, GitHub context, Gemini con fallback OpenRouter, JSON Schema, orden topológico, dry-run/live, recuperación parcial y error workflow.
 - Se reemplazan `src/gmail/parse-route.js`, búsquedas por message ID, marcado de Gmail y polling horario.
 - Gmail queda únicamente como notificación opcional controlada por `NOTIFICATIONS_ENABLED`.
 - `classroom.coursework.me.readonly` es suficiente para listar CourseWork del usuario; `classroom.courses.readonly` se usa sólo en setup para descubrir IDs.
@@ -53,7 +53,7 @@ Migración terminada y validada. El workflow usa Classroom/Drive, conserva el pi
 
 ## Arquitectura actual
 
-`Schedule/Manual → Classroom API → filtro/retry → Drive metadata/download → ZIP seguro/contexto → GitHub context/idempotencia → Gemini/Ollama → schema/reglas/DAG → dry-run/live → GitHub Issues`. Gmail es salida opcional.
+`Schedule/Manual → Classroom API → filtro/retry → Drive metadata/download → ZIP seguro/contexto → GitHub context/idempotencia → Gemini → OpenRouter Qwen/GLM cuando sea necesario → schema/reglas/DAG → dry-run/live → GitHub Issues`. Gmail es salida opcional.
 
 ## Próximo paso exacto
 

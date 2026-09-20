@@ -5,6 +5,19 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
+const readExisting = (relative) => {
+  try { return JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8')); }
+  catch { return { nodes: [] }; }
+};
+const existingMain = readExisting('workflows/classroom-to-github.json');
+const existingError = readExisting('workflows/classroom-error-handler.json');
+const existingMainNodes = new Map(existingMain.nodes.map((node) => [node.name, node]));
+const existingErrorNodes = new Map(existingError.nodes.map((node) => [node.name, node]));
+const nodeAliases = { 'Enforce Operational Issues': 'Enforce Foundation' };
+const existingNode = (name, map = existingMainNodes) => map.get(name) || map.get(nodeAliases[name]);
+const nodeId = (name, map = existingMainNodes) => existingNode(name, map)?.id || randomUUID();
+const conditionId = (name, map = existingMainNodes) =>
+  existingNode(name, map)?.parameters?.conditions?.conditions?.[0]?.id || randomUUID();
 const codeFiles = {
   'prepare-request.js': 'src/classroom/prepare-request.js',
   'parse-coursework.js': 'src/classroom/parse-coursework.js',
@@ -14,12 +27,18 @@ const codeFiles = {
   'inspect-starter.js': 'src/drive/inspect-starter.js',
   'no-starter.js': 'src/drive/no-starter.js',
   'build-context.js': 'src/github/build-context.js',
+  'prepare-llm-request.js': 'src/ai/prepare-llm-request.js',
+  'prepare-gemini-repair.js': 'src/ai/prepare-gemini-repair.js',
+  'build-llm-payload.js': 'src/ai/build-llm-payload.js',
+  'prepare-openrouter-fallback.js': 'src/ai/prepare-openrouter-fallback.js',
   'normalize-ai.js': 'src/ai/normalize-ai.js',
   'parse-structured-plan.js': 'src/ai/parse-structured-plan.js',
+  'apply-gap-analysis.js': 'src/ai/apply-gap-analysis.js',
   'enforce-foundation.js': 'src/ai/enforce-foundation.js',
   'normalize-plan.js': 'src/ai/normalize-plan.js',
   'build-bodies.js': 'src/ai/build-bodies.js',
   'validate-plan.js': 'src/ai/validate-plan.js',
+  'fail-closed.js': 'src/ai/fail-closed.js',
   'plan-toposort.js': 'src/planning/plan-toposort.js',
   'prepare-issue-queue.js': 'src/planning/prepare-issue-queue.js',
   'dry-run-summary.js': 'src/reporting/dry-run-summary.js',
@@ -37,14 +56,13 @@ const code = (name) => fs.readFileSync(path.join(root, codeFiles[name]), 'utf8')
 const schema = JSON.parse(fs.readFileSync(path.join(root, 'schemas/issue-plan.schema.json'), 'utf8'));
 const contextCode = code('build-context.js').replace('__ISSUE_PLAN_SCHEMA__', JSON.stringify(schema));
 
-let idCounter = 0;
-const id = () => randomUUID();
 const nodes = [];
 const connections = {};
 function add(name, type, position, parameters = {}, extra = {}) {
-  const node = { parameters, type, typeVersion: extra.typeVersion ?? 2, position, id: id(), name };
+  const node = { parameters, type, typeVersion: extra.typeVersion ?? 2, position, id: nodeId(name), name };
   if (extra.credentials) node.credentials = extra.credentials;
   if (extra.onError) node.onError = extra.onError;
+  if (extra.retryOnFail !== undefined) node.retryOnFail = extra.retryOnFail;
   nodes.push(node);
   return node;
 }
@@ -58,12 +76,14 @@ const googleCredentials = { oAuth2Api: { name: 'Google Classroom and Drive OAuth
 const gmailCredentials = { gmailOAuth2: { name: 'Gmail notifications (optional)' } };
 const githubCredentials = { githubApi: { name: 'GitHub account' } };
 const geminiCredentials = { httpHeaderAuth: { name: 'Gemini API Key' } };
+const openRouterCredentials = { httpHeaderAuth: { name: 'OpenRouter API Key' } };
 const githubHeaders = { parameters: [
   { name: 'Accept', value: 'application/vnd.github+json' },
   { name: 'X-GitHub-Api-Version', value: '2026-03-10' },
 ] };
 const fullResponse = { response: { response: { fullResponse: true, neverError: false } } };
 const safeFullResponse = { response: { response: { fullResponse: true, neverError: true } } };
+const safeAiResponse = { timeout: 120000, response: { response: { fullResponse: true, neverError: true } } };
 function githubGet(name, position, url, safe = false) {
   add(name, 'n8n-nodes-base.httpRequest', position, {
     url, authentication: 'predefinedCredentialType', nodeCredentialType: 'githubApi',
@@ -73,13 +93,13 @@ function githubGet(name, position, url, safe = false) {
 function boolIf(name, position, leftValue) {
   add(name, 'n8n-nodes-base.if', position, {
     conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
-      conditions: [{ id: id(), leftValue, rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {},
+      conditions: [{ id: conditionId(name), leftValue, rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {},
   }, { typeVersion: 2.2 });
 }
 function equalsIf(name, position, leftValue, rightValue) {
   add(name, 'n8n-nodes-base.if', position, {
     conditions: { options: { caseSensitive: false, leftValue: '', typeValidation: 'strict', version: 2 },
-      conditions: [{ id: id(), leftValue, rightValue, operator: { type: 'string', operation: 'equals' } }], combinator: 'and' }, options: {},
+      conditions: [{ id: conditionId(name), leftValue, rightValue, operator: { type: 'string', operation: 'equals' } }], combinator: 'and' }, options: {},
   }, { typeVersion: 2.2 });
 }
 function googleGet(name, position, url, options = fullResponse) {
@@ -181,45 +201,50 @@ add('Gmail - Send Reconcile Summary', 'n8n-nodes-base.gmail', [5540, -60], {
   operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false },
 }, { typeVersion: 2.1, credentials: gmailCredentials });
 
-equalsIf('AI Provider Gemini?', [5100, 160], '={{ $json.aiProvider }}', 'gemini');
-add('Gemini - Plan', 'n8n-nodes-base.httpRequest', [5320, 100], {
-  method: 'POST', url: "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
-  authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth', sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ systemInstruction: { parts: [{ text: $json.systemPrompt }] }, contents: [{ role: 'user', parts: [{ text: $json.userPrompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', responseJsonSchema: $json.geminiSchema } }) }}", options: fullResponse,
-}, { typeVersion: 4.3, credentials: geminiCredentials });
-add('Ollama - Plan', 'n8n-nodes-base.httpRequest', [5320, 240], {
-  method: 'POST', url: "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}", sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userPrompt }], stream: false, think: false, format: $json.schema, options: { temperature: 0.1, num_ctx: 8192, num_predict: 5000 } }) }}", options: fullResponse,
-}, { typeVersion: 4.3 });
-add('Normalize AI Response', 'n8n-nodes-base.code', [5540, 160], { jsCode: code('normalize-ai.js') }, { typeVersion: 2 });
-add('Parse Structured Plan', 'n8n-nodes-base.code', [5760, 160], { jsCode: code('parse-structured-plan.js') }, { typeVersion: 2 });
-add('Enforce Foundation', 'n8n-nodes-base.code', [5980, 160], { jsCode: code('enforce-foundation.js') }, { typeVersion: 2 });
-add('Normalize Titles & Keys & Dependencies', 'n8n-nodes-base.code', [6200, 160], { jsCode: code('normalize-plan.js') }, { typeVersion: 2 });
-add('Build GitHub Issue Bodies', 'n8n-nodes-base.code', [6420, 160], { jsCode: code('build-bodies.js') }, { typeVersion: 2 });
-add('Validate Final Plan', 'n8n-nodes-base.code', [6640, 160], { jsCode: code('validate-plan.js') }, { typeVersion: 2 });
-boolIf('Plan Valid?', [6860, 160], '={{ $json.valid }}');
-add('LLM Retry Attempt Left?', 'n8n-nodes-base.if', [7080, 300], {
-  conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
-    conditions: [{ id: id(), leftValue: "={{ Number($json.llmAttempt || 0) < 2 && Boolean($json.retryable) }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {},
-}, { typeVersion: 2.2 });
-equalsIf('Retry with Gemini?', [7300, 300], '={{ $json.aiProvider }}', 'gemini');
-add('Gemini - Repair Once', 'n8n-nodes-base.httpRequest', [7520, 240], {
-  method: 'POST', url: "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
-  authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth', sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ systemInstruction: { parts: [{ text: $json.systemPrompt }] }, contents: [{ role: 'user', parts: [{ text: $json.retryPrompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json', responseJsonSchema: $json.geminiSchema } }) }}", options: fullResponse,
-}, { typeVersion: 4.3, credentials: geminiCredentials });
-add('Ollama - Repair Once', 'n8n-nodes-base.httpRequest', [7520, 380], {
-  method: 'POST', url: "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}", sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.retryPrompt }], stream: false, think: false, format: $json.schema, options: { temperature: 0, num_ctx: 8192, num_predict: 5000 } }) }}", options: fullResponse,
-}, { typeVersion: 4.3 });
-add('Normalize Repair Response', 'n8n-nodes-base.code', [7740, 300], { jsCode: code('normalize-ai.js') }, { typeVersion: 2 });
-add('Fail Closed - Invalid Plan', 'n8n-nodes-base.code', [7960, 440], {
-  jsCode: "const errors = ($json.validationErrors || []).map((e) => '[' + (e.code || 'ERROR') + '] ' + (e.message || e)).join('; '); throw new Error('Plan inválido tras reintento: ' + (errors || 'sin errores') + '. GitHub no fue modificado.');",
-}, { typeVersion: 2 });
+// Four acyclic attempt branches share the same source modules and transition table.
+add('LLM Request', 'n8n-nodes-base.code', [5100, 160], { jsCode: code('prepare-llm-request.js') }, { typeVersion: 2 });
+const validationSteps = [
+  ['Normalize AI Response', 'normalize-ai.js'],
+  ['Parse Structured Plan', 'parse-structured-plan.js'],
+  ['Apply Gap Analysis', 'apply-gap-analysis.js'],
+  ['Enforce Operational Issues', 'enforce-foundation.js'],
+  ['Normalize Titles & Keys & Dependencies', 'normalize-plan.js'],
+  ['Build GitHub Issue Bodies', 'build-bodies.js'],
+  ['Validate Final Plan', 'validate-plan.js'],
+];
+function attemptBranch({ suffix, prepare, adapter, http, gemini, y, gate }) {
+  add(adapter, 'n8n-nodes-base.code', [5100, y], { jsCode: code('build-llm-payload.js') }, { typeVersion: 2 });
+  add(http, 'n8n-nodes-base.httpRequest', [5320, y], {
+    method: 'POST',
+    url: gemini ? "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + $json.llmAttempt.model + ':generateContent' }}" : 'https://openrouter.ai/api/v1/chat/completions',
+    authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth', sendHeaders: true,
+    headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] },
+    sendBody: true, specifyBody: 'json', jsonBody: '={{ $json.llmPayload }}', options: safeAiResponse,
+  }, { typeVersion: 4.3, credentials: gemini ? geminiCredentials : openRouterCredentials, onError: 'continueRegularOutput', retryOnFail: false });
+  connect(prepare, adapter);
+  connect(adapter, http);
+  let previous = http;
+  validationSteps.forEach(([baseName, file], index) => {
+    const name = baseName + suffix;
+    add(name, 'n8n-nodes-base.code', suffix ? [5540 + index * 180, y] : [[5540, 5760, 5980, 6140, 6300, 6460, 6640][index], y], {
+      jsCode: code(file).replace('__LLM_REQUEST_NODE__', adapter),
+    }, { typeVersion: 2 });
+    connect(previous, name);
+    previous = name;
+  });
+  boolIf(gate, [6860, y], "={{ $json.nextState === 'PLAN_VALID' && $json.valid && $json.parseStatus === 'valid' && $json.schemaStatus === 'valid' }}");
+  connect(previous, gate);
+  connect(gate, 'Plan and Topological Sort', 0);
+}
+attemptBranch({ suffix: '', prepare: 'LLM Request', adapter: 'Gemini Adapter', http: 'Gemini - Plan', gemini: true, y: 160, gate: 'Plan Valid?' });
+boolIf('Gemini Repair Required?', [7080, 300], "={{ $json.nextState === 'GEMINI_REPAIR_REQUEST' }}");
+add('Prepare Gemini Repair', 'n8n-nodes-base.code', [4880, 500], { jsCode: code('prepare-gemini-repair.js') }, { typeVersion: 2 });
+attemptBranch({ suffix: ' - Repair', prepare: 'Prepare Gemini Repair', adapter: 'Gemini Repair Adapter', http: 'Gemini - Repair Once', gemini: true, y: 500, gate: 'Repair Plan Valid?' });
+add('Prepare OpenRouter Fallback', 'n8n-nodes-base.code', [4880, 840], { jsCode: code('prepare-openrouter-fallback.js') }, { typeVersion: 2 });
+attemptBranch({ suffix: ' - Qwen', prepare: 'Prepare OpenRouter Fallback', adapter: 'Qwen Adapter', http: 'OpenRouter - Chat Completion', gemini: false, y: 840, gate: 'Qwen Plan Valid?' });
+add('Prepare GLM Fallback', 'n8n-nodes-base.code', [4880, 1180], { jsCode: code('prepare-openrouter-fallback.js') }, { typeVersion: 2 });
+attemptBranch({ suffix: ' - GLM', prepare: 'Prepare GLM Fallback', adapter: 'GLM Adapter', http: 'OpenRouter - GLM', gemini: false, y: 1180, gate: 'GLM Plan Valid?' });
+add('Fail Closed - Invalid Plan', 'n8n-nodes-base.code', [7080, 1320], { jsCode: code('fail-closed.js') }, { typeVersion: 2 });
 
 add('Plan and Topological Sort', 'n8n-nodes-base.code', [7300, 120], { jsCode: code('plan-toposort.js') }, { typeVersion: 2 });
 equalsIf('Dry Run?', [7520, 120], '={{ $json.automationMode }}', 'dry-run');
@@ -303,28 +328,15 @@ connect('Needs Manual Review?', 'Existing Set Complete?', 1);
 connect('Build Manual Review Alert', 'Notify Manual Review?');
 connect('Notify Manual Review?', 'Gmail - Send Manual Review Alert', 0);
 connect('Existing Set Complete?', 'Build Reconcile Summary', 0);
-connect('Existing Set Complete?', 'AI Provider Gemini?', 1);
+connect('Existing Set Complete?', 'LLM Request', 1);
 connect('Build Reconcile Summary', 'Notify Reconcile?');
 connect('Notify Reconcile?', 'Gmail - Send Reconcile Summary', 0);
-connect('AI Provider Gemini?', 'Gemini - Plan', 0);
-connect('AI Provider Gemini?', 'Ollama - Plan', 1);
-connect('Gemini - Plan', 'Normalize AI Response');
-connect('Ollama - Plan', 'Normalize AI Response');
-connect('Normalize AI Response', 'Parse Structured Plan');
-connect('Normalize Repair Response', 'Parse Structured Plan');
-connect('Parse Structured Plan', 'Enforce Foundation');
-connect('Enforce Foundation', 'Normalize Titles & Keys & Dependencies');
-connect('Normalize Titles & Keys & Dependencies', 'Build GitHub Issue Bodies');
-connect('Build GitHub Issue Bodies', 'Validate Final Plan');
-connect('Validate Final Plan', 'Plan Valid?');
-connect('Plan Valid?', 'Plan and Topological Sort', 0);
-connect('Plan Valid?', 'LLM Retry Attempt Left?', 1);
-connect('LLM Retry Attempt Left?', 'Retry with Gemini?', 0);
-connect('LLM Retry Attempt Left?', 'Fail Closed - Invalid Plan', 1);
-connect('Retry with Gemini?', 'Gemini - Repair Once', 0);
-connect('Retry with Gemini?', 'Ollama - Repair Once', 1);
-connect('Gemini - Repair Once', 'Normalize Repair Response');
-connect('Ollama - Repair Once', 'Normalize Repair Response');
+connect('Plan Valid?', 'Gemini Repair Required?', 1);
+connect('Gemini Repair Required?', 'Prepare Gemini Repair', 0);
+connect('Gemini Repair Required?', 'Prepare OpenRouter Fallback', 1);
+connect('Repair Plan Valid?', 'Prepare OpenRouter Fallback', 1);
+connect('Qwen Plan Valid?', 'Prepare GLM Fallback', 1);
+connect('GLM Plan Valid?', 'Fail Closed - Invalid Plan', 1);
 connect('Plan and Topological Sort', 'Dry Run?');
 connect('Dry Run?', 'Exact Dry-Run Preview', 0);
 connect('Dry Run?', 'Missing Labels?', 1);
@@ -360,10 +372,10 @@ const workflow = {
 };
 
 const errorNodes = [
-  { parameters: {}, type: 'n8n-nodes-base.errorTrigger', typeVersion: 1, position: [0, 0], id: id(), name: 'Error Trigger' },
-  { parameters: { jsCode: "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];" }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [220, 0], id: id(), name: 'Build Error Summary' },
-  { parameters: { conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [{ id: id(), leftValue: "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {} }, type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [440, 0], id: id(), name: 'Notifications Enabled?' },
-  { parameters: { operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false } }, type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: [660, -40], id: id(), name: 'Gmail - Send Error Summary', credentials: gmailCredentials },
+  { parameters: {}, type: 'n8n-nodes-base.errorTrigger', typeVersion: 1, position: [0, 0], id: nodeId('Error Trigger', existingErrorNodes), name: 'Error Trigger' },
+  { parameters: { jsCode: "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];" }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [220, 0], id: nodeId('Build Error Summary', existingErrorNodes), name: 'Build Error Summary' },
+  { parameters: { conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [{ id: conditionId('Notifications Enabled?', existingErrorNodes), leftValue: "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {} }, type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [440, 0], id: nodeId('Notifications Enabled?', existingErrorNodes), name: 'Notifications Enabled?' },
+  { parameters: { operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false } }, type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: [660, -40], id: nodeId('Gmail - Send Error Summary', existingErrorNodes), name: 'Gmail - Send Error Summary', credentials: gmailCredentials },
 ];
 const errorWorkflow = {
   id: 'classroomError2026', name: 'Classroom to GitHub - Error Handler', nodes: errorNodes, pinData: {}, active: false,
@@ -373,7 +385,7 @@ const errorWorkflow = {
     'Notifications Enabled?': { main: [[{ node: 'Gmail - Send Error Summary', type: 'main', index: 0 }], []] },
   },
   settings: { executionOrder: 'v1', timezone: 'America/Mexico_City' },
-  versionId: id(), meta: { templateCredsSetupCompleted: false }, tags: [],
+  versionId: existingError.versionId || randomUUID(), meta: { templateCredsSetupCompleted: false }, tags: [],
 };
 
 fs.writeFileSync(path.join(root, 'workflows', 'classroom-to-github.json'), `${JSON.stringify(workflow, null, 2)}\n`);

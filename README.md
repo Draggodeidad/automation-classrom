@@ -25,8 +25,16 @@ flowchart TD
     ZX --> GH[Contexto GitHub]
     SC --> GH
     GH --> ID[Deduplicar courseId + courseWorkId]
-    ID --> LLM[Gemini u Ollama]
-    LLM --> JS[JSON Schema + reglas + DAG]
+    ID --> G[Gemini primario]
+    G -->|parse/schema inválido| GR[Gemini Repair una vez]
+    G -->|transport/provider error| Q[OpenRouter Qwen]
+    GR -->|válido| JS
+    GR -->|inválido/error| Q
+    Q -->|inválido/error| Z[OpenRouter GLM]
+    G -->|válido| JS[JSON Schema + reglas + DAG]
+    Q -->|válido| JS
+    Z -->|válido| JS
+    Z -->|inválido/error| FC[Fail closed]
     JS --> DR{dry-run/live}
     DR -->|dry-run| P[Preview exacta]
     DR -->|live| I[Labels + Issues secuenciales]
@@ -89,24 +97,24 @@ Los límites se configuran por `.env`. El analizador prioriza instrucciones, rú
 
 ## Foundation y equipo
 
-Cuando existe ZIP, el plan debe incluir exactamente:
+Cuando existe ZIP, el workflow agrega determinísticamente:
 
 ```text
-[<MATERIA>][WXX] Integrar <starter.zip> y establecer baseline semanal
+[<MATERIA>][WXX] Preparar <starter.zip> y establecer baseline de trabajo
 ```
 
-asignada a `Draggodeidad`, sin dependencias y basada en datos reales del starter. Además, Draggodeidad debe tener una Issue técnica sustancial. `JulianDele` y `osbaldoXxC` reciben Issues guiadas que pueden avanzar mayormente en paralelo.
+asignada a `Draggodeidad`, sin dependencias y basada en datos reales del starter. La entrega final también pertenece al owner. Ambas tienen peso funcional cero; el resto se asigna después del orden topológico según dificultad, riesgo, capacidades y carga ponderada. Consulta [el reporte de asignación y grounding](docs/ASSIGNMENT-GROUNDING-REPORT.md).
 
 ## Inicio rápido
 
 1. Copia `.env.example` a `.env`, genera `N8N_ENCRYPTION_KEY` y conserva `AUTOMATION_MODE=dry-run`.
 2. Sigue [SETUP-CLASSROOM.md](docs/SETUP-CLASSROOM.md) y [SETUP-DRIVE.md](docs/SETUP-DRIVE.md).
-3. Configura [GitHub](docs/SETUP-GITHUB.md) y [Gemini/Ollama](docs/SETUP-AI.md).
+3. Configura [GitHub](docs/SETUP-GITHUB.md), Gemini y OpenRouter en [SETUP-AI.md](docs/SETUP-AI.md).
 4. Inicia n8n con `docker compose up -d`.
 5. Importa primero `workflows/classroom-error-handler.json` y luego `workflows/classroom-to-github.json`.
 6. Asigna las credenciales nombradas en los nodos y selecciona el error workflow en Settings.
 7. Revisa [SCHEDULING.md](docs/SCHEDULING.md) y ejecuta los [dry-runs W03](docs/DRY-RUN-EXAMPLES.md).
-8. Cambia a `AUTOMATION_MODE=live` sólo tras aprobar las previews.
+8. Conserva `AUTOMATION_MODE=dry-run`: la capa LLM incluye un bloqueo de revisión que fuerza dry-run. Retirarlo requiere una revisión posterior explícita.
 
 El workflow importado está inactivo intencionalmente y no contiene credenciales.
 
@@ -122,7 +130,7 @@ Cámbialo a `DMI` o a otra semana antes de ejecutar `Manual Trigger`. Esto no mo
 
 ## Variables principales
 
-Consulta `.env.example`. Los IDs de curso se resuelven una sola vez durante setup y luego se usan directamente. Tokens OAuth, token GitHub y clave Gemini se guardan en Credentials cifradas de n8n, no en `.env`.
+Consulta `.env.example`. Los IDs de curso se resuelven una sola vez durante setup y luego se usan directamente. Tokens OAuth, token GitHub y claves de Gemini/OpenRouter se guardan en Credentials cifradas de n8n, no en `.env`.
 
 n8n 2.x bloquea `$env` en Code Nodes por defecto. Este despliegue establece `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` porque los módulos leen IDs, límites y modo desde el entorno. Úsalo sólo en esta instancia confiable de un único propietario; los secretos continúan en Credentials y no se exponen por `$env`.
 

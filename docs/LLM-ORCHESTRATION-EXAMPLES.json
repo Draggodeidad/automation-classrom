@@ -1,0 +1,1051 @@
+{
+  "A": {
+    "mode": "dry-run",
+    "mutationsPerformed": false,
+    "stateHistory": [
+      "GEMINI_REQUEST",
+      "GEMINI_PARSE",
+      "GEMINI_VALIDATE",
+      "PLAN_VALID"
+    ],
+    "execution": {
+      "requestedProvider": "gemini",
+      "resolvedProvider": "gemini",
+      "resolvedModel": "gemini-3.6-flash",
+      "repairUsed": false,
+      "fallbackUsed": false
+    },
+    "attempts": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "stage": "initial",
+        "httpStatus": 200,
+        "result": "valid",
+        "errorType": "VALID",
+        "success": true,
+        "parseStatus": "valid",
+        "schemaStatus": "valid",
+        "validationStatus": "valid",
+        "repairUsed": false,
+        "fallbackUsed": false,
+        "failureReason": null,
+        "providerError": null,
+        "durationMs": 0,
+        "identifierNormalizations": []
+      }
+    ],
+    "plan": [
+      {
+        "order": 1,
+        "key": "foundation",
+        "title": "[PWA][W01] Preparar PWA-w01-kit-estudiante.zip y establecer baseline de trabajo",
+        "assignee": "Draggodeidad",
+        "category": "setup",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "PWA-w01-kit-estudiante.zip",
+            "source": "starter",
+            "evidence": "starter.archive"
+          },
+          {
+            "claim": "Draggodeidad prepara el starter y el baseline",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.setup-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:devops",
+          "priority:high"
+        ],
+        "dependsOn": [],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero preparar PWA-w01-kit-estudiante.zip y dejar un baseline utilizable para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Alcance\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n## Pruebas\n\n- Ejecutar únicamente las verificaciones definidas actualmente por el proyecto o el starter.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar el resultado de la preparación y los conflictos encontrados.\n\n## Definition of Done\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:foundation -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 2,
+        "key": "offline-sync",
+        "title": "[PWA][W01] Resolver offline-sync",
+        "assignee": "Draggodeidad",
+        "category": "implementation",
+        "difficulty": "hard",
+        "weight": 3,
+        "functionalWeight": 3,
+        "operationalWeight": 0,
+        "risk": "high",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:feature",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-sync para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-sync\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-sync\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-sync -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 3,
+        "key": "offline-tests",
+        "title": "[PWA][W01] Resolver offline-tests",
+        "assignee": "osbaldoXxC",
+        "category": "testing",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 1,
+        "operationalWeight": 0,
+        "risk": "low",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:test",
+          "priority:low"
+        ],
+        "dependsOn": [
+          "offline-sync",
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-tests para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-tests\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-tests\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-tests -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 4,
+        "key": "classroom-delivery",
+        "title": "[PWA][W01] Consolidar evidencia y preparar entrega en Classroom",
+        "assignee": "Draggodeidad",
+        "category": "delivery",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "Draggodeidad consolida la evidencia y realiza la entrega final en Google Classroom",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.delivery-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:evidence",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation",
+          "offline-sync",
+          "offline-tests"
+        ],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero consolidar la evidencia disponible y preparar la entrega final en Classroom para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Alcance\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n## Pruebas\n\n- Revisar el conjunto final contra los criterios explícitos de la actividad.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar la referencia final de entrega que corresponda.\n\n## Definition of Done\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:classroom-delivery -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      }
+    ]
+  },
+  "B": {
+    "mode": "dry-run",
+    "mutationsPerformed": false,
+    "stateHistory": [
+      "GEMINI_REQUEST",
+      "GEMINI_PARSE",
+      "GEMINI_VALIDATE",
+      "GEMINI_REPAIR_REQUEST",
+      "GEMINI_REPAIR_PARSE",
+      "GEMINI_REPAIR_VALIDATE",
+      "PLAN_VALID"
+    ],
+    "execution": {
+      "requestedProvider": "gemini",
+      "resolvedProvider": "gemini",
+      "resolvedModel": "gemini-3.6-flash",
+      "repairUsed": true,
+      "fallbackUsed": false
+    },
+    "attempts": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "stage": "initial",
+        "httpStatus": 200,
+        "result": "schema_error",
+        "errorType": "SCHEMA_ERROR",
+        "success": false,
+        "parseStatus": "valid",
+        "schemaStatus": "invalid",
+        "validationStatus": "invalid",
+        "repairUsed": false,
+        "fallbackUsed": false,
+        "failureReason": {
+          "errorType": "SCHEMA_ERROR",
+          "provider": "gemini",
+          "model": "gemini-3.6-flash",
+          "httpStatus": 200,
+          "message": "$.issues[1].sections.criteriosAceptacion: mínimo 2 elementos",
+          "validationErrors": [
+            "$.issues[1].sections.criteriosAceptacion: mínimo 2 elementos"
+          ]
+        },
+        "providerError": null,
+        "durationMs": 1,
+        "identifierNormalizations": []
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "stage": "repair",
+        "httpStatus": 200,
+        "result": "valid",
+        "errorType": "VALID",
+        "success": true,
+        "parseStatus": "valid",
+        "schemaStatus": "valid",
+        "validationStatus": "valid",
+        "repairUsed": true,
+        "fallbackUsed": false,
+        "failureReason": null,
+        "providerError": null,
+        "durationMs": 1,
+        "identifierNormalizations": []
+      }
+    ],
+    "plan": [
+      {
+        "order": 1,
+        "key": "foundation",
+        "title": "[PWA][W01] Preparar PWA-w01-kit-estudiante.zip y establecer baseline de trabajo",
+        "assignee": "Draggodeidad",
+        "category": "setup",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "PWA-w01-kit-estudiante.zip",
+            "source": "starter",
+            "evidence": "starter.archive"
+          },
+          {
+            "claim": "Draggodeidad prepara el starter y el baseline",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.setup-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:devops",
+          "priority:high"
+        ],
+        "dependsOn": [],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero preparar PWA-w01-kit-estudiante.zip y dejar un baseline utilizable para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Alcance\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n## Pruebas\n\n- Ejecutar únicamente las verificaciones definidas actualmente por el proyecto o el starter.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar el resultado de la preparación y los conflictos encontrados.\n\n## Definition of Done\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:foundation -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 2,
+        "key": "offline-sync",
+        "title": "[PWA][W01] Resolver offline-sync",
+        "assignee": "Draggodeidad",
+        "category": "implementation",
+        "difficulty": "hard",
+        "weight": 3,
+        "functionalWeight": 3,
+        "operationalWeight": 0,
+        "risk": "high",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:feature",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-sync para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-sync\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-sync\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-sync -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 3,
+        "key": "offline-tests",
+        "title": "[PWA][W01] Resolver offline-tests",
+        "assignee": "osbaldoXxC",
+        "category": "testing",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 1,
+        "operationalWeight": 0,
+        "risk": "low",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:test",
+          "priority:low"
+        ],
+        "dependsOn": [
+          "offline-sync",
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-tests para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-tests\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-tests\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-tests -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 4,
+        "key": "classroom-delivery",
+        "title": "[PWA][W01] Consolidar evidencia y preparar entrega en Classroom",
+        "assignee": "Draggodeidad",
+        "category": "delivery",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "Draggodeidad consolida la evidencia y realiza la entrega final en Google Classroom",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.delivery-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:evidence",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation",
+          "offline-sync",
+          "offline-tests"
+        ],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero consolidar la evidencia disponible y preparar la entrega final en Classroom para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Alcance\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n## Pruebas\n\n- Revisar el conjunto final contra los criterios explícitos de la actividad.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar la referencia final de entrega que corresponda.\n\n## Definition of Done\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:classroom-delivery -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      }
+    ]
+  },
+  "E": {
+    "mode": "dry-run",
+    "mutationsPerformed": false,
+    "stateHistory": [
+      "GEMINI_REQUEST",
+      "QWEN_REQUEST",
+      "QWEN_PARSE",
+      "QWEN_VALIDATE",
+      "PLAN_VALID"
+    ],
+    "execution": {
+      "requestedProvider": "gemini",
+      "resolvedProvider": "openrouter",
+      "resolvedModel": "qwen/qwen3.8-27b:free",
+      "repairUsed": false,
+      "fallbackUsed": true
+    },
+    "attempts": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "stage": "initial",
+        "httpStatus": 429,
+        "result": "transport_error",
+        "errorType": "TRANSPORT_ERROR",
+        "success": false,
+        "parseStatus": "not_attempted",
+        "schemaStatus": "not_attempted",
+        "validationStatus": "invalid",
+        "repairUsed": false,
+        "fallbackUsed": false,
+        "failureReason": {
+          "errorType": "TRANSPORT_ERROR",
+          "provider": "gemini",
+          "model": "gemini-3.6-flash",
+          "httpStatus": 429,
+          "message": "Provider rate limit"
+        },
+        "providerError": {
+          "status": null,
+          "code": 429,
+          "message": "Provider rejected request",
+          "details": null
+        },
+        "durationMs": 1,
+        "identifierNormalizations": []
+      },
+      {
+        "provider": "openrouter",
+        "model": "qwen/qwen3.8-27b:free",
+        "stage": "qwen",
+        "httpStatus": 200,
+        "result": "valid",
+        "errorType": "VALID",
+        "success": true,
+        "parseStatus": "valid",
+        "schemaStatus": "valid",
+        "validationStatus": "valid",
+        "repairUsed": false,
+        "fallbackUsed": true,
+        "failureReason": null,
+        "providerError": null,
+        "durationMs": 0,
+        "identifierNormalizations": []
+      }
+    ],
+    "plan": [
+      {
+        "order": 1,
+        "key": "foundation",
+        "title": "[PWA][W01] Preparar PWA-w01-kit-estudiante.zip y establecer baseline de trabajo",
+        "assignee": "Draggodeidad",
+        "category": "setup",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "PWA-w01-kit-estudiante.zip",
+            "source": "starter",
+            "evidence": "starter.archive"
+          },
+          {
+            "claim": "Draggodeidad prepara el starter y el baseline",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.setup-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:devops",
+          "priority:high"
+        ],
+        "dependsOn": [],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero preparar PWA-w01-kit-estudiante.zip y dejar un baseline utilizable para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Alcance\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n## Pruebas\n\n- Ejecutar únicamente las verificaciones definidas actualmente por el proyecto o el starter.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar el resultado de la preparación y los conflictos encontrados.\n\n## Definition of Done\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:foundation -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 2,
+        "key": "offline-sync",
+        "title": "[PWA][W01] Resolver offline-sync",
+        "assignee": "Draggodeidad",
+        "category": "implementation",
+        "difficulty": "hard",
+        "weight": 3,
+        "functionalWeight": 3,
+        "operationalWeight": 0,
+        "risk": "high",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:feature",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-sync para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-sync\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-sync\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-sync -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 3,
+        "key": "offline-tests",
+        "title": "[PWA][W01] Resolver offline-tests",
+        "assignee": "osbaldoXxC",
+        "category": "testing",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 1,
+        "operationalWeight": 0,
+        "risk": "low",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:test",
+          "priority:low"
+        ],
+        "dependsOn": [
+          "offline-sync",
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-tests para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-tests\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-tests\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-tests -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 4,
+        "key": "classroom-delivery",
+        "title": "[PWA][W01] Consolidar evidencia y preparar entrega en Classroom",
+        "assignee": "Draggodeidad",
+        "category": "delivery",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "Draggodeidad consolida la evidencia y realiza la entrega final en Google Classroom",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.delivery-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:evidence",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation",
+          "offline-sync",
+          "offline-tests"
+        ],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero consolidar la evidencia disponible y preparar la entrega final en Classroom para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Alcance\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n## Pruebas\n\n- Revisar el conjunto final contra los criterios explícitos de la actividad.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar la referencia final de entrega que corresponda.\n\n## Definition of Done\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:classroom-delivery -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      }
+    ]
+  },
+  "G": {
+    "mode": "dry-run",
+    "mutationsPerformed": false,
+    "stateHistory": [
+      "GEMINI_REQUEST",
+      "QWEN_REQUEST",
+      "GLM_REQUEST",
+      "GLM_PARSE",
+      "GLM_VALIDATE",
+      "PLAN_VALID"
+    ],
+    "execution": {
+      "requestedProvider": "gemini",
+      "resolvedProvider": "openrouter",
+      "resolvedModel": "z-ai/glm-5.2:free",
+      "repairUsed": false,
+      "fallbackUsed": true
+    },
+    "attempts": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "stage": "initial",
+        "httpStatus": 503,
+        "result": "transport_error",
+        "errorType": "TRANSPORT_ERROR",
+        "success": false,
+        "parseStatus": "not_attempted",
+        "schemaStatus": "not_attempted",
+        "validationStatus": "invalid",
+        "repairUsed": false,
+        "fallbackUsed": false,
+        "failureReason": {
+          "errorType": "TRANSPORT_ERROR",
+          "provider": "gemini",
+          "model": "gemini-3.6-flash",
+          "httpStatus": 503,
+          "message": "HTTP 503: Provider rejected request"
+        },
+        "providerError": {
+          "status": null,
+          "code": 503,
+          "message": "Provider rejected request",
+          "details": null
+        },
+        "durationMs": 0,
+        "identifierNormalizations": []
+      },
+      {
+        "provider": "openrouter",
+        "model": "qwen/qwen3.8-27b:free",
+        "stage": "qwen",
+        "httpStatus": 429,
+        "result": "transport_error",
+        "errorType": "TRANSPORT_ERROR",
+        "success": false,
+        "parseStatus": "not_attempted",
+        "schemaStatus": "not_attempted",
+        "validationStatus": "invalid",
+        "repairUsed": false,
+        "fallbackUsed": true,
+        "failureReason": {
+          "errorType": "TRANSPORT_ERROR",
+          "provider": "openrouter",
+          "model": "qwen/qwen3.8-27b:free",
+          "httpStatus": 429,
+          "message": "Provider rate limit"
+        },
+        "providerError": {
+          "status": null,
+          "code": 429,
+          "message": "Provider rejected request",
+          "details": null
+        },
+        "durationMs": 0,
+        "identifierNormalizations": []
+      },
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.2:free",
+        "stage": "glm",
+        "httpStatus": 200,
+        "result": "valid",
+        "errorType": "VALID",
+        "success": true,
+        "parseStatus": "valid",
+        "schemaStatus": "valid",
+        "validationStatus": "valid",
+        "repairUsed": false,
+        "fallbackUsed": true,
+        "failureReason": null,
+        "providerError": null,
+        "durationMs": 0,
+        "identifierNormalizations": []
+      }
+    ],
+    "plan": [
+      {
+        "order": 1,
+        "key": "foundation",
+        "title": "[PWA][W01] Preparar PWA-w01-kit-estudiante.zip y establecer baseline de trabajo",
+        "assignee": "Draggodeidad",
+        "category": "setup",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "PWA-w01-kit-estudiante.zip",
+            "source": "starter",
+            "evidence": "starter.archive"
+          },
+          {
+            "claim": "Draggodeidad prepara el starter y el baseline",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.setup-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:devops",
+          "priority:high"
+        ],
+        "dependsOn": [],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero preparar PWA-w01-kit-estudiante.zip y dejar un baseline utilizable para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Alcance\n\n- Obtener e integrar el starter sin inventar comandos.\n- Comprobar la estructura y las verificaciones respaldadas por las fuentes disponibles.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n## Pruebas\n\n- Ejecutar únicamente las verificaciones definidas actualmente por el proyecto o el starter.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar el resultado de la preparación y los conflictos encontrados.\n\n## Definition of Done\n\n- El starter queda preparado como baseline de trabajo.\n- Cualquier comando o archivo mencionado conserva provenance verificable.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:foundation -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 2,
+        "key": "offline-sync",
+        "title": "[PWA][W01] Resolver offline-sync",
+        "assignee": "Draggodeidad",
+        "category": "implementation",
+        "difficulty": "hard",
+        "weight": 3,
+        "functionalWeight": 3,
+        "operationalWeight": 0,
+        "risk": "high",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": true,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:feature",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-sync para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-sync\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-sync\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-sync -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 3,
+        "key": "offline-tests",
+        "title": "[PWA][W01] Resolver offline-tests",
+        "assignee": "osbaldoXxC",
+        "category": "testing",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 1,
+        "operationalWeight": 0,
+        "risk": "low",
+        "requiresCoding": true,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "sourceRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "persistencia offline",
+            "source": "classroom",
+            "evidence": "classroom.description"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:test",
+          "priority:low"
+        ],
+        "dependsOn": [
+          "offline-sync",
+          "foundation"
+        ],
+        "body": "## Historia de Usuario\n\nComo integrante quiero offline-tests para completar la actividad.\n\n## Contexto\n\nClassroom solicita persistencia offline.\n\n## Objetivo técnico\n\n- Completar offline-tests\n\n## Alcance\n\n- Trabajo pendiente respaldado\n\n## Fuera de alcance\n\n- Detalles no respaldados\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar la evidencia disponible\n2. Completar offline-tests\n\n## Criterios de aceptación\n\n- El requisito solicitado queda cubierto\n- El resultado puede validarse\n\n## Pruebas\n\n- Ejecutar las verificaciones definidas actualmente por el proyecto\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar evidencia del resultado\n\n## Definition of Done\n\n- Criterios cumplidos\n- Evidencia disponible\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:offline-tests -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      },
+      {
+        "order": 4,
+        "key": "classroom-delivery",
+        "title": "[PWA][W01] Consolidar evidencia y preparar entrega en Classroom",
+        "assignee": "Draggodeidad",
+        "category": "delivery",
+        "difficulty": "easy",
+        "weight": 1,
+        "functionalWeight": 0,
+        "operationalWeight": 1,
+        "risk": "low",
+        "requiresCoding": false,
+        "requiresRepositoryKnowledge": false,
+        "requirementKind": "internalWorkflowRequirement",
+        "groundingStatus": "grounded",
+        "provenance": [
+          {
+            "claim": "Draggodeidad consolida la evidencia y realiza la entrega final en Google Classroom",
+            "source": "workflowConfiguration",
+            "evidence": "workflow.delivery-policy"
+          }
+        ],
+        "labels": [
+          "PWA",
+          "week-01",
+          "type:evidence",
+          "priority:high"
+        ],
+        "dependsOn": [
+          "foundation",
+          "offline-sync",
+          "offline-tests"
+        ],
+        "body": "## Historia de Usuario\n\nComo responsable operativo quiero consolidar la evidencia disponible y preparar la entrega final en Classroom para habilitar el trabajo semanal.\n\n## Contexto\n\nEsta responsabilidad proviene de la política interna del workflow, no de un requisito atribuido al profesor.\n\n## Objetivo técnico\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Alcance\n\n- Comprobar los criterios de entrega realmente presentes en las fuentes.\n- Reunir la evidencia disponible y realizar el cierre en Classroom.\n\n## Fuera de alcance\n\n- Agregar requisitos técnicos no respaldados por Classroom, starter o repositorio.\n\n## Archivos esperados\n\n- No aplica.\n\n## Pasos sugeridos\n\n1. Revisar las fuentes disponibles y ejecutar únicamente acciones respaldadas por ellas.\n\n## Criterios de aceptación\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n## Pruebas\n\n- Revisar el conjunto final contra los criterios explícitos de la actividad.\n\n## Dependencias\n\n- No aplica.\n\n## Evidencia individual\n\n- Registrar la referencia final de entrega que corresponda.\n\n## Definition of Done\n\n- Todas las tareas necesarias del plan están resueltas antes del cierre.\n- La entrega usa sólo elementos solicitados o respaldados por las fuentes.\n\n<!-- automation:classroom -->\n<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-01 -->\n<!-- classroom-update-time:2026-09-15T14:00:00Z -->\n<!-- course:PWA -->\n<!-- week:01 -->\n<!-- issue-key:classroom-delivery -->\n<!-- starter:PWA-w01-kit-estudiante.zip -->\n<!-- plan-keys:foundation,offline-sync,offline-tests,classroom-delivery -->"
+      }
+    ]
+  },
+  "J": {
+    "mode": "dry-run",
+    "mutationsPerformed": false,
+    "stateHistory": [
+      "GEMINI_REQUEST",
+      "QWEN_REQUEST",
+      "GLM_REQUEST",
+      "GLM_PARSE",
+      "FAIL_CLOSED"
+    ],
+    "execution": {
+      "requestedProvider": "gemini",
+      "resolvedProvider": null,
+      "resolvedModel": null,
+      "repairUsed": false,
+      "fallbackUsed": true
+    },
+    "attempts": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "stage": "initial",
+        "httpStatus": 401,
+        "result": "provider_error",
+        "errorType": "PROVIDER_ERROR",
+        "success": false,
+        "parseStatus": "not_attempted",
+        "schemaStatus": "not_attempted",
+        "validationStatus": "invalid",
+        "repairUsed": false,
+        "fallbackUsed": false,
+        "failureReason": {
+          "errorType": "PROVIDER_ERROR",
+          "provider": "gemini",
+          "model": "gemini-3.6-flash",
+          "httpStatus": 401,
+          "message": "HTTP 401: Provider rejected request"
+        },
+        "providerError": {
+          "status": null,
+          "code": 401,
+          "message": "Provider rejected request",
+          "details": null
+        },
+        "durationMs": 0,
+        "identifierNormalizations": []
+      },
+      {
+        "provider": "openrouter",
+        "model": "qwen/qwen3.8-27b:free",
+        "stage": "qwen",
+        "httpStatus": 429,
+        "result": "transport_error",
+        "errorType": "TRANSPORT_ERROR",
+        "success": false,
+        "parseStatus": "not_attempted",
+        "schemaStatus": "not_attempted",
+        "validationStatus": "invalid",
+        "repairUsed": false,
+        "fallbackUsed": true,
+        "failureReason": {
+          "errorType": "TRANSPORT_ERROR",
+          "provider": "openrouter",
+          "model": "qwen/qwen3.8-27b:free",
+          "httpStatus": 429,
+          "message": "Provider rate limit"
+        },
+        "providerError": {
+          "status": null,
+          "code": 429,
+          "message": "Provider rejected request",
+          "details": null
+        },
+        "durationMs": 0,
+        "identifierNormalizations": []
+      },
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.2:free",
+        "stage": "glm",
+        "httpStatus": 200,
+        "result": "parse_error",
+        "errorType": "PARSE_ERROR",
+        "success": false,
+        "parseStatus": "invalid",
+        "schemaStatus": "not_attempted",
+        "validationStatus": "invalid",
+        "repairUsed": false,
+        "fallbackUsed": true,
+        "failureReason": {
+          "errorType": "PARSE_ERROR",
+          "provider": "openrouter",
+          "model": "z-ai/glm-5.2:free",
+          "httpStatus": 200,
+          "message": "JSON no parseable (Unexpected token 'i', \"invalid JSON\" is not valid JSON)",
+          "validationErrors": [
+            "JSON no parseable (Unexpected token 'i', \"invalid JSON\" is not valid JSON)"
+          ]
+        },
+        "providerError": null,
+        "durationMs": 1,
+        "identifierNormalizations": []
+      }
+    ],
+    "failure": {
+      "executionResult": "fail_closed",
+      "mode": "dry-run",
+      "mutationsPerformed": false,
+      "state": "FAIL_CLOSED",
+      "requestedProvider": "gemini",
+      "lastProvider": "openrouter",
+      "lastModel": "z-ai/glm-5.2:free",
+      "repairUsed": false,
+      "fallbackUsed": true,
+      "attemptCount": 3,
+      "failureReason": {
+        "errorType": "PARSE_ERROR",
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.2:free",
+        "httpStatus": 200,
+        "message": "JSON no parseable (Unexpected token 'i', \"invalid JSON\" is not valid JSON)",
+        "validationErrors": [
+          "JSON no parseable (Unexpected token 'i', \"invalid JSON\" is not valid JSON)"
+        ]
+      },
+      "attempts": [
+        {
+          "provider": "gemini",
+          "model": "gemini-3.6-flash",
+          "stage": "initial",
+          "httpStatus": 401,
+          "result": "provider_error",
+          "errorType": "PROVIDER_ERROR",
+          "success": false,
+          "parseStatus": "not_attempted",
+          "schemaStatus": "not_attempted",
+          "validationStatus": "invalid",
+          "repairUsed": false,
+          "fallbackUsed": false,
+          "failureReason": {
+            "errorType": "PROVIDER_ERROR",
+            "provider": "gemini",
+            "model": "gemini-3.6-flash",
+            "httpStatus": 401,
+            "message": "HTTP 401: Provider rejected request"
+          },
+          "providerError": {
+            "status": null,
+            "code": 401,
+            "message": "Provider rejected request",
+            "details": null
+          },
+          "durationMs": 0,
+          "identifierNormalizations": []
+        },
+        {
+          "provider": "openrouter",
+          "model": "qwen/qwen3.8-27b:free",
+          "stage": "qwen",
+          "httpStatus": 429,
+          "result": "transport_error",
+          "errorType": "TRANSPORT_ERROR",
+          "success": false,
+          "parseStatus": "not_attempted",
+          "schemaStatus": "not_attempted",
+          "validationStatus": "invalid",
+          "repairUsed": false,
+          "fallbackUsed": true,
+          "failureReason": {
+            "errorType": "TRANSPORT_ERROR",
+            "provider": "openrouter",
+            "model": "qwen/qwen3.8-27b:free",
+            "httpStatus": 429,
+            "message": "Provider rate limit"
+          },
+          "providerError": {
+            "status": null,
+            "code": 429,
+            "message": "Provider rejected request",
+            "details": null
+          },
+          "durationMs": 0,
+          "identifierNormalizations": []
+        },
+        {
+          "provider": "openrouter",
+          "model": "z-ai/glm-5.2:free",
+          "stage": "glm",
+          "httpStatus": 200,
+          "result": "parse_error",
+          "errorType": "PARSE_ERROR",
+          "success": false,
+          "parseStatus": "invalid",
+          "schemaStatus": "not_attempted",
+          "validationStatus": "invalid",
+          "repairUsed": false,
+          "fallbackUsed": true,
+          "failureReason": {
+            "errorType": "PARSE_ERROR",
+            "provider": "openrouter",
+            "model": "z-ai/glm-5.2:free",
+            "httpStatus": 200,
+            "message": "JSON no parseable (Unexpected token 'i', \"invalid JSON\" is not valid JSON)",
+            "validationErrors": [
+              "JSON no parseable (Unexpected token 'i', \"invalid JSON\" is not valid JSON)"
+            ]
+          },
+          "providerError": null,
+          "durationMs": 1,
+          "identifierNormalizations": []
+        }
+      ],
+      "stateHistory": [
+        "GEMINI_REQUEST",
+        "QWEN_REQUEST",
+        "GLM_REQUEST",
+        "GLM_PARSE",
+        "FAIL_CLOSED"
+      ]
+    }
+  }
+}

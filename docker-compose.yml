@@ -33,17 +33,16 @@ services:
       MAX_EXTRACTED_SIZE_MB: ${MAX_EXTRACTED_SIZE_MB:-100}
       MAX_ZIP_FILES: ${MAX_ZIP_FILES:-500}
       MAX_SINGLE_FILE_MB: ${MAX_SINGLE_FILE_MB:-10}
-      AI_PROVIDER: ${AI_PROVIDER:-gemini}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      AI_PRIMARY_PROVIDER: ${AI_PRIMARY_PROVIDER:-gemini}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+      OPENROUTER_PRIMARY_MODEL: ${OPENROUTER_PRIMARY_MODEL:-qwen/qwen3.8-27b:free}
+      OPENROUTER_FALLBACK_MODEL: ${OPENROUTER_FALLBACK_MODEL:-z-ai/glm-5.2:free}
+      AI_TEMPERATURE: ${AI_TEMPERATURE:-0.1}
       NOTIFICATIONS_ENABLED: ${NOTIFICATIONS_ENABLED:-false}
       NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL}
       N8N_DEFAULT_BINARY_DATA_MODE: filesystem
     volumes:
       - n8n_data:/home/node/.n8n
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     security_opt:
       - no-new-privileges:true
     cap_drop:

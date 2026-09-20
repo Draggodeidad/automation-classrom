@@ -15,8 +15,8 @@ Gmail Processed label            → metadata reconstruible en GitHub
 ## Conservado
 
 - Docker Compose y n8n Community self-hosted.
-- Gemini/Ollama y structured output.
-- JSON Schema, reparación única y fail closed.
+- Gemini primario, OpenRouter como fallback y structured output.
+- JSON Schema compartido y fail closed después de Gemini, Qwen y GLM.
 - Contexto GitHub, labels, dry-run/live, DAG y creación secuencial.
 - Reanudación de conjuntos parciales y error workflow.
 - Equipo y regla de implementación técnica sustancial.

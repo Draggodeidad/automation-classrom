@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { runLlmOrchestrationTests } from './llm-orchestration.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,14 +27,18 @@ assert.equal(workflow.active, false);
 assert.equal(errorWorkflow.nodes[0].type, 'n8n-nodes-base.errorTrigger');
 assert.equal(schema.type, 'object');
 assert.ok(schema.required.includes('issues'));
-assert.deepEqual(schema.properties.issues.items.required, ['key', 'title', 'assignee', 'type', 'priority', 'dependsOn', 'sections']);
+assert.deepEqual(schema.properties.issues.items.required, [
+  'key', 'title', 'type', 'priority', 'category', 'difficulty', 'estimatedWeight',
+  'risk', 'requiresCoding', 'requiresRepositoryKnowledge', 'dependsOn',
+  'requirementKind', 'gapAnalysis', 'provenance', 'sections',
+]);
 assert.deepEqual(schema.properties.issues.items.properties.sections.required, [
   'historiaUsuario', 'contexto', 'objetivoTecnico', 'alcance', 'fueraDeAlcance',
   'archivosEsperados', 'pasosSugeridos', 'criteriosAceptacion', 'pruebas',
   'dependencias', 'evidenciaIndividual', 'definitionOfDone',
 ]);
-assert.equal(schema.properties.issues.minItems, 3);
-assert.equal(schema.properties.issues.maxItems, 6);
+assert.equal(schema.properties.issues.minItems, 1);
+assert.equal(schema.properties.issues.maxItems, 8);
 assert.equal(schema.properties.issues.items.additionalProperties, false);
 
 const names = workflow.nodes.map((node) => node.name);
@@ -43,12 +48,18 @@ for (const required of [
   'Classroom - List CourseWork Initial', 'Wait 30 Minutes Once', 'Classroom - List CourseWork Retry',
   'Inspect Materials', 'Drive - Starter Metadata', 'Drive - Download Starter ZIP',
   'Validate ZIP Security', 'Extract Starter ZIP', 'Inspect Starter', 'GitHub - Search CourseWork ID',
-  'Needs Manual Review?', 'Parse Structured Plan', 'Enforce Foundation',
+  'Needs Manual Review?', 'Parse Structured Plan', 'Apply Gap Analysis', 'Enforce Operational Issues',
   'Normalize Titles & Keys & Dependencies', 'Build GitHub Issue Bodies', 'Validate Final Plan',
-  'LLM Retry Attempt Left?', 'Plan and Topological Sort', 'Exact Dry-Run Preview',
+  'LLM Request', 'Gemini - Plan', 'Gemini Repair Required?', 'Gemini - Repair Once',
+  'Prepare OpenRouter Fallback', 'OpenRouter - Chat Completion', 'Fail Closed - Invalid Plan',
+  'Plan and Topological Sort', 'Exact Dry-Run Preview',
   'Loop Issues Sequentially', 'Verify Complete Set',
 ]) assert.ok(nodeNames.has(required), `Falta nodo ${required}`);
-for (const removed of ['Validate Plan', 'Validate Repaired Plan', 'Repaired Plan Valid?']) {
+for (const removed of [
+  'Validate Plan', 'Validate Repaired Plan', 'Repaired Plan Valid?',
+  'AI Provider Gemini?', 'Normalize Repair Response', 'OpenRouter Fallback Available?',
+  'LLM Retry Attempt Left?', 'Retry with Gemini?',
+]) {
   assert.equal(nodeNames.has(removed), false, `Nodo obsoleto presente: ${removed}`);
 }
 
@@ -65,12 +76,32 @@ assert.ok(workflow.nodes.find((node) => node.name === 'Route PWA').parameters.js
 assert.ok(workflow.nodes.find((node) => node.name === 'Route DMI').parameters.jsCode.includes("course: 'DMI'"));
 
 const serialized = JSON.stringify(workflow);
-for (const forbidden of ['ghp_', 'github_pat_', 'AIzaSy', 'sk-ant-', 'sk-proj-', 'Automation/Classroom/Processed', 'classroom-message-id:', 'Gmail - Search Candidates']) {
+for (const forbidden of [
+  'ghp_', 'github_pat_', 'AIzaSy', 'sk-ant-', 'sk-proj-',
+  'Automation/Classroom/Processed', 'classroom-message-id:', 'Gmail - Search Candidates',
+  ['olla', 'ma'].join(''), ['localhost:', '11434'].join(''),
+  ['/api/', 'generate'].join(''), ['/api/', 'chat'].join(''),
+  ['openrouter', '/free'].join(''),
+]) {
   assert.equal(serialized.includes(forbidden), false, `Contenido obsoleto o secreto: ${forbidden}`);
 }
 for (const required of ['classroom-course-id:', 'classroom-coursework-id:', 'classroom-update-time:', 'plan-keys:', 'alt=media', 'capabilities(canDownload)']) {
   assert.ok(serialized.includes(required), `Falta ${required}`);
 }
+const geminiNode = workflow.nodes.find((node) => node.name === 'Gemini - Plan');
+const openRouterNode = workflow.nodes.find((node) => node.name === 'OpenRouter - Chat Completion');
+assert.equal(geminiNode.credentials.httpHeaderAuth.name, 'Gemini API Key');
+assert.equal(openRouterNode.credentials.httpHeaderAuth.name, 'OpenRouter API Key');
+assert.equal(openRouterNode.parameters.url, 'https://openrouter.ai/api/v1/chat/completions');
+assert.equal(geminiNode.parameters.options.response.response.neverError, true);
+assert.equal(openRouterNode.parameters.options.response.response.neverError, true);
+assert.equal(geminiNode.onError, 'continueRegularOutput');
+assert.equal(openRouterNode.onError, 'continueRegularOutput');
+assert.equal(openRouterNode.parameters.jsonBody, '={{ $json.llmPayload }}');
+assert.equal(serialized.includes('Bearer sk-'), false);
+assert.deepEqual(workflow.connections['Plan Valid?'].main[1].map((edge) => edge.node), ['Gemini Repair Required?']);
+assert.deepEqual(workflow.connections['OpenRouter - Chat Completion'].main[0].map((edge) => edge.node), ['Normalize AI Response - Qwen']);
+assert.equal(workflow.connections['Fail Closed - Invalid Plan'], undefined);
 
 const collectJsFiles = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
   const full = path.join(dir, entry.name);
@@ -160,149 +191,156 @@ await assert.rejects(() => runCode('src/drive/validate-zip.js', {
 }), /ZIP corrupto/);
 
 const HEADINGS = [
-  '## Historia de Usuario',
-  '## Contexto',
-  '## Objetivo técnico',
-  '## Alcance',
-  '## Fuera de alcance',
-  '## Archivos esperados',
-  '## Pasos sugeridos',
-  '## Criterios de aceptación',
-  '## Pruebas',
-  '## Dependencias',
-  '## Evidencia individual',
-  '## Definition of Done',
+  '## Historia de Usuario', '## Contexto', '## Objetivo técnico', '## Alcance',
+  '## Fuera de alcance', '## Archivos esperados', '## Pasos sugeridos',
+  '## Criterios de aceptación', '## Pruebas', '## Dependencias',
+  '## Evidencia individual', '## Definition of Done',
 ];
+const groundingCatalog = {
+  'classroom.description': { source: 'classroom', content: 'Implementar persistencia offline, pruebas y documentación.' },
+  'starter.archive': { source: 'starter', content: 'PWA-w01-kit-estudiante.zip' },
+  'repository.readme': { source: 'repository', content: 'El proyecto define npm test como verificación.' },
+  'workflow.setup-policy': { source: 'workflowConfiguration', content: 'Draggodeidad prepara el starter y el baseline cuando existe material inicial que requiere integración.' },
+  'workflow.delivery-policy': { source: 'workflowConfiguration', content: 'Draggodeidad consolida la evidencia y realiza la entrega final en Google Classroom.' },
+};
 const llmContext = {
+  schema,
   course: 'PWA', week: 1, weekPadded: '01', repository: 'Draggodeidad/pwa-utt',
   assignmentTitle: 'Semana 01', dueAt: null, courseId: 'course-pwa', courseWorkId: 'cw-pwa-01',
-  updateTime: '2026-09-15T14:00:00Z', aiProvider: 'ollama', resumeKeys: [], userPrompt: '{}',
-  starter: { found: true, name: 'PWA-w01-kit-estudiante.zip' },
+  updateTime: '2026-09-15T14:00:00Z', resumeKeys: [], userPrompt: '{}',
+  starter: { found: true, name: 'PWA-w01-kit-estudiante.zip' }, groundingCatalog,
+  repoContext: { labels: [] },
 };
-const sectionsFor = (key, label) => ({
-  historiaUsuario: `Como integrante quiero ${label} para entregar la semana.`,
-  contexto: `La actividad requiere ${label}.`,
-  objetivoTecnico: [`Implementar ${label}`],
-  alcance: ['Código'],
-  fueraDeAlcance: ['Despliegue'],
-  archivosEsperados: [`src/${key}.ts`],
-  pasosSugeridos: ['Revisar la actividad', `Implementar ${label}`],
-  criteriosAceptacion: ['Funciona', 'Se prueba'],
-  pruebas: ['npm test'],
-  dependencias: ['Requiere baseline'],
-  evidenciaIndividual: ['PR con diff y tests'],
-  definitionOfDone: ['Implementación terminada', 'Criterios cumplidos', 'PR abierto'],
+const sectionsFor = (label, overrides = {}) => ({
+  historiaUsuario: `Como integrante quiero ${label} para completar la actividad.`,
+  contexto: 'Classroom solicita persistencia offline.',
+  objetivoTecnico: [`Completar ${label}`], alcance: ['Trabajo pendiente respaldado'],
+  fueraDeAlcance: ['Detalles no respaldados'], archivosEsperados: [],
+  pasosSugeridos: ['Revisar la evidencia disponible', `Completar ${label}`],
+  criteriosAceptacion: ['El requisito solicitado queda cubierto', 'El resultado puede validarse'],
+  pruebas: ['Ejecutar las verificaciones definidas actualmente por el proyecto'],
+  dependencias: [], evidenciaIndividual: ['Registrar evidencia del resultado'],
+  definitionOfDone: ['Criterios cumplidos', 'Evidencia disponible'], ...overrides,
 });
-const validIssues = [
-  { key: 'foundation', title: 'Integrar starter y establecer baseline', assignee: 'Draggodeidad', type: 'devops', priority: 'high', dependsOn: [], sections: sectionsFor('foundation', 'baseline') },
-  { key: 'core', title: 'Implementar núcleo', assignee: 'Draggodeidad', type: 'feature', priority: 'high', dependsOn: ['foundation'], sections: sectionsFor('core', 'el núcleo') },
-  { key: 'tests', title: 'Pruebas offline', assignee: 'JulianDele', type: 'test', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('tests', 'pruebas offline') },
-  { key: 'ui', title: 'UI offline', assignee: 'osbaldoXxC', type: 'feature', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('ui', 'la UI offline') },
-];
-async function runPipeline(rawModelText, contextJson) {
+const issueFor = (key, difficulty, category = 'implementation', overrides = {}) => ({
+  key, title: `Resolver ${key}`, type: category === 'testing' ? 'test' : category === 'documentation' ? 'docs' : 'feature',
+  priority: difficulty === 'hard' ? 'high' : difficulty === 'medium' ? 'medium' : 'low',
+  category, difficulty, estimatedWeight: { easy: 1, medium: 2, hard: 3 }[difficulty],
+  risk: difficulty === 'easy' ? 'low' : difficulty === 'medium' ? 'medium' : 'high',
+  requiresCoding: category === 'implementation' || category === 'testing',
+  requiresRepositoryKnowledge: difficulty !== 'easy', dependsOn: [], requirementKind: 'sourceRequirement',
+  gapAnalysis: { status: 'missing', summary: `${key} todavía falta`, evidence: ['classroom.description'] },
+  provenance: [{ claim: 'persistencia offline', source: 'classroom', evidence: 'classroom.description' }],
+  sections: sectionsFor(key), ...overrides,
+});
+async function runPipeline(issueList, contextJson = llmContext) {
+  const rawModelText = typeof issueList === 'string' ? issueList : JSON.stringify({ issues: issueList });
+  return runValidatedContext({ ...contextJson, rawModelText });
+}
+async function runValidatedContext(contextJson) {
   let out;
-  [out] = await runCode('src/ai/parse-structured-plan.js', { json: { ...contextJson, rawModelText } });
+  [out] = await runCode('src/ai/parse-structured-plan.js', { json: contextJson });
+  [out] = await runCode('src/ai/apply-gap-analysis.js', { json: out.json });
   [out] = await runCode('src/ai/enforce-foundation.js', { json: out.json });
   [out] = await runCode('src/ai/normalize-plan.js', { json: out.json });
   [out] = await runCode('src/ai/build-bodies.js', { json: out.json });
   [out] = await runCode('src/ai/validate-plan.js', { json: out.json });
   return out;
 }
-const codes = (result) => (result.json.validationErrors || []).map((error) => error.code);
+async function assign(issueList, contextJson = llmContext) {
+  const validated = await runPipeline(issueList, contextJson);
+  assert.equal(validated.json.valid, true, (validated.json.validationErrors || []).map((error) => error.code).join(','));
+  const [assigned] = await runCode('src/planning/plan-toposort.js', { json: validated.json });
+  return assigned.json;
+}
+const codes = (value) => (value.json.validationErrors || []).map((error) => error.code);
 
-// Caso A — plan válido con starter: Foundation forzada + 12 headers en cada body.
-let result = await runPipeline(JSON.stringify({ issues: validIssues }), llmContext);
+// Caso base — setup y entrega son internos, pertenecen al owner y conservan los 12 encabezados.
+let result = await runPipeline([issueFor('core', 'hard')]);
 assert.equal(result.json.valid, true, codes(result).join(','));
 const foundation = result.json.plan.issues[0];
+const delivery = result.json.plan.issues.at(-1);
 assert.equal(foundation.key, 'foundation');
 assert.equal(foundation.assignee, 'Draggodeidad');
-assert.deepEqual(foundation.dependsOn, []);
-assert.equal(foundation.title, '[PWA][W01] Integrar PWA-w01-kit-estudiante.zip y establecer baseline semanal');
-for (const issue of result.json.plan.issues) {
-  for (const heading of HEADINGS) {
-    assert.equal(issue.body.split(heading).length - 1, 1, `${issue.key}: header "${heading}" debe aparecer 1 vez`);
-  }
+assert.equal(foundation.functionalWeight, 0);
+assert.equal(foundation.requirementKind, 'internalWorkflowRequirement');
+assert.equal(delivery.key, 'classroom-delivery');
+assert.ok(delivery.dependsOn.includes('core'));
+for (const issue of result.json.plan.issues) for (const heading of HEADINGS) {
+  assert.equal(issue.body.split(heading).length - 1, 1, `${issue.key}: header ${heading}`);
 }
 
-// Caso B — LLM devuelve prefijo incorrecto: se normaliza al prefijo correcto.
-const bIssues = validIssues.map((issue) => issue.key === 'core' ? { ...issue, title: '[PWA][W99] Implementar núcleo' } : issue);
-result = await runPipeline(JSON.stringify({ issues: bIssues }), llmContext);
+// Caso 1 — 2 hard, 2 medium, 3 easy: hard/medium quedan principalmente en owner y Julian.
+let assigned = await assign([
+  issueFor('hard-a', 'hard'), issueFor('hard-b', 'hard'),
+  issueFor('medium-a', 'medium'), issueFor('medium-b', 'medium'),
+  issueFor('easy-a', 'easy', 'testing'), issueFor('easy-b', 'easy', 'documentation'), issueFor('easy-c', 'easy', 'validation', { requiresCoding: false }),
+]);
+const functional = assigned.plan.issues.filter((issue) => issue.requirementKind === 'sourceRequirement');
+assert.ok(functional.filter((issue) => ['hard', 'medium'].includes(issue.difficulty)).every((issue) => ['Draggodeidad', 'JulianDele'].includes(issue.assignee)));
+assert.ok(functional.filter((issue) => issue.difficulty === 'easy').some((issue) => issue.assignee === 'osbaldoXxC'), JSON.stringify(functional.map((issue) => ({ key: issue.key, difficulty: issue.difficulty, assignee: issue.assignee, risk: issue.risk, category: issue.category }))));
+
+// Caso 2 — sólo complejas: ninguna se asigna artificialmente a Osbaldo.
+assigned = await assign([issueFor('hard-1', 'hard'), issueFor('hard-2', 'hard'), issueFor('hard-3', 'hard'), issueFor('hard-4', 'hard')]);
+assert.ok(assigned.plan.issues.filter((issue) => issue.requirementKind === 'sourceRequirement').every((issue) => issue.assignee !== 'osbaldoXxC'));
+
+// Caso 3 — muchas easy: Osbaldo recibe varias y el resto puede absorber carga para balancear.
+assigned = await assign(Array.from({ length: 6 }, (_, index) => issueFor(`easy-${index + 1}`, 'easy', index % 2 ? 'documentation' : 'testing')));
+assert.ok(assigned.plan.issues.filter((issue) => issue.assignee === 'osbaldoXxC').length >= 3);
+
+// Caso 4 — setup + entrega no alteran la carga funcional; dos hard se reparten entre owner y Julian.
+assigned = await assign([issueFor('hard-owner', 'hard'), issueFor('hard-julian', 'hard')]);
+assert.equal(assigned.assignmentPolicy.loads.Draggodeidad.operational, 2);
+assert.equal(assigned.assignmentPolicy.loads.Draggodeidad.functional, 3);
+assert.equal(assigned.assignmentPolicy.loads.JulianDele.functional, 3);
+
+// Caso 5 — un comando inventado sin provenance falla cerrado.
+const invented = issueFor('invented-command', 'easy', 'testing', {
+  sections: sectionsFor('invented-command', { pruebas: ['Ejecutar npm run verify'] }),
+});
+result = await runPipeline([invented]);
+assert.equal(result.json.valid, false);
+assert.ok(codes(result).includes('UNGROUNDED_TECHNICAL_DETAIL'), codes(result).join(','));
+
+// Un comando respaldado por repositorio sí se acepta.
+const groundedCommand = issueFor('grounded-command', 'easy', 'testing', {
+  provenance: [
+    { claim: 'persistencia offline', source: 'classroom', evidence: 'classroom.description' },
+    { claim: 'npm test', source: 'repository', evidence: 'repository.readme' },
+  ],
+  sections: sectionsFor('grounded-command', { pruebas: ['Ejecutar npm test'] }),
+});
+result = await runPipeline([groundedCommand]);
 assert.equal(result.json.valid, true, codes(result).join(','));
-assert.equal(result.json.plan.issues.find((issue) => issue.key === 'core').title, '[PWA][W01] Implementar núcleo');
 
-// Caso C — dependencia inexistente: detectada antes de topological sort.
-const cIssues = validIssues.map((issue) => issue.key === 'core' ? { ...issue, dependsOn: ['service-worker'] } : issue);
-result = await runPipeline(JSON.stringify({ issues: cIssues }), llmContext);
-assert.equal(result.json.valid, false);
-assert.ok(codes(result).includes('INVALID_DEPENDENCY'), codes(result).join(','));
-assert.equal(result.json.retryable, true);
-assert.ok(result.json.normalization.droppedDependencies.some((d) => d.reason === 'INVALID_DEPENDENCY'));
+// Caso 6 — Gap Analysis elimina trabajo ya completo y limpia sus dependencias.
+const complete = issueFor('already-done', 'medium', 'implementation', {
+  gapAnalysis: { status: 'complete', summary: 'El repositorio ya contiene esta capacidad', evidence: ['repository.readme'] },
+});
+const pending = issueFor('still-pending', 'easy', 'validation', { requiresCoding: false, dependsOn: ['already-done'] });
+result = await runPipeline([complete, pending]);
+assert.equal(result.json.valid, true, codes(result).join(','));
+assert.equal(result.json.plan.issues.some((issue) => issue.key === 'already-done'), false);
+assert.deepEqual(result.json.plan.issues.find((issue) => issue.key === 'still-pending').dependsOn, ['foundation']);
+assert.equal(result.json.gapAnalysis.excludedCompletedWork[0].key, 'already-done');
 
-// Caso D — self dependency: detectada.
-const dIssues = validIssues.map((issue) => issue.key === 'core' ? { ...issue, dependsOn: ['core'] } : issue);
-result = await runPipeline(JSON.stringify({ issues: dIssues }), llmContext);
-assert.equal(result.json.valid, false);
-assert.ok(codes(result).includes('SELF_DEPENDENCY'), codes(result).join(','));
-assert.ok(result.json.normalization.droppedDependencies.some((d) => d.reason === 'SELF_DEPENDENCY'));
+// Dependencias inválidas y ciclos continúan fallando antes de GitHub.
+result = await runPipeline([issueFor('bad-dependency', 'easy', 'validation', { requiresCoding: false, dependsOn: ['missing-key'] })]);
+assert.ok(codes(result).includes('INVALID_DEPENDENCY'));
+const cyclic = [issueFor('cycle-a', 'medium', 'implementation', { dependsOn: ['cycle-b'] }), issueFor('cycle-b', 'medium', 'implementation', { dependsOn: ['cycle-a'] })];
+result = await runPipeline(cyclic);
+assert.ok(codes(result).includes('DEPENDENCY_CYCLE'));
 
-// Caso E — LLM omite contenido de una sección: los 12 headers siguen presentes con "No aplica.".
-const eIssues = validIssues.map((issue) => issue.key === 'ui' ? { ...issue, sections: { ...issue.sections, alcance: [] } } : issue);
-[result] = await runCode('src/ai/parse-structured-plan.js', { json: { ...llmContext, rawModelText: JSON.stringify({ issues: eIssues }) } });
-[result] = await runCode('src/ai/enforce-foundation.js', { json: result.json });
-[result] = await runCode('src/ai/normalize-plan.js', { json: result.json });
-[result] = await runCode('src/ai/build-bodies.js', { json: result.json });
-const uiBody = result.json.plan.issues.find((issue) => issue.key === 'ui').body;
-assert.ok(uiBody.includes('## Alcance'));
-assert.ok(uiBody.includes('- No aplica.'));
-for (const heading of HEADINGS) assert.equal(uiBody.split(heading).length - 1, 1);
+// Preview expone asignación, clasificación, carga, dependencias, grounding y provenance sin mutaciones.
+assigned = await assign([issueFor('preview-work', 'easy', 'validation', { requiresCoding: false })]);
+const [preview] = await runCode('src/reporting/dry-run-summary.js', { json: assigned });
+assert.equal(preview.json.mode, 'dry-run');
+assert.equal(preview.json.mutationsPerformed, false);
+for (const field of ['assignee', 'difficulty', 'weight', 'category', 'dependsOn', 'groundingStatus', 'provenance']) {
+  assert.ok(field in preview.json.issuesThatWouldBeCreated[0], `preview sin ${field}`);
+}
 
-// Caso F — headers usan exactamente ## y nunca #.
-assert.ok(!uiBody.includes('\n# Historia de Usuario'));
-assert.ok(uiBody.includes('## Historia de Usuario'));
-
-// Caso G — basura fuera del schema: rechazado (LLM_SCHEMA_INVALID).
-result = await runPipeline('esto no es json', llmContext);
-assert.equal(result.json.valid, false);
-assert.ok(codes(result).includes('LLM_SCHEMA_INVALID'), codes(result).join(','));
-
-// Caso H — ciclo: detectado antes de GitHub (validator) y rechazado por toposort.
-const hIssues = [
-  { key: 'core', title: 'Implementar núcleo', assignee: 'Draggodeidad', type: 'feature', priority: 'high', dependsOn: ['tests'], sections: sectionsFor('core', 'el núcleo') },
-  { key: 'tests', title: 'Pruebas offline', assignee: 'JulianDele', type: 'test', priority: 'medium', dependsOn: ['core'], sections: sectionsFor('tests', 'pruebas offline') },
-  { key: 'ui', title: 'UI offline', assignee: 'osbaldoXxC', type: 'feature', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('ui', 'la UI offline') },
-];
-result = await runPipeline(JSON.stringify({ issues: hIssues }), llmContext);
-assert.equal(result.json.valid, false);
-assert.ok(codes(result).includes('DEPENDENCY_CYCLE'), codes(result).join(','));
-await assert.rejects(() => runCode('src/planning/plan-toposort.js', { json: {
-  course: 'PWA', weekPadded: '01', repoContext: { labels: [] }, starter: { found: false },
-  plan: { issues: [
-    { key: 'a', assignee: 'Draggodeidad', type: 'feature', priority: 'high', dependsOn: ['b'], expectedFiles: ['a.ts'], title: 'Implementar a', body: 'implementa código y lógica' },
-    { key: 'b', assignee: 'JulianDele', type: 'test', priority: 'medium', dependsOn: ['a'], expectedFiles: ['b.spec.ts'], title: 'Probar b', body: 'tests' },
-    { key: 'c', assignee: 'osbaldoXxC', type: 'feature', priority: 'low', dependsOn: [], expectedFiles: ['c.ts'], title: 'UI c', body: 'ui' },
-  ] },
-} }), /circulares/);
-
-// Caso I — Draggodeidad sin implementación técnica sustancial: retryable.
-const iIssues = [
-  validIssues[0],
-  { key: 'docs', title: 'Documentar requisitos', assignee: 'Draggodeidad', type: 'docs', priority: 'medium', dependsOn: ['foundation'], sections: sectionsFor('docs', 'documentación') },
-  validIssues[2],
-  validIssues[3],
-];
-result = await runPipeline(JSON.stringify({ issues: iIssues }), llmContext);
-assert.equal(result.json.valid, false);
-assert.ok(codes(result).includes('MISSING_SUBSTANTIAL'), codes(result).join(','));
-assert.equal(result.json.retryable, true);
-await assert.rejects(() => runCode('src/planning/plan-toposort.js', { json: result.json }), /no tiene implementación técnica sustancial/);
-
-// Caso J — el contador de retries no se reinicia en el circuito de reparación.
-const [firstParse] = await runCode('src/ai/parse-structured-plan.js', { json: { ...llmContext, rawModelText: '{"issues":[]}' }, runIndex: 0 });
-assert.equal(firstParse.json.llmAttempt, 1);
-const [repairParse] = await runCode('src/ai/parse-structured-plan.js', { json: { ...llmContext, rawModelText: '{"issues":[]}' }, runIndex: 1 });
-assert.equal(repairParse.json.llmAttempt, 2);
-const gateAllowsRetry = Number(repairParse.json.llmAttempt || 0) < 2 && Boolean(repairParse.json.retryable);
-assert.equal(gateAllowsRetry, false, 'El gate debe detener el circuito tras un reintento');
+await runLlmOrchestrationTests({ workflow, schema, llmContext, issueFor });
 
 const metadataBody = (key, updateTime, planKeys = 'foundation,core') => `<!-- classroom-course-id:course-pwa -->\n<!-- classroom-coursework-id:cw-pwa-03 -->\n<!-- classroom-update-time:${updateTime} -->\n<!-- course:PWA -->\n<!-- week:03 -->\n<!-- issue-key:${key} -->\n<!-- plan-keys:${planKeys} -->`;
 const sourceContext = {
@@ -322,9 +360,15 @@ const contextNodes = {
 const [updatedContext] = await runCode('src/github/build-context.js', { nodes: contextNodes });
 assert.equal(updatedContext.json.courseworkUpdated, true);
 assert.equal(updatedContext.json.completeExisting, false);
+const geminiSchemaText = JSON.stringify(updatedContext.json.geminiSchema);
+for (const unsupportedConstraint of ['pattern', 'uniqueItems', 'minLength', 'maxLength', 'minimum', 'maximum', 'minItems', 'maxItems']) {
+  assert.equal(geminiSchemaText.includes(`"${unsupportedConstraint}"`), false, `Gemini schema conserva ${unsupportedConstraint}`);
+}
+assert.ok(geminiSchemaText.includes('additionalProperties'));
+assert.ok(JSON.stringify(updatedContext.json.schema).includes('pattern'));
 
 const compose = fs.readFileSync(path.join(root, 'docker-compose.yml'), 'utf8');
 for (const value of ['GENERIC_TIMEZONE', 'TZ:', 'CLASSROOM_PWA_COURSE_ID', 'CLASSROOM_DMI_COURSE_ID', 'N8N_DEFAULT_BINARY_DATA_MODE', 'N8N_BLOCK_ENV_ACCESS_IN_NODE']) assert.ok(compose.includes(value));
 assert.equal(/postgres|redis|supabase|kafka/i.test(compose), false);
 
-console.log('OK: workflow, schedules, Classroom, Drive, ZIP, metadata, secretos y Compose validados.');
+console.log('OK: workflow, Gemini→Repair→Qwen→GLM, casos A-J, dry-run, secretos y Compose validados.');

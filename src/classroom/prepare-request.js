@@ -28,6 +28,5 @@ return [{
     triggerKind: $json.triggerKind || 'manual',
     attempt: Number($json.attempt || 1),
     automationMode: String($env.AUTOMATION_MODE || 'dry-run').toLowerCase(),
-    aiProvider: String($env.AI_PROVIDER || 'gemini').toLowerCase(),
   },
 }];
