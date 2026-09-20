@@ -66,6 +66,8 @@ const normalizedResponse = {
   success: false, rawText, parsed: null, error: message, errorType, providerError, httpStatus,
   finishReason, truncated: ['MAX_TOKENS', 'length'].includes(finishReason),
   parseStatus: 'not_attempted', schemaStatus: 'not_attempted', validationStatus: 'pending',
+  transportStatus: errorType === 'TRANSPORT_ERROR' ? 'error' : 'ok',
+  providerStatus: errorType === 'PROVIDER_ERROR' ? 'error' : 'ok',
   durationMs: Math.max(0, Date.now() - Number(attempt.startedAt || Date.now())),
 };
 return [{ json: {

@@ -37,6 +37,7 @@ return [{
     deadline: data.plan.deadline,
     assignmentPolicy: data.assignmentPolicy,
     gapAnalysis: data.gapAnalysis,
+    groundingReport: data.groundingReport,
     missingLabelsThatWouldBeCreated: data.missingLabels,
     issuesThatWouldBeCreated: preview,
     note: 'No se crearon Issues ni labels; Classroom y Drive se consultaron en modo de sólo lectura.',

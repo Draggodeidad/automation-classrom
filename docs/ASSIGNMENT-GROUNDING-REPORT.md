@@ -79,7 +79,9 @@ Una afirmación se conserva así:
 }
 ```
 
-El validator exige que el ID exista, que su tipo de fuente coincida y que su contenido respalde el claim. Además detecta comandos, URLs, versiones y rutas/archivos concretos en las secciones. Si un detalle no tiene provenance válido, devuelve `UNGROUNDED_TECHNICAL_DETAIL`; el único retry del LLM debe eliminarlo, generalizarlo o respaldarlo. Si persiste, el workflow falla cerrado antes de GitHub.
+El validator exige que el ID exista, que su tipo de fuente coincida y que su contenido respalde el claim. El respaldo no exige coincidencia carácter por carácter: permite contención, coincidencia por token técnico (comando, ruta, URL, versión) y solapamiento semántico conservador entre claim y fuente. Además detecta comandos, URLs, versiones y rutas/archivos concretos en las secciones, y reutiliza un mismo provenance para usos equivalentes del detalle dentro de la misma Issue (por ejemplo, "Ejecutar npm run verify" y "Documentar npm run verify" se respaldan con una sola entrada). Un detalle sin provenance válido devuelve `UNGROUNDED_TECHNICAL_DETAIL`; el único retry del LLM debe eliminarlo, generalizarlo o respaldarlo sin inventar fuentes. Si persiste, el workflow falla cerrado antes de GitHub.
+
+Los errores se clasifican por capa: `TRANSPORT_ERROR`, `PROVIDER_ERROR`, `PARSE_ERROR`, `SCHEMA_ERROR`, `GROUNDING_ERROR`, `PROVENANCE_ERROR`, `SEMANTIC_ERROR`, `DEPENDENCY_ERROR` y `VALIDATOR_INTERNAL_ERROR`. `schemaStatus=valid` nunca produce `SCHEMA_ERROR`. Cuando el validator entra en contradicción (p. ej. schema válido con `SCHEMA_ERROR`, o provenance resoluble ignorado), el flujo termina en `FAIL_VALIDATOR` sin ejecutar Gemini Repair, Qwen ni GLM, porque ningún modelo debe compensar un validator roto. Cada intento expone `groundingReport`, `groundingStatus`, `semanticStatus`, `dependencyStatus` y `finalPlanStatus`.
 
 ## Gap Analysis
 

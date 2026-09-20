@@ -53,9 +53,10 @@ export async function runLlmOrchestrationTests({ workflow, schema, llmContext, i
           assert.equal(result.length, 1);
           data = result[0].json;
         } catch (error) {
-          if (name !== 'Fail Closed - Invalid Plan') throw error;
-          assert.ok(error.message.startsWith('FAIL_CLOSED: '));
-          const failure = JSON.parse(error.message.slice('FAIL_CLOSED: '.length));
+          if (name !== 'Fail Closed - Invalid Plan' && name !== 'Fail Validator - Invalid Plan') throw error;
+          const marker = name === 'Fail Closed - Invalid Plan' ? 'FAIL_CLOSED: ' : 'FAIL_VALIDATOR: ';
+          assert.ok(error.message.startsWith(marker), `Prefijo inesperado: ${error.message.slice(0, 60)}`);
+          const failure = JSON.parse(error.message.slice(marker.length));
           assert.equal(failure.mode, 'dry-run');
           assert.equal(failure.mutationsPerformed, false);
           return { data, failure, visited, requests, outputs, responses };
@@ -216,8 +217,26 @@ export async function runLlmOrchestrationTests({ workflow, schema, llmContext, i
   businessInvalid.issues[0].sections.pruebas = ['Ejecutar npm run invented'];
   const businessResult = await run({ gemini: gemini(businessInvalid), gemini_repair: gemini(validPlan) });
   assert.equal(obs(businessResult)[0].schemaStatus, 'valid');
-  assert.equal(obs(businessResult)[0].errorType, 'SCHEMA_ERROR');
+  assert.equal(obs(businessResult)[0].errorType, 'GROUNDING_ERROR');
+  assert.equal(obs(businessResult)[0].groundingStatus, 'invalid');
   assert.match(obs(businessResult)[0].failureReason.message, /sin provenance/);
+  assert.ok(obs(businessResult)[0].failureReason.groundingErrors.length >= 1);
+  assert.deepEqual(chain(businessResult), ['gemini', 'gemini_repair']);
+
+  // Test G — provenance resoluble con matcher correcto: Gemini válido sin quemar fallbacks.
+  const reusable = structuredClone(validPlan);
+  const provenanceReusable = [{ claim: 'Ejecuten npm run verify y genera reports/verification.json', source: 'classroom', evidence: 'classroom.description' }];
+  reusable.issues[0].provenance = provenanceReusable;
+  reusable.issues[0].sections.pruebas = ['Ejecutar npm run verify'];
+  reusable.issues[0].sections.criteriosAceptacion = ['npm run verify genera reports/verification.json', 'La evidencia queda registrada'];
+  reusable.issues[1].provenance = provenanceReusable;
+  const reuseResult = await run({ gemini: gemini(reusable) });
+  assert.deepEqual(chain(reuseResult), ['gemini']);
+  assert.equal(obs(reuseResult)[0].errorType, 'VALID');
+  assert.equal(obs(reuseResult)[0].groundingStatus, 'valid');
+  assert.equal(obs(reuseResult)[0].groundingReport.status, 'valid');
+  assert.equal(reuseResult.data.aiExecution.fallbackUsed, false);
+  record('G2', reuseResult);
   const repairTransport = await run({ gemini: gemini(invalidPlan), gemini_repair: httpError(429), qwen: router(validPlan) });
   assert.deepEqual(chain(repairTransport), ['gemini', 'gemini_repair', 'qwen']);
   const guard = new AsyncFunction('$json', nodes.get('Prepare Gemini Repair').parameters.jsCode);

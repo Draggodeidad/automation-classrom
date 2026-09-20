@@ -52,6 +52,7 @@ for (const required of [
   'Normalize Titles & Keys & Dependencies', 'Build GitHub Issue Bodies', 'Validate Final Plan',
   'LLM Request', 'Gemini - Plan', 'Gemini Repair Required?', 'Gemini - Repair Once',
   'Prepare OpenRouter Fallback', 'OpenRouter - Chat Completion', 'Fail Closed - Invalid Plan',
+  'Validator Internal?', 'Fail Validator - Invalid Plan',
   'Plan and Topological Sort', 'Exact Dry-Run Preview',
   'Loop Issues Sequentially', 'Verify Complete Set',
 ]) assert.ok(nodeNames.has(required), `Falta nodo ${required}`);
@@ -99,9 +100,12 @@ assert.equal(geminiNode.onError, 'continueRegularOutput');
 assert.equal(openRouterNode.onError, 'continueRegularOutput');
 assert.equal(openRouterNode.parameters.jsonBody, '={{ $json.llmPayload }}');
 assert.equal(serialized.includes('Bearer sk-'), false);
-assert.deepEqual(workflow.connections['Plan Valid?'].main[1].map((edge) => edge.node), ['Gemini Repair Required?']);
+assert.deepEqual(workflow.connections['Plan Valid?'].main[1].map((edge) => edge.node), ['Validator Internal?']);
 assert.deepEqual(workflow.connections['OpenRouter - Chat Completion'].main[0].map((edge) => edge.node), ['Normalize AI Response - Qwen']);
 assert.equal(workflow.connections['Fail Closed - Invalid Plan'], undefined);
+assert.equal(workflow.connections['Fail Validator - Invalid Plan'], undefined);
+assert.deepEqual(workflow.connections['Validator Internal?'].main[0].map((edge) => edge.node), ['Fail Validator - Invalid Plan']);
+assert.deepEqual(workflow.connections['Validator Internal?'].main[1].map((edge) => edge.node), ['Gemini Repair Required?']);
 
 const collectJsFiles = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
   const full = path.join(dir, entry.name);
@@ -197,9 +201,11 @@ const HEADINGS = [
   '## Evidencia individual', '## Definition of Done',
 ];
 const groundingCatalog = {
-  'classroom.description': { source: 'classroom', content: 'Implementar persistencia offline, pruebas y documentación.' },
+  'classroom.description': { source: 'classroom', content: 'Implementar persistencia offline, pruebas y documentación. Ejecuten npm run verify; genera reports/verification.json como evidencia. El curso usa Next.js y una trayectoria PWA.' },
   'starter.archive': { source: 'starter', content: 'PWA-w01-kit-estudiante.zip' },
   'repository.readme': { source: 'repository', content: 'El proyecto define npm test como verificación.' },
+  'repository.path:docs/requirements.md': { source: 'repository', content: 'docs/requirements.md' },
+  'starter.file:individual.md': { source: 'starter', content: 'individual.md' },
   'workflow.setup-policy': { source: 'workflowConfiguration', content: 'Draggodeidad prepara el starter y el baseline cuando existe material inicial que requiere integración.' },
   'workflow.delivery-policy': { source: 'workflowConfiguration', content: 'Draggodeidad consolida la evidencia y realiza la entrega final en Google Classroom.' },
 };
@@ -312,6 +318,58 @@ const groundedCommand = issueFor('grounded-command', 'easy', 'testing', {
 });
 result = await runPipeline([groundedCommand]);
 assert.equal(result.json.valid, true, codes(result).join(','));
+
+// Test A — provenance reutilizable dentro de la misma Issue (sin duplicar por sección).
+result = await runPipeline([issueFor('reusable-verify', 'easy', 'validation', {
+  requiresCoding: false,
+  provenance: [{ claim: 'Ejecuten npm run verify y genera reports/verification.json', source: 'classroom', evidence: 'classroom.description' }],
+  sections: sectionsFor('reusable-verify', {
+    pasosSugeridos: ['Ejecutar npm run verify', 'Verificar reports/verification.json', 'Documentar el resultado de npm run verify'],
+    pruebas: ['Ejecutar npm run verify'],
+    criteriosAceptacion: ['npm run verify genera reports/verification.json', 'La evidencia queda registrada'],
+  }),
+})]);
+assert.equal(result.json.valid, true, codes(result).join(','));
+assert.equal(result.json.groundingReport.status, 'valid');
+
+// Test B — tecnología respaldada por equivalencia semántica (no carácter por carácter).
+result = await runPipeline([issueFor('nextjs-backed', 'easy', 'documentation', {
+  provenance: [{ claim: 'El curso usa Next.js y una trayectoria PWA', source: 'classroom', evidence: 'classroom.description' }],
+  sections: sectionsFor('nextjs-backed', { objetivoTecnico: ['Justificar el uso de Next.js'] }),
+})]);
+assert.equal(result.json.valid, true, codes(result).join(','));
+
+// Test C — ruta respaldada por repository.path:*.
+result = await runPipeline([issueFor('path-backed', 'easy', 'documentation', {
+  provenance: [{ claim: 'Definir los requisitos en docs/requirements.md', source: 'repository', evidence: 'repository.path:docs/requirements.md' }],
+  sections: sectionsFor('path-backed', { pasosSugeridos: ['Editar docs/requirements.md'] }),
+})]);
+assert.equal(result.json.valid, true, codes(result).join(','));
+
+// Test D — starter.file:* respaldado cuando la referencia existe.
+result = await runPipeline([issueFor('starter-backed', 'easy', 'evidence', {
+  requiresCoding: false,
+  provenance: [{ claim: 'Registrar la evidencia en individual.md', source: 'starter', evidence: 'starter.file:individual.md' }],
+  sections: sectionsFor('starter-backed', { evidenciaIndividual: ['Completar individual.md'] }),
+})]);
+assert.equal(result.json.valid, true, codes(result).join(','));
+
+// Test E — claim realmente inventado se rechaza como GROUNDING_ERROR.
+result = await runPipeline([issueFor('invented-command', 'easy', 'testing', {
+  sections: sectionsFor('invented-command', { pruebas: ['Ejecutar npm run deploy:prod'] }),
+})]);
+assert.equal(result.json.valid, false);
+assert.equal(result.json.errorType, 'GROUNDING_ERROR');
+assert.ok(codes(result).includes('UNGROUNDED_TECHNICAL_DETAIL'), codes(result).join(','));
+
+// Test F — inconsistencia interna detectada: schemaStatus=valid con SCHEMA_ERROR → FAIL_VALIDATOR.
+const [internalResult] = await runCode('src/ai/validate-plan.js', {
+  json: { ...llmContext, parseStatus: 'valid', schemaStatus: 'valid', errorType: 'SCHEMA_ERROR', plan: { issues: [issueFor('core', 'hard')] } },
+});
+assert.equal(internalResult.json.errorType, 'VALIDATOR_INTERNAL_ERROR');
+assert.equal(internalResult.json.nextState, 'FAIL_VALIDATOR');
+assert.equal(internalResult.json.mutationsPerformed, false);
+assert.equal(internalResult.json.finalPlanStatus, 'rejected');
 
 // Caso 6 — Gap Analysis elimina trabajo ya completo y limpia sus dependencias.
 const complete = issueFor('already-done', 'medium', 'implementation', {

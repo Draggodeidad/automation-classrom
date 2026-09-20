@@ -42,7 +42,7 @@ Cada archivo, ruta, comando, versión, endpoint, script, tecnología, configurac
 {"claim":"npm run verify","source":"repository","evidence":"repository.readme"}
 ```
 
-`evidence` debe ser un ID exacto de `groundingCatalog`; `source` debe coincidir con la fuente de ese ID y el contenido asociado debe respaldar el claim. Si no existe evidencia:
+`evidence` debe ser un ID exacto de `groundingCatalog`; `source` debe coincidir con la fuente de ese ID y el contenido asociado debe respaldar el claim. El claim puede ser una frase o referencia compacta de la fuente, no necesita reproducirla carácter por carácter. Un mismo evidence puede reutilizarse para usos equivalentes del mismo detalle dentro de una Issue: no dupliques provenance por cada sección donde aparezca el detalle. Si no existe evidencia:
 
 - elimina el detalle; o
 - conviértelo en una descripción genérica, por ejemplo “ejecutar las verificaciones definidas por el proyecto”.

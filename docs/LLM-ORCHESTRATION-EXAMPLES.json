@@ -6,6 +6,7 @@
       "GEMINI_REQUEST",
       "GEMINI_PARSE",
       "GEMINI_VALIDATE",
+      "GEMINI_GROUNDING_VALIDATE",
       "PLAN_VALID"
     ],
     "execution": {
@@ -24,15 +25,28 @@
         "result": "valid",
         "errorType": "VALID",
         "success": true,
+        "transportStatus": "ok",
+        "providerStatus": "ok",
         "parseStatus": "valid",
         "schemaStatus": "valid",
+        "groundingStatus": "valid",
+        "semanticStatus": "valid",
+        "dependencyStatus": "valid",
+        "finalPlanStatus": "accepted",
         "validationStatus": "valid",
         "repairUsed": false,
         "fallbackUsed": false,
         "failureReason": null,
         "providerError": null,
-        "durationMs": 0,
-        "identifierNormalizations": []
+        "durationMs": 1,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 5,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       }
     ],
     "plan": [
@@ -186,6 +200,7 @@
       "GEMINI_REPAIR_REQUEST",
       "GEMINI_REPAIR_PARSE",
       "GEMINI_REPAIR_VALIDATE",
+      "GEMINI_REPAIR_GROUNDING_VALIDATE",
       "PLAN_VALID"
     ],
     "execution": {
@@ -204,8 +219,14 @@
         "result": "schema_error",
         "errorType": "SCHEMA_ERROR",
         "success": false,
+        "transportStatus": "ok",
+        "providerStatus": "ok",
         "parseStatus": "valid",
         "schemaStatus": "invalid",
+        "groundingStatus": "not_attempted",
+        "semanticStatus": "invalid",
+        "dependencyStatus": "not_attempted",
+        "finalPlanStatus": "rejected",
         "validationStatus": "invalid",
         "repairUsed": false,
         "fallbackUsed": false,
@@ -220,8 +241,15 @@
           ]
         },
         "providerError": null,
-        "durationMs": 1,
-        "identifierNormalizations": []
+        "durationMs": 0,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 0,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       },
       {
         "provider": "gemini",
@@ -231,15 +259,28 @@
         "result": "valid",
         "errorType": "VALID",
         "success": true,
+        "transportStatus": "ok",
+        "providerStatus": "ok",
         "parseStatus": "valid",
         "schemaStatus": "valid",
+        "groundingStatus": "valid",
+        "semanticStatus": "valid",
+        "dependencyStatus": "valid",
+        "finalPlanStatus": "accepted",
         "validationStatus": "valid",
         "repairUsed": true,
         "fallbackUsed": false,
         "failureReason": null,
         "providerError": null,
         "durationMs": 1,
-        "identifierNormalizations": []
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 5,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       }
     ],
     "plan": [
@@ -391,6 +432,7 @@
       "QWEN_REQUEST",
       "QWEN_PARSE",
       "QWEN_VALIDATE",
+      "QWEN_GROUNDING_VALIDATE",
       "PLAN_VALID"
     ],
     "execution": {
@@ -409,8 +451,14 @@
         "result": "transport_error",
         "errorType": "TRANSPORT_ERROR",
         "success": false,
+        "transportStatus": "error",
+        "providerStatus": "ok",
         "parseStatus": "not_attempted",
         "schemaStatus": "not_attempted",
+        "groundingStatus": "not_attempted",
+        "semanticStatus": "invalid",
+        "dependencyStatus": "not_attempted",
+        "finalPlanStatus": "rejected",
         "validationStatus": "invalid",
         "repairUsed": false,
         "fallbackUsed": false,
@@ -427,8 +475,15 @@
           "message": "Provider rejected request",
           "details": null
         },
-        "durationMs": 1,
-        "identifierNormalizations": []
+        "durationMs": 0,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 0,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       },
       {
         "provider": "openrouter",
@@ -438,15 +493,28 @@
         "result": "valid",
         "errorType": "VALID",
         "success": true,
+        "transportStatus": "ok",
+        "providerStatus": "ok",
         "parseStatus": "valid",
         "schemaStatus": "valid",
+        "groundingStatus": "valid",
+        "semanticStatus": "valid",
+        "dependencyStatus": "valid",
+        "finalPlanStatus": "accepted",
         "validationStatus": "valid",
         "repairUsed": false,
         "fallbackUsed": true,
         "failureReason": null,
         "providerError": null,
         "durationMs": 0,
-        "identifierNormalizations": []
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 5,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       }
     ],
     "plan": [
@@ -599,6 +667,7 @@
       "GLM_REQUEST",
       "GLM_PARSE",
       "GLM_VALIDATE",
+      "GLM_GROUNDING_VALIDATE",
       "PLAN_VALID"
     ],
     "execution": {
@@ -617,8 +686,14 @@
         "result": "transport_error",
         "errorType": "TRANSPORT_ERROR",
         "success": false,
+        "transportStatus": "error",
+        "providerStatus": "ok",
         "parseStatus": "not_attempted",
         "schemaStatus": "not_attempted",
+        "groundingStatus": "not_attempted",
+        "semanticStatus": "invalid",
+        "dependencyStatus": "not_attempted",
+        "finalPlanStatus": "rejected",
         "validationStatus": "invalid",
         "repairUsed": false,
         "fallbackUsed": false,
@@ -636,7 +711,14 @@
           "details": null
         },
         "durationMs": 0,
-        "identifierNormalizations": []
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 0,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       },
       {
         "provider": "openrouter",
@@ -646,8 +728,14 @@
         "result": "transport_error",
         "errorType": "TRANSPORT_ERROR",
         "success": false,
+        "transportStatus": "error",
+        "providerStatus": "ok",
         "parseStatus": "not_attempted",
         "schemaStatus": "not_attempted",
+        "groundingStatus": "not_attempted",
+        "semanticStatus": "invalid",
+        "dependencyStatus": "not_attempted",
+        "finalPlanStatus": "rejected",
         "validationStatus": "invalid",
         "repairUsed": false,
         "fallbackUsed": true,
@@ -664,8 +752,15 @@
           "message": "Provider rejected request",
           "details": null
         },
-        "durationMs": 0,
-        "identifierNormalizations": []
+        "durationMs": 1,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 0,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       },
       {
         "provider": "openrouter",
@@ -675,15 +770,28 @@
         "result": "valid",
         "errorType": "VALID",
         "success": true,
+        "transportStatus": "ok",
+        "providerStatus": "ok",
         "parseStatus": "valid",
         "schemaStatus": "valid",
+        "groundingStatus": "valid",
+        "semanticStatus": "valid",
+        "dependencyStatus": "valid",
+        "finalPlanStatus": "accepted",
         "validationStatus": "valid",
         "repairUsed": false,
         "fallbackUsed": true,
         "failureReason": null,
         "providerError": null,
-        "durationMs": 0,
-        "identifierNormalizations": []
+        "durationMs": 1,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 5,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       }
     ],
     "plan": [
@@ -853,8 +961,14 @@
         "result": "provider_error",
         "errorType": "PROVIDER_ERROR",
         "success": false,
+        "transportStatus": "ok",
+        "providerStatus": "error",
         "parseStatus": "not_attempted",
         "schemaStatus": "not_attempted",
+        "groundingStatus": "not_attempted",
+        "semanticStatus": "invalid",
+        "dependencyStatus": "not_attempted",
+        "finalPlanStatus": "rejected",
         "validationStatus": "invalid",
         "repairUsed": false,
         "fallbackUsed": false,
@@ -871,8 +985,15 @@
           "message": "Provider rejected request",
           "details": null
         },
-        "durationMs": 0,
-        "identifierNormalizations": []
+        "durationMs": 1,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 0,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       },
       {
         "provider": "openrouter",
@@ -882,8 +1003,14 @@
         "result": "transport_error",
         "errorType": "TRANSPORT_ERROR",
         "success": false,
+        "transportStatus": "error",
+        "providerStatus": "ok",
         "parseStatus": "not_attempted",
         "schemaStatus": "not_attempted",
+        "groundingStatus": "not_attempted",
+        "semanticStatus": "invalid",
+        "dependencyStatus": "not_attempted",
+        "finalPlanStatus": "rejected",
         "validationStatus": "invalid",
         "repairUsed": false,
         "fallbackUsed": true,
@@ -900,8 +1027,15 @@
           "message": "Provider rejected request",
           "details": null
         },
-        "durationMs": 0,
-        "identifierNormalizations": []
+        "durationMs": 1,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 0,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       },
       {
         "provider": "openrouter",
@@ -911,8 +1045,14 @@
         "result": "parse_error",
         "errorType": "PARSE_ERROR",
         "success": false,
+        "transportStatus": "ok",
+        "providerStatus": "ok",
         "parseStatus": "invalid",
         "schemaStatus": "not_attempted",
+        "groundingStatus": "not_attempted",
+        "semanticStatus": "invalid",
+        "dependencyStatus": "not_attempted",
+        "finalPlanStatus": "rejected",
         "validationStatus": "invalid",
         "repairUsed": false,
         "fallbackUsed": true,
@@ -927,8 +1067,15 @@
           ]
         },
         "providerError": null,
-        "durationMs": 1,
-        "identifierNormalizations": []
+        "durationMs": 0,
+        "identifierNormalizations": [],
+        "groundingReport": {
+          "status": "valid",
+          "validatedClaims": 0,
+          "validatedTechnicalDetails": 0,
+          "unresolvedClaims": [],
+          "unresolvedTechnicalDetails": []
+        }
       }
     ],
     "failure": {
@@ -961,8 +1108,14 @@
           "result": "provider_error",
           "errorType": "PROVIDER_ERROR",
           "success": false,
+          "transportStatus": "ok",
+          "providerStatus": "error",
           "parseStatus": "not_attempted",
           "schemaStatus": "not_attempted",
+          "groundingStatus": "not_attempted",
+          "semanticStatus": "invalid",
+          "dependencyStatus": "not_attempted",
+          "finalPlanStatus": "rejected",
           "validationStatus": "invalid",
           "repairUsed": false,
           "fallbackUsed": false,
@@ -979,8 +1132,15 @@
             "message": "Provider rejected request",
             "details": null
           },
-          "durationMs": 0,
-          "identifierNormalizations": []
+          "durationMs": 1,
+          "identifierNormalizations": [],
+          "groundingReport": {
+            "status": "valid",
+            "validatedClaims": 0,
+            "validatedTechnicalDetails": 0,
+            "unresolvedClaims": [],
+            "unresolvedTechnicalDetails": []
+          }
         },
         {
           "provider": "openrouter",
@@ -990,8 +1150,14 @@
           "result": "transport_error",
           "errorType": "TRANSPORT_ERROR",
           "success": false,
+          "transportStatus": "error",
+          "providerStatus": "ok",
           "parseStatus": "not_attempted",
           "schemaStatus": "not_attempted",
+          "groundingStatus": "not_attempted",
+          "semanticStatus": "invalid",
+          "dependencyStatus": "not_attempted",
+          "finalPlanStatus": "rejected",
           "validationStatus": "invalid",
           "repairUsed": false,
           "fallbackUsed": true,
@@ -1008,8 +1174,15 @@
             "message": "Provider rejected request",
             "details": null
           },
-          "durationMs": 0,
-          "identifierNormalizations": []
+          "durationMs": 1,
+          "identifierNormalizations": [],
+          "groundingReport": {
+            "status": "valid",
+            "validatedClaims": 0,
+            "validatedTechnicalDetails": 0,
+            "unresolvedClaims": [],
+            "unresolvedTechnicalDetails": []
+          }
         },
         {
           "provider": "openrouter",
@@ -1019,8 +1192,14 @@
           "result": "parse_error",
           "errorType": "PARSE_ERROR",
           "success": false,
+          "transportStatus": "ok",
+          "providerStatus": "ok",
           "parseStatus": "invalid",
           "schemaStatus": "not_attempted",
+          "groundingStatus": "not_attempted",
+          "semanticStatus": "invalid",
+          "dependencyStatus": "not_attempted",
+          "finalPlanStatus": "rejected",
           "validationStatus": "invalid",
           "repairUsed": false,
           "fallbackUsed": true,
@@ -1035,8 +1214,15 @@
             ]
           },
           "providerError": null,
-          "durationMs": 1,
-          "identifierNormalizations": []
+          "durationMs": 0,
+          "identifierNormalizations": [],
+          "groundingReport": {
+            "status": "valid",
+            "validatedClaims": 0,
+            "validatedTechnicalDetails": 0,
+            "unresolvedClaims": [],
+            "unresolvedTechnicalDetails": []
+          }
         }
       ],
       "stateHistory": [

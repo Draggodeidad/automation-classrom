@@ -39,6 +39,7 @@ const codeFiles = {
   'build-bodies.js': 'src/ai/build-bodies.js',
   'validate-plan.js': 'src/ai/validate-plan.js',
   'fail-closed.js': 'src/ai/fail-closed.js',
+  'fail-validator.js': 'src/ai/fail-validator.js',
   'plan-toposort.js': 'src/planning/plan-toposort.js',
   'prepare-issue-queue.js': 'src/planning/prepare-issue-queue.js',
   'dry-run-summary.js': 'src/reporting/dry-run-summary.js',
@@ -245,6 +246,11 @@ attemptBranch({ suffix: ' - Qwen', prepare: 'Prepare OpenRouter Fallback', adapt
 add('Prepare GLM Fallback', 'n8n-nodes-base.code', [4880, 1180], { jsCode: code('prepare-openrouter-fallback.js') }, { typeVersion: 2 });
 attemptBranch({ suffix: ' - GLM', prepare: 'Prepare GLM Fallback', adapter: 'GLM Adapter', http: 'OpenRouter - GLM', gemini: false, y: 1180, gate: 'GLM Plan Valid?' });
 add('Fail Closed - Invalid Plan', 'n8n-nodes-base.code', [7080, 1320], { jsCode: code('fail-closed.js') }, { typeVersion: 2 });
+boolIf('Validator Internal?', [7300, 460], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+boolIf('Validator Internal - Repair?', [7300, 800], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+boolIf('Validator Internal - Qwen?', [7300, 1140], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+boolIf('Validator Internal - GLM?', [7300, 1480], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+add('Fail Validator - Invalid Plan', 'n8n-nodes-base.code', [7080, 1620], { jsCode: code('fail-validator.js') }, { typeVersion: 2 });
 
 add('Plan and Topological Sort', 'n8n-nodes-base.code', [7300, 120], { jsCode: code('plan-toposort.js') }, { typeVersion: 2 });
 equalsIf('Dry Run?', [7520, 120], '={{ $json.automationMode }}', 'dry-run');
@@ -331,12 +337,20 @@ connect('Existing Set Complete?', 'Build Reconcile Summary', 0);
 connect('Existing Set Complete?', 'LLM Request', 1);
 connect('Build Reconcile Summary', 'Notify Reconcile?');
 connect('Notify Reconcile?', 'Gmail - Send Reconcile Summary', 0);
-connect('Plan Valid?', 'Gemini Repair Required?', 1);
+connect('Plan Valid?', 'Validator Internal?', 1);
+connect('Validator Internal?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal?', 'Gemini Repair Required?', 1);
 connect('Gemini Repair Required?', 'Prepare Gemini Repair', 0);
 connect('Gemini Repair Required?', 'Prepare OpenRouter Fallback', 1);
-connect('Repair Plan Valid?', 'Prepare OpenRouter Fallback', 1);
-connect('Qwen Plan Valid?', 'Prepare GLM Fallback', 1);
-connect('GLM Plan Valid?', 'Fail Closed - Invalid Plan', 1);
+connect('Repair Plan Valid?', 'Validator Internal - Repair?', 1);
+connect('Validator Internal - Repair?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal - Repair?', 'Prepare OpenRouter Fallback', 1);
+connect('Qwen Plan Valid?', 'Validator Internal - Qwen?', 1);
+connect('Validator Internal - Qwen?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal - Qwen?', 'Prepare GLM Fallback', 1);
+connect('GLM Plan Valid?', 'Validator Internal - GLM?', 1);
+connect('Validator Internal - GLM?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal - GLM?', 'Fail Closed - Invalid Plan', 1);
 connect('Plan and Topological Sort', 'Dry Run?');
 connect('Dry Run?', 'Exact Dry-Run Preview', 0);
 connect('Dry Run?', 'Missing Labels?', 1);
