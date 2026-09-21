@@ -28,6 +28,20 @@
     "expected": "ignore"
   },
   {
+    "case": "coursework-menciona-quiz",
+    "courseWork": {
+      "courseId": "course-pwa",
+      "id": "cw-pwa-04",
+      "title": "[Semana 04] Renderizado CSR/SSR",
+      "description": "Implementar rutas CSR y SSR. El quiz semanal es presencial, en papel, de 3 preguntas y no permite IA.",
+      "state": "PUBLISHED",
+      "updateTime": "2026-09-21T14:00:00Z",
+      "creationTime": "2026-09-21T14:00:00Z",
+      "materials": []
+    },
+    "expected": "process"
+  },
+  {
     "case": "coursework-sin-zip",
     "courseWork": {
       "courseId": "course-pwa",

@@ -6,31 +6,17 @@ Automatización n8n self-hosted que lee actividades publicadas de Google Classro
 
 ```mermaid
 flowchart TD
-    SP[Schedule PWA\nlunes 09:10] --> C[Classroom API]
-    SD[Schedule DMI\nmartes 09:10] --> C
-    M[Manual Trigger\ncourse + week] --> C
-    C --> F{CourseWork semanal\nválido?}
-    F -->|no, intento 1| W[Wait 30 min]
-    W --> R[Único retry 09:40]
-    R --> F2{Encontrado?}
-    F2 -->|no| A[Alerta / fin]
-    F -->|sí| CW[Normalizar CourseWork]
-    F2 -->|sí| CW
-    CW --> MAT[Inspeccionar materials]
-    MAT -->|ZIP| DM[Drive metadata + canDownload]
-    DM --> DZ[Descargar alt=media]
-    DZ --> ZV[Validar ZIP no confiable]
-    ZV --> ZX[Extraer + inventario]
-    MAT -->|sin ZIP| SC[Starter found=false]
-    ZX --> GH[Contexto GitHub]
-    SC --> GH
-    GH --> ID[Deduplicar courseId + courseWorkId]
-    ID --> LLM[Gemini u Ollama]
-    LLM --> JS[JSON Schema + reglas + DAG]
-    JS --> DR{dry-run/live}
-    DR -->|dry-run| P[Preview exacta]
-    DR -->|live| I[Labels + Issues secuenciales]
-    I --> V[Verificar conjunto]
+    M[Manual] --> C[Classroom: todas las páginas]
+    S[Schedule PWA / DMI] --> C
+    C --> R[Registry histórico por courseId + courseWorkId]
+    R --> P{Actividad pendiente?}
+    P -->|No| N[no_pending_coursework: sin LLM]
+    P -->|Sí| G[Starter + contenido actual del repositorio]
+    G --> L[Plan y validadores IA existentes]
+    L --> E[Gap con cobertura verificable + evidencia personal]
+    E --> A[Asignación por capacidad y peso]
+    A --> V[Dependencias + Team Coverage]
+    V --> D[Preview dry-run]
 ```
 
 El LLM se invoca sólo después de reunir tres fuentes:
@@ -43,16 +29,16 @@ El LLM se invoca sólo después de reunir tres fuentes:
 
 - PWA: lunes a las 09:10, `America/Mexico_City`.
 - DMI: martes a las 09:10, `America/Mexico_City`.
-- Si no hay actividad válida, espera 30 minutos y consulta una sola vez más.
+- Sin actividad pendiente, termina inmediatamente sin llamar al LLM.
 - No hay polling continuo ni `courses.list` semanal.
-- La consulta usa `PUBLISHED`, `updateTime desc`, `pageSize=5` y partial response.
+- La consulta pagina todos los `PUBLISHED`; el selector ordena por publicación/creación e ID estable, independientemente del orden de la API.
 - Los títulos `Semana 03`, `[Semana 03]` y variantes razonables se normalizan como `W03`.
 - Quiz, examen y recordatorio se excluyen antes del LLM.
 - Si la semana no es determinable, el flujo falla cerrado.
 
 ## Idempotencia
 
-GitHub es la fuente persistente principal. Cada Issue contiene:
+El registry histórico persiste en static data del workflow instalado, por curso e ID de actividad. GitHub permite verificar conjuntos ya procesados. Cada Issue conserva:
 
 ```html
 <!-- automation:classroom -->
@@ -89,24 +75,24 @@ Los límites se configuran por `.env`. El analizador prioriza instrucciones, rú
 
 ## Foundation y equipo
 
-Cuando existe ZIP, el plan debe incluir exactamente:
+Cuando existe ZIP, el workflow agrega determinísticamente:
 
 ```text
-[<MATERIA>][WXX] Integrar <starter.zip> y establecer baseline semanal
+[<MATERIA>][WXX] Preparar <starter.zip> y establecer baseline de trabajo
 ```
 
-asignada a `Draggodeidad`, sin dependencias y basada en datos reales del starter. Además, Draggodeidad debe tener una Issue técnica sustancial. `JulianDele` y `osbaldoXxC` reciben Issues guiadas que pueden avanzar mayormente en paralelo.
+asignada a `Draggodeidad`, sin dependencias y basada en datos reales del starter. La entrega final también pertenece al owner. Ambas tienen peso funcional cero; el resto se asigna después del orden topológico según dificultad, riesgo, capacidades y carga ponderada. Consulta [el reporte de asignación y grounding](docs/ASSIGNMENT-GROUNDING-REPORT.md).
 
 ## Inicio rápido
 
 1. Copia `.env.example` a `.env`, genera `N8N_ENCRYPTION_KEY` y conserva `AUTOMATION_MODE=dry-run`.
 2. Sigue [SETUP-CLASSROOM.md](docs/SETUP-CLASSROOM.md) y [SETUP-DRIVE.md](docs/SETUP-DRIVE.md).
-3. Configura [GitHub](docs/SETUP-GITHUB.md) y [Gemini/Ollama](docs/SETUP-AI.md).
+3. Configura [GitHub](docs/SETUP-GITHUB.md), Gemini y OpenRouter en [SETUP-AI.md](docs/SETUP-AI.md).
 4. Inicia n8n con `docker compose up -d`.
 5. Importa primero `workflows/classroom-error-handler.json` y luego `workflows/classroom-to-github.json`.
 6. Asigna las credenciales nombradas en los nodos y selecciona el error workflow en Settings.
-7. Revisa [SCHEDULING.md](docs/SCHEDULING.md) y ejecuta los [dry-runs W03](docs/DRY-RUN-EXAMPLES.md).
-8. Cambia a `AUTOMATION_MODE=live` sólo tras aprobar las previews.
+7. Revisa [SCHEDULING.md](docs/SCHEDULING.md) y ejecuta los [dry-runs de selección](docs/DRY-RUN-EXAMPLES.md).
+8. Conserva `AUTOMATION_MODE=dry-run`: la capa LLM incluye un bloqueo de revisión que fuerza dry-run. Retirarlo requiere una revisión posterior explícita.
 
 El workflow importado está inactivo intencionalmente y no contiene credenciales.
 
@@ -115,14 +101,14 @@ El workflow importado está inactivo intencionalmente y no contiene credenciales
 El nodo `Manual Request` contiene un objeto editable:
 
 ```js
-const request = { course: 'PWA', week: 3 };
+const request = { course: 'PWA', manualCourseWorkOverride: null, bootstrapHistorical: false };
 ```
 
-Cámbialo a `DMI` o a otra semana antes de ejecutar `Manual Trigger`. Esto no modifica los cron automáticos.
+Cámbialo a `DMI` para seleccionar pendientes de esa materia. Para probar un histórico, usa su ID en `manualCourseWorkOverride`, sólo en dry-run manual. Consulta [bootstrap y persistencia](docs/SCHEDULING.md).
 
 ## Variables principales
 
-Consulta `.env.example`. Los IDs de curso se resuelven una sola vez durante setup y luego se usan directamente. Tokens OAuth, token GitHub y clave Gemini se guardan en Credentials cifradas de n8n, no en `.env`.
+Consulta `.env.example`. Los IDs de curso se resuelven una sola vez durante setup y luego se usan directamente. Tokens OAuth, token GitHub y claves de Gemini/OpenRouter se guardan en Credentials cifradas de n8n, no en `.env`.
 
 n8n 2.x bloquea `$env` en Code Nodes por defecto. Este despliegue establece `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` porque los módulos leen IDs, límites y modo desde el entorno. Úsalo sólo en esta instancia confiable de un único propietario; los secretos continúan en Credentials y no se exponen por `$env`.
 
@@ -142,3 +128,9 @@ npm test
 - No reconcilia automáticamente cambios sustanciales de un CourseWork ya procesado.
 - Si dos ZIP tienen igual relevancia, no elige arbitrariamente: falla cerrado.
 - Gmail, cuando se habilita, es sólo salida de éxito/error/revisión.
+
+## Selección, cobertura y evidencia personal
+
+El fix y sus pruebas A–R están documentados en [SELECTION-ASSIGNMENT-REPORT.md](docs/SELECTION-ASSIGNMENT-REPORT.md). Julian recibe hard, medium y easy técnica; cada evidencia individual obligatoria tiene un propietario no delegable. Setup, entrega y evidencia personal no inflan la carga funcional.
+
+`EXISTS ≠ COMPLETE`: se descargan contenidos de hasta 20 archivos relevantes. Excluir un requisito como complete exige una revisión de cobertura vinculada al requisito, fuente, excerpt y SHA del blob actual. Sin esa revisión, el contenido existente queda por verificar; no se presenta como terminado. El formato y sus límites están en [COVERAGE-REVIEWS.md](docs/COVERAGE-REVIEWS.md).

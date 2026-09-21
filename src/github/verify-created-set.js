@@ -32,6 +32,7 @@ return [{
     ...planData,
     verifiedIssues: planData.planKeys.map((key) => ({ key, number: byKey[key].number, title: byKey[key].title })),
     assignments,
+    assignmentLoads: planData.assignmentPolicy?.loads || null,
     verified: true,
   },
 }];

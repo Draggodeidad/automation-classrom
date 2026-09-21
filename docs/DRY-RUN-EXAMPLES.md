@@ -1,3 +1,5 @@
+> Los ejemplos W03 requieren override manual explícito. La selección normal usa el registry y devuelve `no_pending_coursework` si sólo existen históricos. Ver [resultados A–R](SELECTION-ASSIGNMENT-EXAMPLES.json).
+
 # Dry-runs de ejemplo
 
 Mantén:
@@ -11,7 +13,7 @@ AUTOMATION_MODE=dry-run
 Edita `Manual Request`:
 
 ```js
-const request = { course: 'PWA', week: 3 };
+const request = { course: 'PWA', manualCourseWorkOverride: '<ID histórico de PWA>', bootstrapHistorical: false };
 ```
 
 La salida `Exact Dry-Run Preview` incluye, de forma abreviada:
@@ -31,17 +33,32 @@ La salida `Exact Dry-Run Preview` incluye, de forma abreviada:
   },
   "issuesThatWouldBeCreated": [
     {
-      "title": "[PWA][W03] Integrar PWA-w03-kit-estudiante.zip y establecer baseline semanal",
-      "assignee": "Draggodeidad"
+      "key": "foundation",
+      "title": "[PWA][W03] Preparar PWA-w03-kit-estudiante.zip y establecer baseline de trabajo",
+      "assignee": "Draggodeidad",
+      "category": "setup",
+      "difficulty": "easy",
+      "weight": 1,
+      "functionalWeight": 0,
+      "risk": "low",
+      "dependsOn": [],
+      "groundingStatus": "grounded"
     }
-  ]
+  ],
+  "assignmentPolicy": {
+    "strategy": "capability-aware-weighted-load",
+    "operationalExcludedFromFunctionalBalance": true
+  },
+  "gapAnalysis": { "excludedCompletedWork": [] }
 }
 ```
+
+La preview completa incluye también provenance, requirementKind, capacidades requeridas, carga por integrante y la tarea final `classroom-delivery` asignada a `Draggodeidad`.
 
 ## DMI W03
 
 ```js
-const request = { course: 'DMI', week: 3 };
+const request = { course: 'DMI', manualCourseWorkOverride: '<ID histórico de DMI>', bootstrapHistorical: false };
 ```
 
 Debe usar `CLASSROOM_DMI_COURSE_ID` y `Draggodeidad/campusops-dmi-team`. Si el CourseWork no tiene ZIP, `starter.found=false` y el plan se basa en descripción + GitHub sin inventar una Foundation de starter.

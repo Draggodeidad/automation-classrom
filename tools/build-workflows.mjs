@@ -1,10 +1,29 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
+const readExisting = (relative) => {
+  try { return JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8')); }
+  catch { return { nodes: [] }; }
+};
+const existingMain = readExisting('workflows/classroom-to-github.json');
+const existingError = readExisting('workflows/classroom-error-handler.json');
+const existingMainNodes = new Map(existingMain.nodes.map((node) => [node.name, node]));
+const existingErrorNodes = new Map(existingError.nodes.map((node) => [node.name, node]));
+const nodeAliases = { 'Enforce Operational Issues': 'Enforce Foundation' };
+const existingNode = (name, map = existingMainNodes) => map.get(name) || map.get(nodeAliases[name]);
+const nodeId = (name, map = existingMainNodes) => existingNode(name, map)?.id || randomUUID();
+const conditionId = (name, map = existingMainNodes) =>
+  existingNode(name, map)?.parameters?.conditions?.conditions?.[0]?.id || randomUUID();
 const codeFiles = {
+  'prepare-content-requests.js': 'src/github/prepare-content-requests.js',
+  'collect-contents.js': 'src/github/collect-contents.js',
+  'expand-personal-requirements.js': 'src/planning/expand-personal-requirements.js',
+  'validate-final-assignment.js': 'src/planning/validate-final-assignment.js',
+  'observe-existing.js': 'src/registry/observe-existing.js',
   'prepare-request.js': 'src/classroom/prepare-request.js',
   'parse-coursework.js': 'src/classroom/parse-coursework.js',
   'inspect-materials.js': 'src/classroom/inspect-materials.js',
@@ -13,8 +32,19 @@ const codeFiles = {
   'inspect-starter.js': 'src/drive/inspect-starter.js',
   'no-starter.js': 'src/drive/no-starter.js',
   'build-context.js': 'src/github/build-context.js',
+  'prepare-llm-request.js': 'src/ai/prepare-llm-request.js',
+  'prepare-gemini-repair.js': 'src/ai/prepare-gemini-repair.js',
+  'build-llm-payload.js': 'src/ai/build-llm-payload.js',
+  'prepare-openrouter-fallback.js': 'src/ai/prepare-openrouter-fallback.js',
   'normalize-ai.js': 'src/ai/normalize-ai.js',
+  'parse-structured-plan.js': 'src/ai/parse-structured-plan.js',
+  'apply-gap-analysis.js': 'src/ai/apply-gap-analysis.js',
+  'enforce-foundation.js': 'src/ai/enforce-foundation.js',
+  'normalize-plan.js': 'src/ai/normalize-plan.js',
+  'build-bodies.js': 'src/ai/build-bodies.js',
   'validate-plan.js': 'src/ai/validate-plan.js',
+  'fail-closed.js': 'src/ai/fail-closed.js',
+  'fail-validator.js': 'src/ai/fail-validator.js',
   'plan-toposort.js': 'src/planning/plan-toposort.js',
   'prepare-issue-queue.js': 'src/planning/prepare-issue-queue.js',
   'dry-run-summary.js': 'src/reporting/dry-run-summary.js',
@@ -32,14 +62,13 @@ const code = (name) => fs.readFileSync(path.join(root, codeFiles[name]), 'utf8')
 const schema = JSON.parse(fs.readFileSync(path.join(root, 'schemas/issue-plan.schema.json'), 'utf8'));
 const contextCode = code('build-context.js').replace('__ISSUE_PLAN_SCHEMA__', JSON.stringify(schema));
 
-let idCounter = 0;
-const id = () => `00000000-0000-4000-8000-${String(++idCounter).padStart(12, '0')}`;
 const nodes = [];
 const connections = {};
 function add(name, type, position, parameters = {}, extra = {}) {
-  const node = { parameters, type, typeVersion: extra.typeVersion ?? 2, position, id: id(), name };
+  const node = { parameters, type, typeVersion: extra.typeVersion ?? 2, position, id: nodeId(name), name };
   if (extra.credentials) node.credentials = extra.credentials;
   if (extra.onError) node.onError = extra.onError;
+  if (extra.retryOnFail !== undefined) node.retryOnFail = extra.retryOnFail;
   nodes.push(node);
   return node;
 }
@@ -53,12 +82,14 @@ const googleCredentials = { oAuth2Api: { name: 'Google Classroom and Drive OAuth
 const gmailCredentials = { gmailOAuth2: { name: 'Gmail notifications (optional)' } };
 const githubCredentials = { githubApi: { name: 'GitHub account' } };
 const geminiCredentials = { httpHeaderAuth: { name: 'Gemini API Key' } };
+const openRouterCredentials = { httpHeaderAuth: { name: 'OpenRouter API Key' } };
 const githubHeaders = { parameters: [
   { name: 'Accept', value: 'application/vnd.github+json' },
   { name: 'X-GitHub-Api-Version', value: '2026-03-10' },
 ] };
 const fullResponse = { response: { response: { fullResponse: true, neverError: false } } };
 const safeFullResponse = { response: { response: { fullResponse: true, neverError: true } } };
+const safeAiResponse = { timeout: 120000, response: { response: { fullResponse: true, neverError: true } } };
 function githubGet(name, position, url, safe = false) {
   add(name, 'n8n-nodes-base.httpRequest', position, {
     url, authentication: 'predefinedCredentialType', nodeCredentialType: 'githubApi',
@@ -68,13 +99,13 @@ function githubGet(name, position, url, safe = false) {
 function boolIf(name, position, leftValue) {
   add(name, 'n8n-nodes-base.if', position, {
     conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
-      conditions: [{ id: id(), leftValue, rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {},
+      conditions: [{ id: conditionId(name), leftValue, rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {},
   }, { typeVersion: 2.2 });
 }
 function equalsIf(name, position, leftValue, rightValue) {
   add(name, 'n8n-nodes-base.if', position, {
     conditions: { options: { caseSensitive: false, leftValue: '', typeValidation: 'strict', version: 2 },
-      conditions: [{ id: id(), leftValue, rightValue, operator: { type: 'string', operation: 'equals' } }], combinator: 'and' }, options: {},
+      conditions: [{ id: conditionId(name), leftValue, rightValue, operator: { type: 'string', operation: 'equals' } }], combinator: 'and' }, options: {},
   }, { typeVersion: 2.2 });
 }
 function googleGet(name, position, url, options = fullResponse) {
@@ -100,14 +131,18 @@ add('Route DMI', 'n8n-nodes-base.code', [-2380, -80], {
 }, { typeVersion: 2 });
 add('Manual Trigger', 'n8n-nodes-base.manualTrigger', [-2600, 120], {}, { typeVersion: 1 });
 add('Manual Request', 'n8n-nodes-base.code', [-2380, 120], {
-  jsCode: "// Edita únicamente estos valores para backfill/recuperación manual.\nconst request = { course: 'PWA', week: 3 };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];",
+  jsCode: "// Selección normal por registry. Override histórico sólo en dry-run manual.\nconst request = { course: 'PWA', manualCourseWorkOverride: null, bootstrapHistorical: false };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];",
 }, { typeVersion: 2 });
 add('Prepare Classroom Request', 'n8n-nodes-base.code', [-2160, -80], { jsCode: code('prepare-request.js') }, { typeVersion: 2 });
 
-const classroomUrl = "={{ 'https://classroom.googleapis.com/v1/courses/' + encodeURIComponent($json.courseId) + '/courseWork?courseWorkStates=PUBLISHED&orderBy=updateTime%20desc&pageSize=5&fields=courseWork(courseId,id,title,description,materials,state,alternateLink,creationTime,updateTime,dueDate,dueTime,scheduledTime,maxPoints,workType)' }}";
-googleGet('Classroom - List CourseWork Initial', [-1940, -80], classroomUrl);
+const classroomUrl = "={{ 'https://classroom.googleapis.com/v1/courses/' + encodeURIComponent($json.courseId) + '/courseWork?courseWorkStates=PUBLISHED&orderBy=updateTime%20desc&pageSize=100&fields=nextPageToken,courseWork(courseId,id,title,description,materials,state,alternateLink,creationTime,updateTime,dueDate,dueTime,scheduledTime,maxPoints,workType)' }}";
+const classroomOptions = { ...fullResponse, pagination: { pagination: {
+  paginationMode: 'updateAParameterInEachRequest', parameters: { parameters: [{ type: 'qs', name: 'pageToken', value: '={{ $response.body.nextPageToken || "" }}' }] },
+  paginationCompleteWhen: 'other', completeExpression: '={{ !$response.body.nextPageToken }}', limitPagesFetched: true, maxRequests: 100,
+} } };
+googleGet('Classroom - List CourseWork Initial', [-1940, -80], classroomUrl, classroomOptions);
 add('Attach Initial Classroom Response', 'n8n-nodes-base.code', [-1720, -80], {
-  jsCode: "const context = $('Prepare Classroom Request').item.json; return [{ json: { ...context, classroomResponse: $json } }];",
+  jsCode: "const context = $('Prepare Classroom Request').item.json; const pages = $input.all().map(i => i.json.body || i.json); return [{ json: { ...context, classroomResponse: { courseWork: pages.flatMap(p => p.courseWork || []), nextPageToken: pages.at(-1)?.nextPageToken } } }];",
 }, { typeVersion: 2 });
 add('Parse Initial CourseWork', 'n8n-nodes-base.code', [-1500, -80], { jsCode: code('parse-coursework.js') }, { typeVersion: 2 });
 boolIf('CourseWork Found Initial?', [-1280, -80], '={{ $json.found }}');
@@ -115,15 +150,13 @@ add('Wait 30 Minutes Once', 'n8n-nodes-base.wait', [-1060, 100], { amount: 30, u
 add('Increment Retry', 'n8n-nodes-base.code', [-840, 100], {
   jsCode: "if (Number($json.attempt) !== 1) throw new Error('Retry guard: sólo se permite un retry'); return [{ json: { ...$json, attempt: 2 } }];",
 }, { typeVersion: 2 });
-googleGet('Classroom - List CourseWork Retry', [-620, 100], classroomUrl);
+googleGet('Classroom - List CourseWork Retry', [-620, 100], classroomUrl, classroomOptions);
 add('Attach Retry Classroom Response', 'n8n-nodes-base.code', [-400, 100], {
-  jsCode: "const context = $('Increment Retry').item.json; return [{ json: { ...context, classroomResponse: $json } }];",
+  jsCode: "const context = $('Increment Retry').item.json; const pages = $input.all().map(i => i.json.body || i.json); return [{ json: { ...context, classroomResponse: { courseWork: pages.flatMap(p => p.courseWork || []), nextPageToken: pages.at(-1)?.nextPageToken } } }];",
 }, { typeVersion: 2 });
 add('Parse Retry CourseWork', 'n8n-nodes-base.code', [-180, 100], { jsCode: code('parse-coursework.js') }, { typeVersion: 2 });
 boolIf('CourseWork Found Retry?', [40, 100], '={{ $json.found }}');
-add('Build No Activity Summary', 'n8n-nodes-base.code', [260, 260], {
-  jsCode: "return [{json:{...$json,notificationSubject:`❌ No se encontró ${$json.course} tras el retry`,notificationBody:`❌ No se procesó ${$json.course}\\n\\nCourse ID: ${$json.courseId}\\nConsultas Classroom: 2\\nResultado: ninguna actividad semanal válida a las 09:10 ni a las 09:40.\\n\\nGitHub no fue modificado.`,executionResult:'not_found_after_retry'}}];",
-}, { typeVersion: 2 });
+add('Build No Activity Summary', 'n8n-nodes-base.code', [260, 260], { jsCode: "return [{json:{...$json,mode:'dry-run',mutationsPerformed:false}}];" }, { typeVersion: 2 });
 notificationGate('Notify No Activity?', [480, 260]);
 add('Gmail - Send No Activity Alert', 'n8n-nodes-base.gmail', [700, 220], {
   operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false },
@@ -160,8 +193,12 @@ githubGet('GitHub - Open Pull Requests', [3560, -80], "={{ 'https://api.github.c
 githubGet('GitHub - Labels', [3780, -80], "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/labels?per_page=100' }}");
 githubGet('GitHub - Tree', [4000, -80], "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/git/trees/' + encodeURIComponent($('GitHub - Repository').item.json.body.default_branch) + '?recursive=1' }}", true);
 githubGet('GitHub - README', [4220, -80], "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/readme' }}", true);
+add('Prepare Repository Content Requests', 'n8n-nodes-base.code', [4260, -80], { jsCode: code('prepare-content-requests.js') }, { typeVersion: 2 });
+githubGet('GitHub - Repository Content', [4300, -80], "={{ 'https://api.github.com/repos/' + $json.repository + '/contents/' + $json.path.split('/').map(encodeURIComponent).join('/') + '?ref=' + encodeURIComponent($json.ref) }}", true);
+add('Collect Repository Contents', 'n8n-nodes-base.code', [4360, -80], { jsCode: code('collect-contents.js') }, { typeVersion: 2 });
 add('Build Context & Dedup', 'n8n-nodes-base.code', [4440, -80], { jsCode: contextCode }, { typeVersion: 2 });
-boolIf('Needs Manual Review?', [4660, -80], '={{ $json.courseworkUpdated || $json.identityConflict }}');
+add('Observe Processed Registry', 'n8n-nodes-base.code', [4540, -80], { jsCode: code('observe-existing.js') }, { typeVersion: 2 });
+boolIf('Needs Manual Review?', [4660, -80], '={{ $json.selectionMode !== "manual_test_override" && ($json.courseworkUpdated || $json.identityConflict) }}');
 add('Build Manual Review Alert', 'n8n-nodes-base.code', [4880, -240], {
   jsCode: "const reason=$json.courseworkUpdated?'CourseWork actualizado después de crear Issues':'otra identidad CourseWork ya usa la misma materia/semana'; return [{json:{...$json,executionResult:'coursework_updated',notificationSubject:`⚠️ Revisión manual ${$json.course} W${$json.weekPadded}`,notificationBody:`⚠️ No se modificó GitHub\\n\\nCourseWork: ${$json.courseWorkId}\\nRazón: ${reason}\\nUpdateTime actual: ${$json.updateTime}\\nUpdateTime almacenado: ${$json.newestStoredUpdate || 'n/a'}\\n\\nRevisa cambios antes de reconciliar.`}}];",
 }, { typeVersion: 2 });
@@ -169,47 +206,66 @@ notificationGate('Notify Manual Review?', [5100, -240]);
 add('Gmail - Send Manual Review Alert', 'n8n-nodes-base.gmail', [5320, -280], {
   operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false },
 }, { typeVersion: 2.1, credentials: gmailCredentials });
-boolIf('Existing Set Complete?', [4880, 20], '={{ $json.completeExisting }}');
+boolIf('Existing Set Complete?', [4880, 20], '={{ $json.selectionMode !== "manual_test_override" && $json.completeExisting }}');
 add('Build Reconcile Summary', 'n8n-nodes-base.code', [5100, -20], { jsCode: code('reconcile-summary.js') }, { typeVersion: 2 });
 notificationGate('Notify Reconcile?', [5320, -20]);
 add('Gmail - Send Reconcile Summary', 'n8n-nodes-base.gmail', [5540, -60], {
   operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false },
 }, { typeVersion: 2.1, credentials: gmailCredentials });
 
-equalsIf('AI Provider Gemini?', [5100, 160], '={{ $json.aiProvider }}', 'gemini');
-add('Gemini - Plan', 'n8n-nodes-base.httpRequest', [5320, 100], {
-  method: 'POST', url: "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
-  authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth', sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ systemInstruction: { parts: [{ text: $json.systemPrompt }] }, contents: [{ role: 'user', parts: [{ text: $json.userPrompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', responseJsonSchema: $json.geminiSchema } }) }}", options: fullResponse,
-}, { typeVersion: 4.3, credentials: geminiCredentials });
-add('Ollama - Plan', 'n8n-nodes-base.httpRequest', [5320, 240], {
-  method: 'POST', url: "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}", sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.userPrompt }], stream: false, format: $json.schema, options: { temperature: 0.1 } }) }}", options: fullResponse,
-}, { typeVersion: 4.3 });
-add('Normalize AI Response', 'n8n-nodes-base.code', [5540, 160], { jsCode: code('normalize-ai.js') }, { typeVersion: 2 });
-add('Validate Plan', 'n8n-nodes-base.code', [5760, 160], { jsCode: code('validate-plan.js') }, { typeVersion: 2 });
-boolIf('Plan Valid?', [5980, 160], '={{ $json.valid }}');
-equalsIf('Retry with Gemini?', [6200, 300], '={{ $json.aiProvider }}', 'gemini');
-add('Gemini - Repair Once', 'n8n-nodes-base.httpRequest', [6420, 240], {
-  method: 'POST', url: "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + ($env.GEMINI_MODEL || 'gemini-2.5-flash') + ':generateContent' }}",
-  authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth', sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ systemInstruction: { parts: [{ text: $json.systemPrompt }] }, contents: [{ role: 'user', parts: [{ text: $json.retryPrompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json', responseJsonSchema: $json.geminiSchema } }) }}", options: fullResponse,
-}, { typeVersion: 4.3, credentials: geminiCredentials });
-add('Ollama - Repair Once', 'n8n-nodes-base.httpRequest', [6420, 380], {
-  method: 'POST', url: "={{ ($env.OLLAMA_BASE_URL || 'http://host.docker.internal:11434') + '/api/chat' }}", sendHeaders: true,
-  headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] }, sendBody: true, specifyBody: 'json',
-  jsonBody: "={{ ({ model: ($env.OLLAMA_MODEL || 'qwen2.5-coder:7b'), messages: [{ role: 'system', content: $json.systemPrompt }, { role: 'user', content: $json.retryPrompt }], stream: false, format: $json.schema, options: { temperature: 0 } }) }}", options: fullResponse,
-}, { typeVersion: 4.3 });
-add('Normalize Repair Response', 'n8n-nodes-base.code', [6640, 300], { jsCode: code('normalize-ai.js') }, { typeVersion: 2 });
-add('Validate Repaired Plan', 'n8n-nodes-base.code', [6860, 300], { jsCode: code('validate-plan.js') }, { typeVersion: 2 });
-boolIf('Repaired Plan Valid?', [7080, 300], '={{ $json.valid }}');
-add('Fail Closed - Invalid Plan', 'n8n-nodes-base.code', [7300, 440], {
-  jsCode: "throw new Error('LLM devolvió JSON inválido después de un reintento: ' + ($json.validationErrors || []).join('; ') + '. GitHub no fue modificado.');",
-}, { typeVersion: 2 });
+// Four acyclic attempt branches share the same source modules and transition table.
+add('LLM Request', 'n8n-nodes-base.code', [5100, 160], { jsCode: code('prepare-llm-request.js') }, { typeVersion: 2 });
+const validationSteps = [
+  ['Normalize AI Response', 'normalize-ai.js'],
+  ['Parse Structured Plan', 'parse-structured-plan.js'],
+  ['Apply Gap Analysis', 'apply-gap-analysis.js'],
+  ['Enforce Operational Issues', 'enforce-foundation.js'],
+  ['Normalize Titles & Keys & Dependencies', 'normalize-plan.js'],
+  ['Build GitHub Issue Bodies', 'build-bodies.js'],
+  ['Validate Final Plan', 'validate-plan.js'],
+];
+function attemptBranch({ suffix, prepare, adapter, http, gemini, y, gate }) {
+  add(adapter, 'n8n-nodes-base.code', [5100, y], { jsCode: code('build-llm-payload.js') }, { typeVersion: 2 });
+  add(http, 'n8n-nodes-base.httpRequest', [5320, y], {
+    method: 'POST',
+    url: gemini ? "={{ 'https://generativelanguage.googleapis.com/v1beta/models/' + $json.llmAttempt.model + ':generateContent' }}" : 'https://openrouter.ai/api/v1/chat/completions',
+    authentication: 'genericCredentialType', genericAuthType: 'httpHeaderAuth', sendHeaders: true,
+    headerParameters: { parameters: [{ name: 'Content-Type', value: 'application/json' }] },
+    sendBody: true, specifyBody: 'json', jsonBody: '={{ $json.llmPayload }}', options: safeAiResponse,
+  }, { typeVersion: 4.3, credentials: gemini ? geminiCredentials : openRouterCredentials, onError: 'continueRegularOutput', retryOnFail: false });
+  connect(prepare, adapter);
+  connect(adapter, http);
+  let previous = http;
+  validationSteps.forEach(([baseName, file], index) => {
+    const name = baseName + suffix;
+    add(name, 'n8n-nodes-base.code', suffix ? [5540 + index * 180, y] : [[5540, 5760, 5980, 6140, 6300, 6460, 6640][index], y], {
+      jsCode: code(file).replace('__LLM_REQUEST_NODE__', adapter),
+    }, { typeVersion: 2 });
+    connect(previous, name);
+    previous = name;
+  });
+  boolIf(gate, [6860, y], "={{ $json.nextState === 'PLAN_VALID' && $json.valid && $json.parseStatus === 'valid' && $json.schemaStatus === 'valid' }}");
+  connect(previous, gate);
+  connect(gate, 'Expand Personal Requirements', 0);
+}
+attemptBranch({ suffix: '', prepare: 'LLM Request', adapter: 'Gemini Adapter', http: 'Gemini - Plan', gemini: true, y: 160, gate: 'Plan Valid?' });
+boolIf('Gemini Repair Required?', [7080, 300], "={{ $json.nextState === 'GEMINI_REPAIR_REQUEST' }}");
+add('Prepare Gemini Repair', 'n8n-nodes-base.code', [4880, 500], { jsCode: code('prepare-gemini-repair.js') }, { typeVersion: 2 });
+attemptBranch({ suffix: ' - Repair', prepare: 'Prepare Gemini Repair', adapter: 'Gemini Repair Adapter', http: 'Gemini - Repair Once', gemini: true, y: 500, gate: 'Repair Plan Valid?' });
+add('Prepare OpenRouter Fallback', 'n8n-nodes-base.code', [4880, 840], { jsCode: code('prepare-openrouter-fallback.js') }, { typeVersion: 2 });
+attemptBranch({ suffix: ' - Qwen', prepare: 'Prepare OpenRouter Fallback', adapter: 'Qwen Adapter', http: 'OpenRouter - Chat Completion', gemini: false, y: 840, gate: 'Qwen Plan Valid?' });
+add('Prepare GLM Fallback', 'n8n-nodes-base.code', [4880, 1180], { jsCode: code('prepare-openrouter-fallback.js') }, { typeVersion: 2 });
+attemptBranch({ suffix: ' - GLM', prepare: 'Prepare GLM Fallback', adapter: 'GLM Adapter', http: 'OpenRouter - GLM', gemini: false, y: 1180, gate: 'GLM Plan Valid?' });
+add('Fail Closed - Invalid Plan', 'n8n-nodes-base.code', [7080, 1320], { jsCode: code('fail-closed.js') }, { typeVersion: 2 });
+boolIf('Validator Internal?', [7300, 460], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+boolIf('Validator Internal - Repair?', [7300, 800], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+boolIf('Validator Internal - Qwen?', [7300, 1140], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+boolIf('Validator Internal - GLM?', [7300, 1480], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
+add('Fail Validator - Invalid Plan', 'n8n-nodes-base.code', [7080, 1620], { jsCode: code('fail-validator.js') }, { typeVersion: 2 });
 
+add('Expand Personal Requirements', 'n8n-nodes-base.code', [7160, 120], { jsCode: code('expand-personal-requirements.js') }, { typeVersion: 2 });
+add('Build Assigned Issue Bodies', 'n8n-nodes-base.code', [7360, 120], { jsCode: code('build-bodies.js') }, { typeVersion: 2 });
+add('Validate Final Assignment', 'n8n-nodes-base.code', [7420, 120], { jsCode: code('validate-final-assignment.js') }, { typeVersion: 2 });
 add('Plan and Topological Sort', 'n8n-nodes-base.code', [7300, 120], { jsCode: code('plan-toposort.js') }, { typeVersion: 2 });
 equalsIf('Dry Run?', [7520, 120], '={{ $json.automationMode }}', 'dry-run');
 add('Exact Dry-Run Preview', 'n8n-nodes-base.code', [7740, 20], { jsCode: code('dry-run-summary.js') }, { typeVersion: 2 });
@@ -255,7 +311,7 @@ connect('Classroom - List CourseWork Initial', 'Attach Initial Classroom Respons
 connect('Attach Initial Classroom Response', 'Parse Initial CourseWork');
 connect('Parse Initial CourseWork', 'CourseWork Found Initial?');
 connect('CourseWork Found Initial?', 'Inspect Materials', 0);
-connect('CourseWork Found Initial?', 'Wait 30 Minutes Once', 1);
+connect('CourseWork Found Initial?', 'Build No Activity Summary', 1);
 connect('Wait 30 Minutes Once', 'Increment Retry');
 connect('Increment Retry', 'Classroom - List CourseWork Retry');
 connect('Classroom - List CourseWork Retry', 'Attach Retry Classroom Response');
@@ -263,7 +319,7 @@ connect('Attach Retry Classroom Response', 'Parse Retry CourseWork');
 connect('Parse Retry CourseWork', 'CourseWork Found Retry?');
 connect('CourseWork Found Retry?', 'Inspect Materials', 0);
 connect('CourseWork Found Retry?', 'Build No Activity Summary', 1);
-connect('Build No Activity Summary', 'Notify No Activity?');
+// No coursework is a clean terminal preview; no notifications or LLM calls.
 connect('Notify No Activity?', 'Gmail - Send No Activity Alert', 0);
 connect('Inspect Materials', 'Starter ZIP Found?');
 connect('Starter ZIP Found?', 'Drive - Starter Metadata', 0);
@@ -285,33 +341,38 @@ connect('GitHub - Search Course Week', 'GitHub - Open Pull Requests');
 connect('GitHub - Open Pull Requests', 'GitHub - Labels');
 connect('GitHub - Labels', 'GitHub - Tree');
 connect('GitHub - Tree', 'GitHub - README');
-connect('GitHub - README', 'Build Context & Dedup');
-connect('Build Context & Dedup', 'Needs Manual Review?');
+connect('GitHub - README', 'Prepare Repository Content Requests');
+connect('Prepare Repository Content Requests', 'GitHub - Repository Content');
+connect('GitHub - Repository Content', 'Collect Repository Contents');
+connect('Collect Repository Contents', 'Build Context & Dedup');
+connect('Build Context & Dedup', 'Observe Processed Registry');
+connect('Observe Processed Registry', 'Needs Manual Review?');
 connect('Needs Manual Review?', 'Build Manual Review Alert', 0);
 connect('Needs Manual Review?', 'Existing Set Complete?', 1);
 connect('Build Manual Review Alert', 'Notify Manual Review?');
 connect('Notify Manual Review?', 'Gmail - Send Manual Review Alert', 0);
 connect('Existing Set Complete?', 'Build Reconcile Summary', 0);
-connect('Existing Set Complete?', 'AI Provider Gemini?', 1);
+connect('Existing Set Complete?', 'LLM Request', 1);
 connect('Build Reconcile Summary', 'Notify Reconcile?');
 connect('Notify Reconcile?', 'Gmail - Send Reconcile Summary', 0);
-connect('AI Provider Gemini?', 'Gemini - Plan', 0);
-connect('AI Provider Gemini?', 'Ollama - Plan', 1);
-connect('Gemini - Plan', 'Normalize AI Response');
-connect('Ollama - Plan', 'Normalize AI Response');
-connect('Normalize AI Response', 'Validate Plan');
-connect('Validate Plan', 'Plan Valid?');
-connect('Plan Valid?', 'Plan and Topological Sort', 0);
-connect('Plan Valid?', 'Retry with Gemini?', 1);
-connect('Retry with Gemini?', 'Gemini - Repair Once', 0);
-connect('Retry with Gemini?', 'Ollama - Repair Once', 1);
-connect('Gemini - Repair Once', 'Normalize Repair Response');
-connect('Ollama - Repair Once', 'Normalize Repair Response');
-connect('Normalize Repair Response', 'Validate Repaired Plan');
-connect('Validate Repaired Plan', 'Repaired Plan Valid?');
-connect('Repaired Plan Valid?', 'Plan and Topological Sort', 0);
-connect('Repaired Plan Valid?', 'Fail Closed - Invalid Plan', 1);
-connect('Plan and Topological Sort', 'Dry Run?');
+connect('Plan Valid?', 'Validator Internal?', 1);
+connect('Validator Internal?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal?', 'Gemini Repair Required?', 1);
+connect('Gemini Repair Required?', 'Prepare Gemini Repair', 0);
+connect('Gemini Repair Required?', 'Prepare OpenRouter Fallback', 1);
+connect('Repair Plan Valid?', 'Validator Internal - Repair?', 1);
+connect('Validator Internal - Repair?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal - Repair?', 'Prepare OpenRouter Fallback', 1);
+connect('Qwen Plan Valid?', 'Validator Internal - Qwen?', 1);
+connect('Validator Internal - Qwen?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal - Qwen?', 'Prepare GLM Fallback', 1);
+connect('GLM Plan Valid?', 'Validator Internal - GLM?', 1);
+connect('Validator Internal - GLM?', 'Fail Validator - Invalid Plan', 0);
+connect('Validator Internal - GLM?', 'Fail Closed - Invalid Plan', 1);
+connect('Expand Personal Requirements', 'Plan and Topological Sort');
+connect('Plan and Topological Sort', 'Build Assigned Issue Bodies');
+connect('Build Assigned Issue Bodies', 'Validate Final Assignment');
+connect('Validate Final Assignment', 'Dry Run?');
 connect('Dry Run?', 'Exact Dry-Run Preview', 0);
 connect('Dry Run?', 'Missing Labels?', 1);
 connect('Missing Labels?', 'Prepare Missing Labels', 0);
@@ -346,10 +407,10 @@ const workflow = {
 };
 
 const errorNodes = [
-  { parameters: {}, type: 'n8n-nodes-base.errorTrigger', typeVersion: 1, position: [0, 0], id: '20000000-0000-4000-8000-000000000001', name: 'Error Trigger' },
-  { parameters: { jsCode: "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];" }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [220, 0], id: '20000000-0000-4000-8000-000000000002', name: 'Build Error Summary' },
-  { parameters: { conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [{ id: '20000000-0000-4000-8000-000000000005', leftValue: "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {} }, type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [440, 0], id: '20000000-0000-4000-8000-000000000003', name: 'Notifications Enabled?' },
-  { parameters: { operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false } }, type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: [660, -40], id: '20000000-0000-4000-8000-000000000004', name: 'Gmail - Send Error Summary', credentials: gmailCredentials },
+  { parameters: {}, type: 'n8n-nodes-base.errorTrigger', typeVersion: 1, position: [0, 0], id: nodeId('Error Trigger', existingErrorNodes), name: 'Error Trigger' },
+  { parameters: { jsCode: "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];" }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [220, 0], id: nodeId('Build Error Summary', existingErrorNodes), name: 'Build Error Summary' },
+  { parameters: { conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [{ id: conditionId('Notifications Enabled?', existingErrorNodes), leftValue: "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}", rightValue: '', operator: { type: 'boolean', operation: 'true', singleValue: true } }], combinator: 'and' }, options: {} }, type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [440, 0], id: nodeId('Notifications Enabled?', existingErrorNodes), name: 'Notifications Enabled?' },
+  { parameters: { operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false } }, type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: [660, -40], id: nodeId('Gmail - Send Error Summary', existingErrorNodes), name: 'Gmail - Send Error Summary', credentials: gmailCredentials },
 ];
 const errorWorkflow = {
   id: 'classroomError2026', name: 'Classroom to GitHub - Error Handler', nodes: errorNodes, pinData: {}, active: false,
@@ -359,7 +420,7 @@ const errorWorkflow = {
     'Notifications Enabled?': { main: [[{ node: 'Gmail - Send Error Summary', type: 'main', index: 0 }], []] },
   },
   settings: { executionOrder: 'v1', timezone: 'America/Mexico_City' },
-  versionId: '20000000-0000-4000-8000-000000000006', meta: { templateCredsSetupCompleted: false }, tags: [],
+  versionId: existingError.versionId || randomUUID(), meta: { templateCredsSetupCompleted: false }, tags: [],
 };
 
 fs.writeFileSync(path.join(root, 'workflows', 'classroom-to-github.json'), `${JSON.stringify(workflow, null, 2)}\n`);

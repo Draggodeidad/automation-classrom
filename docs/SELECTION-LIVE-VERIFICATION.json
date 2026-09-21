@@ -1,0 +1,188 @@
+{
+  "PWA": {
+    "course": "PWA",
+    "courseId": "876693693762",
+    "courseWorkId": null,
+    "mode": "dry-run",
+    "selectionMode": "pending_registry",
+    "courseWorkState": null,
+    "historicalStatus": null,
+    "cutoverAt": "2026-09-21T01:45:25.912Z",
+    "executionResult": "no_pending_coursework",
+    "historicalCourseworkCount": 3,
+    "pendingCourseworkCount": 0,
+    "mutationsPerformed": false,
+    "lastNodeExecuted": "Build No Activity Summary",
+    "executedNodes": [
+      "Schedule PWA Monday 09:10",
+      "Route PWA",
+      "Prepare Classroom Request",
+      "Classroom - List CourseWork Initial",
+      "Attach Initial Classroom Response",
+      "Parse Initial CourseWork",
+      "CourseWork Found Initial?",
+      "Build No Activity Summary"
+    ],
+    "error": null,
+    "llmCalls": 0
+  },
+  "DMI": {
+    "course": "DMI",
+    "courseId": "870899422962",
+    "courseWorkId": null,
+    "mode": "dry-run",
+    "selectionMode": "pending_registry",
+    "courseWorkState": null,
+    "historicalStatus": null,
+    "cutoverAt": "2026-09-21T01:46:58.071Z",
+    "executionResult": "no_pending_coursework",
+    "historicalCourseworkCount": 6,
+    "pendingCourseworkCount": 0,
+    "mutationsPerformed": false,
+    "lastNodeExecuted": "Build No Activity Summary",
+    "executedNodes": [
+      "Manual Trigger",
+      "Manual Request",
+      "Prepare Classroom Request",
+      "Classroom - List CourseWork Initial",
+      "Attach Initial Classroom Response",
+      "Parse Initial CourseWork",
+      "CourseWork Found Initial?",
+      "Build No Activity Summary"
+    ],
+    "error": null,
+    "llmCalls": 0,
+    "pagesFetched": 3,
+    "rowsFetched": 6
+  },
+  "manualHistoricalContext": {
+    "course": "PWA",
+    "courseId": "876693693762",
+    "courseWorkId": "876697244636",
+    "mode": "dry-run",
+    "selectionMode": "manual_test_override",
+    "courseWorkState": "ignored_historical",
+    "historicalStatus": "ignored_historical",
+    "cutoverAt": "2026-09-21T01:45:25.912Z",
+    "executionResult": "coursework_found",
+    "historicalCourseworkCount": 3,
+    "pendingCourseworkCount": 0,
+    "mutationsPerformed": false,
+    "lastNodeExecuted": "Build Context & Dedup",
+    "executedNodes": [
+      "Manual Trigger",
+      "Manual Request",
+      "Prepare Classroom Request",
+      "Classroom - List CourseWork Initial",
+      "Attach Initial Classroom Response",
+      "Parse Initial CourseWork",
+      "CourseWork Found Initial?",
+      "Inspect Materials",
+      "Starter ZIP Found?",
+      "Drive - Starter Metadata",
+      "Attach Drive Metadata",
+      "Validate Drive File",
+      "Drive - Download Starter ZIP",
+      "Attach Download Context",
+      "Validate ZIP Security",
+      "Extract Starter ZIP",
+      "Inspect Starter",
+      "Activity Context",
+      "GitHub - Repository",
+      "GitHub - Recent Issues",
+      "GitHub - Search CourseWork ID",
+      "GitHub - Search Course Week",
+      "GitHub - Open Pull Requests",
+      "GitHub - Labels",
+      "GitHub - Tree",
+      "GitHub - README",
+      "Prepare Repository Content Requests",
+      "GitHub - Repository Content",
+      "Collect Repository Contents",
+      "Build Context & Dedup"
+    ],
+    "error": null,
+    "llmCalls": 0,
+    "filesRead": 20,
+    "note": "Read-only diagnostic ended before LLM; no Issue plan generated in this execution."
+  },
+  "historicalSnapshots": {
+    "PWA": {
+      "version": 1,
+      "courseId": "876693693762",
+      "cutoverAt": "2026-09-21T01:45:25.912Z",
+      "entries": {
+        "876696571521": {
+          "courseWorkId": "876696571521",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "[Semana 03] Service worker y consulta offline · 8 puntos",
+          "observedAt": "2026-09-21T01:45:25.912Z"
+        },
+        "876698366886": {
+          "courseWorkId": "876698366886",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "[Semana 02] App shell instalable y manifest · 8 puntos",
+          "observedAt": "2026-09-21T01:45:25.912Z"
+        },
+        "876697244636": {
+          "courseWorkId": "876697244636",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "[Semana 01] Decisión de producto y entorno reproducible · 8 puntos",
+          "observedAt": "2026-09-21T01:45:25.912Z"
+        }
+      }
+    },
+    "DMI": {
+      "version": 1,
+      "courseId": "870899422962",
+      "cutoverAt": "2026-09-21T01:46:58.071Z",
+      "entries": {
+        "826115343270": {
+          "courseWorkId": "826115343270",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "Semana 03 — Integración continua y modelo de amenazas inicial (8 puntos)",
+          "observedAt": "2026-09-21T01:46:58.071Z"
+        },
+        "826115505282": {
+          "courseWorkId": "826115505282",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "Quiz semanal 3 — CI y amenazas (3 puntos)",
+          "observedAt": "2026-09-21T01:46:58.071Z"
+        },
+        "875858249500": {
+          "courseWorkId": "875858249500",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "Quiz semanal 2 — Arquitectura y patrones (3 puntos)",
+          "observedAt": "2026-09-21T01:46:58.071Z"
+        },
+        "826115397151": {
+          "courseWorkId": "826115397151",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "Semana 02 — Arquitectura móvil justificable (8 puntos)",
+          "observedAt": "2026-09-21T01:46:58.071Z"
+        },
+        "875858743136": {
+          "courseWorkId": "875858743136",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "Semana 01 — Diagnóstico reproducible y definición técnica (8 puntos)",
+          "observedAt": "2026-09-21T01:46:58.071Z"
+        },
+        "826115600917": {
+          "courseWorkId": "826115600917",
+          "state": "ignored_historical",
+          "reason": "present_before_automation_cutover",
+          "title": "Quiz semanal 1 — Reproducibilidad y planeación (3 puntos)",
+          "observedAt": "2026-09-21T01:46:58.071Z"
+        }
+      }
+    }
+  }
+}

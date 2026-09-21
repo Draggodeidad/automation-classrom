@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "build": "node tools/build-workflows.mjs",
-    "test": "node tests/validate-artifacts.mjs"
+    "test": "node tests/validate-artifacts.mjs && node tests/selection-assignment-evidence.mjs"
   }
 }

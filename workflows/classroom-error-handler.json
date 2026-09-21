@@ -10,7 +10,7 @@
         0,
         0
       ],
-      "id": "20000000-0000-4000-8000-000000000001",
+      "id": "6274fa7a-f832-4e47-a707-949f4b2df3e1",
       "name": "Error Trigger"
     },
     {
@@ -23,7 +23,7 @@
         220,
         0
       ],
-      "id": "20000000-0000-4000-8000-000000000002",
+      "id": "166c139e-b2a5-4ba0-94c2-7cdd3c32c136",
       "name": "Build Error Summary"
     },
     {
@@ -37,7 +37,7 @@
           },
           "conditions": [
             {
-              "id": "20000000-0000-4000-8000-000000000005",
+              "id": "d477db52-5ec7-4d64-8584-122895f5609a",
               "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
               "rightValue": "",
               "operator": {
@@ -57,7 +57,7 @@
         440,
         0
       ],
-      "id": "20000000-0000-4000-8000-000000000003",
+      "id": "ebd1006b-b943-4b4e-9c1a-ed636b8c04fd",
       "name": "Notifications Enabled?"
     },
     {
@@ -76,7 +76,7 @@
         660,
         -40
       ],
-      "id": "20000000-0000-4000-8000-000000000004",
+      "id": "ee77de17-cc47-4202-a71d-ed596a768341",
       "name": "Gmail - Send Error Summary",
       "credentials": {
         "gmailOAuth2": {
@@ -127,7 +127,7 @@
     "executionOrder": "v1",
     "timezone": "America/Mexico_City"
   },
-  "versionId": "20000000-0000-4000-8000-000000000006",
+  "versionId": "dea0758d-a053-4f4d-85c8-3aa8b7683262",
   "meta": {
     "templateCredsSetupCompleted": false
   },

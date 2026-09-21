@@ -1,20 +1,32 @@
-# Scheduling
+# Selección y horarios
 
-La instancia y el workflow fijan `America/Mexico_City` mediante `GENERIC_TIMEZONE`, `TZ` y `settings.timezone`.
+- PWA: lunes 09:10; DMI: martes 09:10, America/Mexico_City.
+- Workflow inactivo y modo forzado `dry-run` hasta revisión.
+- Manual y ambos Schedule pasan por `Prepare Classroom Request` y el mismo selector.
+- La API pagina `PUBLISHED` con `pageSize=100`. El orden recibido no decide la selección.
+- Se ordenan candidatos por `scheduledTime || creationTime` ascendente, luego `courseWorkId` lexicográfico. Nunca por `updateTime`.
+- Sin registry: `historical_bootstrap_required`, sin LLM. Con registry y sin pendientes: `no_pending_coursework`, sin espera ni notificación. Los antiguos nodos de retry quedan desconectados de la ruta normal.
 
-| Ruta | Cron | Primera consulta | Retry máximo |
-|---|---|---:|---:|
-| PWA | `10 9 * * 1` | lunes 09:10 | lunes 09:40 |
-| DMI | `10 9 * * 2` | martes 09:10 | martes 09:40 |
-
-Cada trigger crea una ruta con una sola materia. `Route PWA` nunca puede usar el ID de DMI y `Route DMI` nunca puede usar el ID de PWA.
-
-Si la primera consulta no devuelve una actividad publicada, semanal, no-quiz y reciente, el nodo `Wait 30 Minutes Once` espera 30 minutos. `Increment Retry` exige `attempt === 1`, lo cambia a `2` y permite una segunda consulta. Si tampoco hay actividad, genera una alerta opcional y termina. No existe conexión de vuelta al Wait.
-
-El Manual Trigger no cambia estos horarios. Para backfill edita `Manual Request`:
+## Manual
 
 ```js
-const request = { course: 'DMI', week: 3 };
+const request = { course: 'DMI', manualCourseWorkOverride: null, bootstrapHistorical: false };
 ```
 
-En ejecución manual, la semana explícita desactiva el filtro de antigüedad de 36 horas.
+Para probar un histórico, indicar su ID obtenido de Classroom en `manualCourseWorkOverride`. Sólo se permite con trigger manual explícito y entorno dry-run. No modifica histórico ni marca processed. `week` fue retirado como selector; sigue siendo metadata del título.
+
+## Bootstrap explícito
+
+Antes de la primera activación, ejecutar manualmente cada curso con `bootstrapHistorical: true`. Se obtiene `proposedRegistry` con IDs existentes y `cutoverAt`; n8n no persiste static data de pruebas manuales automáticamente.
+
+Exportar el workflow instalado y guardar cada salida del bootstrap en JSON. Preparar la importación preservando credenciales y estado:
+
+```bash
+node tools/prepare-install.mjs existing-export.json prepared-import.json bootstrap-pwa.json bootstrap-dmi.json
+```
+
+Importar `prepared-import.json` con n8n CLI/UI. El helper exige workflow inactivo y rechaza sobrescribir un cutover existente. Para actualizaciones posteriores, exportar el workflow actual y ejecutar el helper sin snapshots. Nunca reemplazar el registry instalado por un template vacío.
+
+El estado persiste en `staticData.global.classroomRegistry[courseId].entries[courseWorkId]` del workflow, en la base SQLite de n8n dentro del volumen `classroom_automation_n8n_data`. Conservar ese volumen y respaldar la exportación del workflow.
+
+Las ejecuciones manuales normales sólo calculan candidatos; los Schedule publicados pueden persistir observaciones `pending` y `processed` al terminar correctamente. `processed` exige un conjunto de Issues existente y verificado, nunca un dry-run. Esta entrega no publica los Schedule ni permite crear Issues.

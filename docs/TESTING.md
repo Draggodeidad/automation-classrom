@@ -10,7 +10,7 @@ npm test
 La suite comprueba:
 
 - JSON importable y sintaxis de todos los Code Nodes;
-- cron PWA/DMI, zona horaria y un único Wait/retry;
+- cron PWA/DMI, zona horaria y terminación inmediata sin pendientes;
 - separación de rutas PWA/DMI;
 - CourseWork normal, quiz y actividad sin ZIP;
 - selección de ZIP y rechazo de dos ZIP ambiguos;
@@ -50,15 +50,15 @@ La suite comprueba:
 - Dos ZIP: selecciona sólo si uno puntúa inequívocamente por materia/semana/starter; empate material falla cerrado.
 - Confirma que `relevantFiles` prioriza instrucciones, rúbrica, README, scripts, workflows y tests.
 
-### Foundation
+### Setup, entrega y reparto ponderado
 
 Con `PWA-w03-kit-estudiante.zip`, la preview debe incluir exactamente:
 
 ```text
-[PWA][W03] Integrar PWA-w03-kit-estudiante.zip y establecer baseline semanal
+[PWA][W03] Preparar PWA-w03-kit-estudiante.zip y establecer baseline de trabajo
 ```
 
-asignada a `Draggodeidad`, sin dependencias. Debe existir además otra Issue `feature`, `test` o `devops` sustancial para Draggodeidad. Julian y Osbaldo no deben depender entre sí salvo una necesidad técnica real, que la validación actual rechaza por seguridad.
+asignada a `Draggodeidad`, sin dependencias y `functionalWeight=0`. Debe existir además `classroom-delivery`, asignada al owner, dependiente de todo el trabajo necesario y también fuera del balance funcional. Verifica los seis casos de reparto, grounding y Gap Analysis incluidos en `tests/validate-artifacts.mjs`.
 
 ### Dry-run
 
@@ -69,6 +69,10 @@ asignada a `Draggodeidad`, sin dependencias. Debe existir además otra Issue `fe
    - `mutationsPerformed=false`;
    - identidad CourseWork correcta;
    - starter e inventario coherentes;
+   - `assignmentPolicy.loads` separa carga funcional, técnica y operacional;
+   - cada Issue muestra `category`, `difficulty`, `weight`, `risk`, `dependsOn` y `groundingStatus`;
+   - los detalles técnicos concretos tienen `provenance`;
+   - `gapAnalysis.excludedCompletedWork` no se convierte en Issues;
    - metadata invisible nueva;
    - labels e Issues exactas que se crearían.
 5. Comprueba que GitHub no cambió.
@@ -98,3 +102,9 @@ Usa primero un repositorio sandbox equivalente.
 - Comprueba pruning de ejecuciones fallidas tras 24 horas.
 - Verifica que las únicas operaciones Classroom/Drive sean GET.
 - Mantén el workflow inactivo hasta completar la prueba sandbox.
+
+## Regresión de orquestación LLM
+
+`tests/llm-orchestration.mjs` ejecuta los casos A–J y casos adicionales recorriendo el JSON generado: Gemini directo, repair único, normalización de keys/referencias, fallbacks, 429, GLM sin grammar, parse/schema, grounding y Fail Closed. Sólo HTTP se simula. Ver [informe](LLM-ORCHESTRATION-REPORT.md).
+
+La suite `tests/selection-assignment-evidence.mjs` añade A–R y una integración de los nodos exportados. Fixtures de cobertura: se prueba revisión total, parcial, SHA obsoleto y ruta sin contenido. Las pruebas anteriores de IA se conservan; una antigua expectativa `LLM complete → excluir` se invirtió porque ya no es válida.
