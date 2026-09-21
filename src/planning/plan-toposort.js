@@ -1,200 +1,121 @@
 const data = $json;
-if (!data.plan || !Array.isArray(data.plan.issues))
-  throw new Error("Plan rechazado: data.plan.issues no existe.");
-
+if (!data.plan || !Array.isArray(data.plan.issues)) throw new Error('PLAN_INVALID: plan ausente');
 const plan = JSON.parse(JSON.stringify(data.plan));
+const members = ['Draggodeidad', 'JulianDele', 'osbaldoXxC'];
+const weights = { easy: 1, medium: 2, hard: 3 };
 const issues = plan.issues;
-const byKey = new Map(issues.map((issue) => [issue.key, issue]));
-const indegree = new Map(issues.map((issue) => [issue.key, 0]));
-const outgoing = new Map(issues.map((issue) => [issue.key, []]));
-for (const issue of issues) {
-  if (!Array.isArray(issue.dependsOn)) issue.dependsOn = [];
-  for (const dependency of issue.dependsOn) {
-    if (!byKey.has(dependency))
-      throw new Error(
-        `Plan rechazado: ${issue.key} depende de "${dependency}" inexistente.`,
-      );
+const byKey = new Map(issues.map(issue => [issue.key, issue]));
+if (byKey.size !== issues.length) throw new Error('PLAN_INVALID: keys duplicadas');
+const operational = issue => ['foundation', 'classroom-delivery'].includes(issue.key);
+const personal = issue => issue.personalRequirement === true;
+const functional = issue => !operational(issue) && !personal(issue);
+const technical = issue => Boolean(issue.requiresCoding || issue.requiresRepositoryKnowledge ||
+  ['implementation', 'integration', 'infrastructure'].includes(issue.category));
+const safe = issue => issue.difficulty !== 'hard' && issue.risk === 'low' &&
+  ['testing', 'documentation', 'evidence', 'validation', 'ui', 'implementation'].includes(issue.category) &&
+  !(issue.category === 'implementation' && issue.requiresRepositoryKnowledge) &&
+  !/arquitectura|auth|autenticaci[oó]n|seguridad|security|infraestructura|ci\/cd|persistencia|sincronizaci[oó]n|concurrencia|backend cr[ií]tico|refactor estructural|integraci[oó]n delicada/i.test(`${issue.title} ${JSON.stringify([issue.sections?.objetivoTecnico, issue.sections?.alcance])}`);
+const eligible = issue => safe(issue) ? members : ['Draggodeidad', 'JulianDele'];
+function sort() {
+  const indegree = new Map(issues.map(issue => [issue.key, 0]));
+  const outgoing = new Map(issues.map(issue => [issue.key, []]));
+  for (const issue of issues) for (const key of new Set(issue.dependsOn || [])) {
+    if (!byKey.has(key)) throw new Error(`PLAN_INVALID: ${issue.key} depende de ${key} inexistente`);
     indegree.set(issue.key, indegree.get(issue.key) + 1);
-    outgoing.get(dependency).push(issue.key);
+    outgoing.get(key).push(issue.key);
   }
-}
-const queue = issues
-  .filter((issue) => indegree.get(issue.key) === 0)
-  .map((issue) => issue.key);
-const ordered = [];
-while (queue.length) {
-  const key = queue.shift();
-  ordered.push(byKey.get(key));
-  for (const next of outgoing.get(key)) {
-    indegree.set(next, indegree.get(next) - 1);
-    if (indegree.get(next) === 0) queue.push(next);
-  }
-}
-if (ordered.length !== issues.length)
-  throw new Error("Plan rechazado: existen dependencias circulares.");
-
-const members = ["Draggodeidad", "JulianDele", "osbaldoXxC"];
-const loads = Object.fromEntries(
-  members.map((member) => [
-    member,
-    {
-      functional: 0,
-      technical: 0,
-      operational: 0,
-      issueCount: 0,
-    },
-  ]),
-);
-const technicalCategories = new Set([
-  "implementation",
-  "integration",
-  "infrastructure",
-]);
-const osbaldoSafeCategories = new Set([
-  "testing",
-  "documentation",
-  "evidence",
-  "validation",
-  "ui",
-  "implementation",
-]);
-const riskyNature =
-  /arquitectura|autenticaci[oó]n|seguridad|infraestructura|ci\/cd|persistencia|sincronizaci[oó]n|concurrencia|backend cr[ií]tico|refactor estructural/i;
-const isTechnical = (issue) =>
-  Boolean(
-    issue.requiresCoding ||
-    issue.requiresRepositoryKnowledge ||
-    technicalCategories.has(issue.category),
-  );
-const safeForOsbaldo = (issue) =>
-  issue.difficulty !== "hard" &&
-  issue.risk === "low" &&
-  osbaldoSafeCategories.has(issue.category) &&
-  !(issue.category === "implementation" && issue.requiresRepositoryKnowledge) &&
-  !(
-    issue.requiresCoding &&
-    technicalCategories.has(issue.category) &&
-    riskyNature.test(`${issue.title} ${issue.body}`)
-  );
-const choose = (candidates, score, preference) =>
-  [...candidates].sort((a, b) => {
-    const difference = score(a) - score(b);
-    return difference || preference.indexOf(a) - preference.indexOf(b);
-  })[0];
-
-for (const issue of ordered) {
-  const operational = issue.requirementKind === "internalWorkflowRequirement";
-  if (operational) {
-    issue.assignee = "Draggodeidad";
-    issue.functionalWeight = 0;
-    issue.operationalWeight = Number(issue.operationalWeight || 1);
-    loads.Draggodeidad.operational += issue.operationalWeight;
-    loads.Draggodeidad.issueCount += 1;
-    continue;
-  }
-
-  const weight = Number(issue.estimatedWeight || 1);
-  const technical = isTechnical(issue);
-  let candidates;
-  let preference;
-  let score;
-  if (issue.difficulty === "hard") {
-    candidates = ["Draggodeidad", "JulianDele"];
-    preference = ["Draggodeidad", "JulianDele"];
-    score = (member) => loads[member].technical * 10 + loads[member].functional;
-  } else if (issue.difficulty === "medium") {
-    const skilled = ["JulianDele", "Draggodeidad"];
-    const leastSkilledLoad = Math.min(
-      ...skilled.map((member) => loads[member].functional),
-    );
-    candidates =
-      safeForOsbaldo(issue) &&
-      loads.osbaldoXxC.functional + weight < leastSkilledLoad
-        ? [...skilled, "osbaldoXxC"]
-        : skilled;
-    preference = ["JulianDele", "Draggodeidad", "osbaldoXxC"];
-    score = (member) =>
-      loads[member].functional + (technical ? loads[member].technical : 0);
-  } else {
-    const eligible = safeForOsbaldo(issue)
-      ? members
-      : ["Draggodeidad", "JulianDele"];
-    const leastOther = Math.min(
-      loads.Draggodeidad.functional,
-      loads.JulianDele.functional,
-    );
-    if (
-      eligible.includes("osbaldoXxC") &&
-      loads.osbaldoXxC.functional <= leastOther + 2
-    ) {
-      candidates = ["osbaldoXxC"];
-    } else {
-      candidates = eligible;
+  const queue = issues.filter(issue => indegree.get(issue.key) === 0).map(issue => issue.key).sort();
+  const result = [];
+  while (queue.length) {
+    const key = queue.shift(); result.push(byKey.get(key));
+    for (const next of outgoing.get(key)) {
+      indegree.set(next, indegree.get(next) - 1);
+      if (indegree.get(next) === 0) { queue.push(next); queue.sort(); }
     }
-    preference = ["osbaldoXxC", "JulianDele", "Draggodeidad"];
-    score = (member) => loads[member].functional;
   }
-
-  issue.assignee = choose(candidates, score, preference);
-  issue.functionalWeight = weight;
-  issue.operationalWeight = 0;
-  loads[issue.assignee].functional += weight;
-  if (technical) loads[issue.assignee].technical += weight;
-  loads[issue.assignee].issueCount += 1;
+  if (result.length !== issues.length) throw new Error('PLAN_INVALID: dependency cycle');
+  return result;
 }
-
-const unsafeOsbaldo = ordered.filter(
-  (issue) =>
-    issue.assignee === "osbaldoXxC" &&
-    issue.requirementKind === "sourceRequirement" &&
-    !safeForOsbaldo(issue),
-);
-if (unsafeOsbaldo.length)
-  throw new Error(
-    `Plan rechazado: asignación insegura para osbaldoXxC: ${unsafeOsbaldo.map((issue) => issue.key).join(", ")}`,
-  );
-const hardOwners = new Set(
-  ordered
-    .filter(
-      (issue) =>
-        issue.difficulty === "hard" &&
-        issue.requirementKind === "sourceRequirement",
-    )
-    .map((issue) => issue.assignee),
-);
-if (hardOwners.has("osbaldoXxC"))
-  throw new Error("Plan rechazado: una tarea hard fue asignada a osbaldoXxC.");
-
-const planKeys = ordered.map((issue) => issue.key);
-const desiredLabels = [
-  ...new Set([
-    data.course,
-    `week-${data.weekPadded}`,
-    ...ordered.flatMap((issue) => [
-      `type:${issue.type}`,
-      `priority:${issue.priority}`,
-    ]),
-  ]),
-].filter(Boolean);
-const existingLabels = new Set(data.repoContext?.labels || []);
-
-return [
-  {
-    json: {
-      ...data,
-      plan: { ...plan, issues: ordered },
-      planKeys,
-      desiredLabels,
-      missingLabels: desiredLabels.filter(
-        (label) => !existingLabels.has(label),
-      ),
-      bootstrapKey: data.starter?.found ? "foundation" : null,
-      assignmentPolicy: {
-        strategy: "capability-aware-weighted-load",
-        difficultyWeights: { easy: 1, medium: 2, hard: 3 },
-        operationalExcludedFromFunctionalBalance: true,
-        loads,
-      },
-    },
-  },
-];
+let ordered = sort();
+const loads = Object.fromEntries(members.map(member => [member,
+  { functional: 0, technical: 0, operational: 0, personalRequirement: 0, issueCount: 0 }]));
+for (const issue of ordered) {
+  if (!weights[issue.difficulty]) throw new Error(`PLAN_INVALID: dificultad ${issue.key}`);
+  issue.estimatedWeight = weights[issue.difficulty];
+  issue.functionalWeight = functional(issue) ? issue.estimatedWeight : 0;
+  issue.technicalWeight = functional(issue) && technical(issue) ? issue.estimatedWeight : 0;
+  issue.operationalWeight = operational(issue) ? issue.estimatedWeight : 0;
+  issue.personalRequirementWeight = personal(issue) ? issue.estimatedWeight : 0;
+  if (operational(issue)) issue.assignee = 'Draggodeidad';
+  else if (personal(issue)) {
+    if (!members.includes(issue.personalOwner) || issue.key !== `evidence-${issue.personalOwner.toLowerCase()}` ||
+      issue.delegable !== false || (issue.assignee && issue.assignee !== issue.personalOwner)) {
+      throw new Error('PLAN_INVALID: evidencia personal no delegable');
+    }
+    issue.assignee = issue.personalOwner;
+  } else {
+    const support = ['testing', 'validation', 'evidence'].includes(issue.category) || (issue.category === 'documentation' && !technical(issue));
+    const preference = issue.difficulty === 'hard' ? ['Draggodeidad', 'JulianDele', 'osbaldoXxC'] :
+      issue.difficulty === 'easy' && support ? ['osbaldoXxC', 'JulianDele', 'Draggodeidad'] :
+      ['JulianDele', 'Draggodeidad', 'osbaldoXxC'];
+    const score = member => loads[member].functional + (issue.difficulty === 'hard' ? loads[member].technical * 2 : 0) -
+      (issue.difficulty === 'easy' && support && member === 'osbaldoXxC' ? 1 : 0);
+    issue.assignee = [...eligible(issue)].sort((a, b) => score(a) - score(b) || preference.indexOf(a) - preference.indexOf(b))[0];
+  }
+  const load = loads[issue.assignee];
+  load.functional += issue.functionalWeight; load.technical += issue.technicalWeight;
+  load.operational += issue.operationalWeight; load.personalRequirement += issue.personalRequirementWeight; load.issueCount++;
+}
+const warnings = [];
+const count = member => issues.filter(issue => functional(issue) && issue.assignee === member).length;
+// Move only real, compatible work from a member with multiple tasks. Personal/operational work is locked.
+for (const member of ['JulianDele', 'Draggodeidad', 'osbaldoXxC']) {
+  if (count(member)) continue;
+  const movable = issues.filter(issue => functional(issue) && eligible(issue).includes(member) && count(issue.assignee) > 1)
+    .sort((a, b) => b.functionalWeight - a.functionalWeight || a.key.localeCompare(b.key));
+  if (movable.length) {
+    const issue = movable[0]; const from = issue.assignee;
+    for (const [field, weight] of [['functional', issue.functionalWeight], ['technical', issue.technicalWeight]]) {
+      loads[from][field] -= weight; loads[member][field] += weight;
+    }
+    loads[from].issueCount--; loads[member].issueCount++; issue.assignee = member;
+    warnings.push({ code: 'WARNING_ASSIGNMENT_IMBALANCE', member, resolution: 'rebalanced', key: issue.key, from });
+  } else warnings.push({ code: 'INFO_NO_COMPATIBLE_WORK', member,
+    message: 'No existe trabajo funcional pendiente compatible disponible después del Gap Analysis sin dejar a otro integrante en cero.' });
+}
+// Personal evidence waits for that person's contribution, excluding successors that already wait for evidence.
+const reaches = (start, target, seen = new Set()) => {
+  if (start === target) return true;
+  if (seen.has(start)) return false;
+  seen.add(start);
+  return (byKey.get(start)?.dependsOn || []).some(key => reaches(key, target, seen));
+};
+for (const issue of issues.filter(personal)) {
+  issue.dependsOn = issues.filter(other => functional(other) && other.assignee === issue.personalOwner &&
+    !reaches(other.key, issue.key)).map(other => other.key);
+  if (!issue.dependsOn.length && byKey.has('foundation')) issue.dependsOn = ['foundation'];
+}
+const delivery = byKey.get('classroom-delivery');
+if (delivery) delivery.dependsOn = issues.filter(issue => issue !== delivery).map(issue => issue.key);
+ordered = sort();
+for (const issue of ordered) {
+  issue.personalRequirement = personal(issue);
+  issue.delegable = personal(issue) || operational(issue) ? false : true;
+  issue.sections ||= {};
+  issue.sections.dependencias = [...(issue.dependsOn || []), ...(issue.satisfiedDependencies || []).map(d => `${d.dependency}: ${d.resolution}`)];
+}
+const teamCoverage = Object.fromEntries(members.map(member => [member, {
+  functionalIssues: count(member), personalEvidence: issues.some(issue => personal(issue) && issue.assignee === member) || (data.completePersonalEvidence || []).some(entry => entry.member === member),
+  operationalIssues: issues.filter(issue => operational(issue) && issue.assignee === member).length,
+  functionalWeight: loads[member].functional, technicalWeight: loads[member].technical,
+  operationalWeight: loads[member].operational, personalRequirementWeight: loads[member].personalRequirement,
+}]));
+const planKeys = ordered.map(issue => issue.key);
+const desiredLabels = [...new Set([data.course, `week-${data.weekPadded}`,
+  ...ordered.flatMap(issue => [`type:${issue.type}`, `priority:${issue.priority}`])])].filter(Boolean);
+return [{ json: { ...data, plan: { ...plan, issues: ordered }, planKeys, desiredLabels,
+  missingLabels: desiredLabels.filter(label => !(data.repoContext?.labels || []).includes(label)),
+  bootstrapKey: data.starter?.found ? 'foundation' : null, teamCoverage, assignmentWarnings: warnings,
+  assignmentPolicy: { strategy: 'capability-aware-weighted-load', difficultyWeights: weights,
+    operationalExcludedFromFunctionalBalance: true, personalExcludedFromFunctionalBalance: true, loads },
+} }];

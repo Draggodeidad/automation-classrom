@@ -1,3 +1,5 @@
 .env
 *.log
 n8n_data/
+
+.local/

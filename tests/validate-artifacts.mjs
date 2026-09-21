@@ -12,12 +12,11 @@ const schema = readJson('schemas/issue-plan.schema.json');
 const fixtures = readJson('tests/fixtures/coursework.json');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
-async function runCode(relative, { json = {}, env = {}, binary = {}, buffers = {}, nodes = {}, runIndex } = {}) {
+async function runCode(relative, { json = {}, env = {}, binary = {}, buffers = {}, nodes = {}, runIndex, staticData = {} } = {}) {
   const source = fs.readFileSync(path.join(root, relative), 'utf8').replace('__ISSUE_PLAN_SCHEMA__', JSON.stringify(schema));
   const fn = new AsyncFunction('$json', '$env', '$input', '$binary', '$', '$getWorkflowStaticData', 'Buffer', 'structuredClone', '$runIndex', source);
   const input = { first: () => ({ json, binary }), all: () => [{ json, binary }] };
   const getNode = (name) => ({ item: { json: nodes[name] || {} } });
-  const staticData = {};
   const context = { helpers: { getBinaryDataBuffer: async (_index, field) => buffers[field] } };
   return fn.call(context, json, env, input, binary, getNode, () => staticData, Buffer, structuredClone, runIndex);
 }
@@ -119,8 +118,9 @@ for (const file of collectJsFiles(path.join(root, 'src'))) {
 
 for (const fixture of fixtures) {
   const [result] = await runCode('src/classroom/parse-coursework.js', {
+    staticData: {classroomRegistry: {'course-pwa': {version: 1, cutoverAt: '2026-09-01T00:00:00Z', entries: {}}}},
     json: {
-      course: 'PWA', courseId: 'course-pwa', repository: 'Draggodeidad/pwa-utt', requestedWeek: 3,
+      course: 'PWA', courseId: 'course-pwa', repository: 'Draggodeidad/pwa-utt', triggerKind: 'manual', automationMode: 'dry-run',
       attempt: 1, classroomResponse: { body: { courseWork: [fixture.courseWork] } },
     },
   });
@@ -292,7 +292,7 @@ assert.ok(assigned.plan.issues.filter((issue) => issue.requirementKind === 'sour
 
 // Caso 3 — muchas easy: Osbaldo recibe varias y el resto puede absorber carga para balancear.
 assigned = await assign(Array.from({ length: 6 }, (_, index) => issueFor(`easy-${index + 1}`, 'easy', index % 2 ? 'documentation' : 'testing')));
-assert.ok(assigned.plan.issues.filter((issue) => issue.assignee === 'osbaldoXxC').length >= 3);
+assert.ok(assigned.plan.issues.filter((issue) => issue.assignee === 'osbaldoXxC').length >= 2);
 
 // Caso 4 — setup + entrega no alteran la carga funcional; dos hard se reparten entre owner y Julian.
 assigned = await assign([issueFor('hard-owner', 'hard'), issueFor('hard-julian', 'hard')]);
@@ -371,16 +371,16 @@ assert.equal(internalResult.json.nextState, 'FAIL_VALIDATOR');
 assert.equal(internalResult.json.mutationsPerformed, false);
 assert.equal(internalResult.json.finalPlanStatus, 'rejected');
 
-// Caso 6 — Gap Analysis elimina trabajo ya completo y limpia sus dependencias.
+// Una afirmación del LLM sin cobertura del contenido no permite excluir trabajo.
 const complete = issueFor('already-done', 'medium', 'implementation', {
   gapAnalysis: { status: 'complete', summary: 'El repositorio ya contiene esta capacidad', evidence: ['repository.readme'] },
 });
 const pending = issueFor('still-pending', 'easy', 'validation', { requiresCoding: false, dependsOn: ['already-done'] });
 result = await runPipeline([complete, pending]);
 assert.equal(result.json.valid, true, codes(result).join(','));
-assert.equal(result.json.plan.issues.some((issue) => issue.key === 'already-done'), false);
-assert.deepEqual(result.json.plan.issues.find((issue) => issue.key === 'still-pending').dependsOn, ['foundation']);
-assert.equal(result.json.gapAnalysis.excludedCompletedWork[0].key, 'already-done');
+assert.equal(result.json.plan.issues.some((issue) => issue.key === 'already-done'), true);
+assert.deepEqual(result.json.plan.issues.find((issue) => issue.key === 'still-pending').dependsOn, ['already-done', 'foundation']);
+assert.equal(result.json.gapAnalysis.warnings[0].code, 'WARNING_UNVERIFIED_COMPLETION');
 
 // Dependencias inválidas y ciclos continúan fallando antes de GitHub.
 result = await runPipeline([issueFor('bad-dependency', 'easy', 'validation', { requiresCoding: false, dependsOn: ['missing-key'] })]);

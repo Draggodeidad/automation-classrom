@@ -10,7 +10,7 @@ npm test
 La suite comprueba:
 
 - JSON importable y sintaxis de todos los Code Nodes;
-- cron PWA/DMI, zona horaria y un único Wait/retry;
+- cron PWA/DMI, zona horaria y terminación inmediata sin pendientes;
 - separación de rutas PWA/DMI;
 - CourseWork normal, quiz y actividad sin ZIP;
 - selección de ZIP y rechazo de dos ZIP ambiguos;
@@ -106,3 +106,5 @@ Usa primero un repositorio sandbox equivalente.
 ## Regresión de orquestación LLM
 
 `tests/llm-orchestration.mjs` ejecuta los casos A–J y casos adicionales recorriendo el JSON generado: Gemini directo, repair único, normalización de keys/referencias, fallbacks, 429, GLM sin grammar, parse/schema, grounding y Fail Closed. Sólo HTTP se simula. Ver [informe](LLM-ORCHESTRATION-REPORT.md).
+
+La suite `tests/selection-assignment-evidence.mjs` añade A–R y una integración de los nodos exportados. Fixtures de cobertura: se prueba revisión total, parcial, SHA obsoleto y ruta sin contenido. Las pruebas anteriores de IA se conservan; una antigua expectativa `LLM complete → excluir` se invirtió porque ya no es válida.

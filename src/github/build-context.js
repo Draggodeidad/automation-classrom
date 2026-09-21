@@ -1,4 +1,6 @@
 const source = $("Activity Context").item.json;
+const repositoryContents = $json.repositoryContents || {};
+const coverageReview = $getWorkflowStaticData("global").classroomRegistry?.[source.courseId]?.entries?.[source.courseWorkId]?.coverageReview || {};
 const outputSchema = __ISSUE_PLAN_SCHEMA__;
 const geminiAllowed = new Set([
   "type",
@@ -202,6 +204,7 @@ const repoContext = {
     })),
   labels: labels.map((label) => label.name),
   relevantPaths,
+  contents: Object.fromEntries(Object.entries(repositoryContents).map(([path, file]) => [path, { ...file, content: file.content.slice(0, 5000), truncated: file.content.length > 5000 }])),
   readme,
   starterComparison: {
     overlappingPaths: overlapping.slice(0, 30),
@@ -271,8 +274,8 @@ if (source.starter?.found) {
     );
   });
 }
-for (const repoPath of relevantPaths)
-  addGrounding(`repository.path:${repoPath}`, "repository", repoPath);
+for (const repoPath of new Set([...relevantPaths, ...Object.keys(repositoryContents)]))
+  addGrounding(`repository.path:${repoPath}`, "repository", `${repoPath}\n${repositoryContents[repoPath]?.content || ""}`);
 addGrounding("repository.readme", "repository", readme);
 compactIssues.forEach((issue) =>
   addGrounding(
@@ -355,6 +358,8 @@ return [
     json: {
       ...source,
       repoContext,
+      repositoryContents,
+      coverageReview,
       existingAutomationIssues: sameIdentity.map((issue) => ({
         number: issue.number,
         title: issue.title,

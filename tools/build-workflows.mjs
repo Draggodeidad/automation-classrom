@@ -19,6 +19,11 @@ const nodeId = (name, map = existingMainNodes) => existingNode(name, map)?.id ||
 const conditionId = (name, map = existingMainNodes) =>
   existingNode(name, map)?.parameters?.conditions?.conditions?.[0]?.id || randomUUID();
 const codeFiles = {
+  'prepare-content-requests.js': 'src/github/prepare-content-requests.js',
+  'collect-contents.js': 'src/github/collect-contents.js',
+  'expand-personal-requirements.js': 'src/planning/expand-personal-requirements.js',
+  'validate-final-assignment.js': 'src/planning/validate-final-assignment.js',
+  'observe-existing.js': 'src/registry/observe-existing.js',
   'prepare-request.js': 'src/classroom/prepare-request.js',
   'parse-coursework.js': 'src/classroom/parse-coursework.js',
   'inspect-materials.js': 'src/classroom/inspect-materials.js',
@@ -126,14 +131,18 @@ add('Route DMI', 'n8n-nodes-base.code', [-2380, -80], {
 }, { typeVersion: 2 });
 add('Manual Trigger', 'n8n-nodes-base.manualTrigger', [-2600, 120], {}, { typeVersion: 1 });
 add('Manual Request', 'n8n-nodes-base.code', [-2380, 120], {
-  jsCode: "// Edita únicamente estos valores para backfill/recuperación manual.\nconst request = { course: 'PWA', week: 1 };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];",
+  jsCode: "// Selección normal por registry. Override histórico sólo en dry-run manual.\nconst request = { course: 'PWA', manualCourseWorkOverride: null, bootstrapHistorical: false };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];",
 }, { typeVersion: 2 });
 add('Prepare Classroom Request', 'n8n-nodes-base.code', [-2160, -80], { jsCode: code('prepare-request.js') }, { typeVersion: 2 });
 
-const classroomUrl = "={{ 'https://classroom.googleapis.com/v1/courses/' + encodeURIComponent($json.courseId) + '/courseWork?courseWorkStates=PUBLISHED&orderBy=updateTime%20desc&pageSize=5&fields=courseWork(courseId,id,title,description,materials,state,alternateLink,creationTime,updateTime,dueDate,dueTime,scheduledTime,maxPoints,workType)' }}";
-googleGet('Classroom - List CourseWork Initial', [-1940, -80], classroomUrl);
+const classroomUrl = "={{ 'https://classroom.googleapis.com/v1/courses/' + encodeURIComponent($json.courseId) + '/courseWork?courseWorkStates=PUBLISHED&orderBy=updateTime%20desc&pageSize=100&fields=nextPageToken,courseWork(courseId,id,title,description,materials,state,alternateLink,creationTime,updateTime,dueDate,dueTime,scheduledTime,maxPoints,workType)' }}";
+const classroomOptions = { ...fullResponse, pagination: { pagination: {
+  paginationMode: 'updateAParameterInEachRequest', parameters: { parameters: [{ type: 'qs', name: 'pageToken', value: '={{ $response.body.nextPageToken || "" }}' }] },
+  paginationCompleteWhen: 'other', completeExpression: '={{ !$response.body.nextPageToken }}', limitPagesFetched: true, maxRequests: 100,
+} } };
+googleGet('Classroom - List CourseWork Initial', [-1940, -80], classroomUrl, classroomOptions);
 add('Attach Initial Classroom Response', 'n8n-nodes-base.code', [-1720, -80], {
-  jsCode: "const context = $('Prepare Classroom Request').item.json; return [{ json: { ...context, classroomResponse: $json } }];",
+  jsCode: "const context = $('Prepare Classroom Request').item.json; const pages = $input.all().map(i => i.json.body || i.json); return [{ json: { ...context, classroomResponse: { courseWork: pages.flatMap(p => p.courseWork || []), nextPageToken: pages.at(-1)?.nextPageToken } } }];",
 }, { typeVersion: 2 });
 add('Parse Initial CourseWork', 'n8n-nodes-base.code', [-1500, -80], { jsCode: code('parse-coursework.js') }, { typeVersion: 2 });
 boolIf('CourseWork Found Initial?', [-1280, -80], '={{ $json.found }}');
@@ -141,15 +150,13 @@ add('Wait 30 Minutes Once', 'n8n-nodes-base.wait', [-1060, 100], { amount: 30, u
 add('Increment Retry', 'n8n-nodes-base.code', [-840, 100], {
   jsCode: "if (Number($json.attempt) !== 1) throw new Error('Retry guard: sólo se permite un retry'); return [{ json: { ...$json, attempt: 2 } }];",
 }, { typeVersion: 2 });
-googleGet('Classroom - List CourseWork Retry', [-620, 100], classroomUrl);
+googleGet('Classroom - List CourseWork Retry', [-620, 100], classroomUrl, classroomOptions);
 add('Attach Retry Classroom Response', 'n8n-nodes-base.code', [-400, 100], {
-  jsCode: "const context = $('Increment Retry').item.json; return [{ json: { ...context, classroomResponse: $json } }];",
+  jsCode: "const context = $('Increment Retry').item.json; const pages = $input.all().map(i => i.json.body || i.json); return [{ json: { ...context, classroomResponse: { courseWork: pages.flatMap(p => p.courseWork || []), nextPageToken: pages.at(-1)?.nextPageToken } } }];",
 }, { typeVersion: 2 });
 add('Parse Retry CourseWork', 'n8n-nodes-base.code', [-180, 100], { jsCode: code('parse-coursework.js') }, { typeVersion: 2 });
 boolIf('CourseWork Found Retry?', [40, 100], '={{ $json.found }}');
-add('Build No Activity Summary', 'n8n-nodes-base.code', [260, 260], {
-  jsCode: "return [{json:{...$json,notificationSubject:`❌ No se encontró ${$json.course} tras el retry`,notificationBody:`❌ No se procesó ${$json.course}\\n\\nCourse ID: ${$json.courseId}\\nConsultas Classroom: 2\\nResultado: ninguna actividad semanal válida a las 09:10 ni a las 09:40.\\n\\nGitHub no fue modificado.`,executionResult:'not_found_after_retry'}}];",
-}, { typeVersion: 2 });
+add('Build No Activity Summary', 'n8n-nodes-base.code', [260, 260], { jsCode: "return [{json:{...$json,mode:'dry-run',mutationsPerformed:false}}];" }, { typeVersion: 2 });
 notificationGate('Notify No Activity?', [480, 260]);
 add('Gmail - Send No Activity Alert', 'n8n-nodes-base.gmail', [700, 220], {
   operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false },
@@ -186,8 +193,12 @@ githubGet('GitHub - Open Pull Requests', [3560, -80], "={{ 'https://api.github.c
 githubGet('GitHub - Labels', [3780, -80], "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/labels?per_page=100' }}");
 githubGet('GitHub - Tree', [4000, -80], "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/git/trees/' + encodeURIComponent($('GitHub - Repository').item.json.body.default_branch) + '?recursive=1' }}", true);
 githubGet('GitHub - README', [4220, -80], "={{ 'https://api.github.com/repos/' + $('Activity Context').item.json.repository + '/readme' }}", true);
+add('Prepare Repository Content Requests', 'n8n-nodes-base.code', [4260, -80], { jsCode: code('prepare-content-requests.js') }, { typeVersion: 2 });
+githubGet('GitHub - Repository Content', [4300, -80], "={{ 'https://api.github.com/repos/' + $json.repository + '/contents/' + $json.path.split('/').map(encodeURIComponent).join('/') + '?ref=' + encodeURIComponent($json.ref) }}", true);
+add('Collect Repository Contents', 'n8n-nodes-base.code', [4360, -80], { jsCode: code('collect-contents.js') }, { typeVersion: 2 });
 add('Build Context & Dedup', 'n8n-nodes-base.code', [4440, -80], { jsCode: contextCode }, { typeVersion: 2 });
-boolIf('Needs Manual Review?', [4660, -80], '={{ $json.courseworkUpdated || $json.identityConflict }}');
+add('Observe Processed Registry', 'n8n-nodes-base.code', [4540, -80], { jsCode: code('observe-existing.js') }, { typeVersion: 2 });
+boolIf('Needs Manual Review?', [4660, -80], '={{ $json.selectionMode !== "manual_test_override" && ($json.courseworkUpdated || $json.identityConflict) }}');
 add('Build Manual Review Alert', 'n8n-nodes-base.code', [4880, -240], {
   jsCode: "const reason=$json.courseworkUpdated?'CourseWork actualizado después de crear Issues':'otra identidad CourseWork ya usa la misma materia/semana'; return [{json:{...$json,executionResult:'coursework_updated',notificationSubject:`⚠️ Revisión manual ${$json.course} W${$json.weekPadded}`,notificationBody:`⚠️ No se modificó GitHub\\n\\nCourseWork: ${$json.courseWorkId}\\nRazón: ${reason}\\nUpdateTime actual: ${$json.updateTime}\\nUpdateTime almacenado: ${$json.newestStoredUpdate || 'n/a'}\\n\\nRevisa cambios antes de reconciliar.`}}];",
 }, { typeVersion: 2 });
@@ -195,7 +206,7 @@ notificationGate('Notify Manual Review?', [5100, -240]);
 add('Gmail - Send Manual Review Alert', 'n8n-nodes-base.gmail', [5320, -280], {
   operation: 'send', sendTo: '={{ $env.NOTIFICATION_EMAIL }}', subject: '={{ $json.notificationSubject }}', message: '={{ $json.notificationBody }}', options: { appendAttribution: false },
 }, { typeVersion: 2.1, credentials: gmailCredentials });
-boolIf('Existing Set Complete?', [4880, 20], '={{ $json.completeExisting }}');
+boolIf('Existing Set Complete?', [4880, 20], '={{ $json.selectionMode !== "manual_test_override" && $json.completeExisting }}');
 add('Build Reconcile Summary', 'n8n-nodes-base.code', [5100, -20], { jsCode: code('reconcile-summary.js') }, { typeVersion: 2 });
 notificationGate('Notify Reconcile?', [5320, -20]);
 add('Gmail - Send Reconcile Summary', 'n8n-nodes-base.gmail', [5540, -60], {
@@ -235,7 +246,7 @@ function attemptBranch({ suffix, prepare, adapter, http, gemini, y, gate }) {
   });
   boolIf(gate, [6860, y], "={{ $json.nextState === 'PLAN_VALID' && $json.valid && $json.parseStatus === 'valid' && $json.schemaStatus === 'valid' }}");
   connect(previous, gate);
-  connect(gate, 'Plan and Topological Sort', 0);
+  connect(gate, 'Expand Personal Requirements', 0);
 }
 attemptBranch({ suffix: '', prepare: 'LLM Request', adapter: 'Gemini Adapter', http: 'Gemini - Plan', gemini: true, y: 160, gate: 'Plan Valid?' });
 boolIf('Gemini Repair Required?', [7080, 300], "={{ $json.nextState === 'GEMINI_REPAIR_REQUEST' }}");
@@ -252,6 +263,9 @@ boolIf('Validator Internal - Qwen?', [7300, 1140], '={{ $json.nextState === "FAI
 boolIf('Validator Internal - GLM?', [7300, 1480], '={{ $json.nextState === "FAIL_VALIDATOR" }}');
 add('Fail Validator - Invalid Plan', 'n8n-nodes-base.code', [7080, 1620], { jsCode: code('fail-validator.js') }, { typeVersion: 2 });
 
+add('Expand Personal Requirements', 'n8n-nodes-base.code', [7160, 120], { jsCode: code('expand-personal-requirements.js') }, { typeVersion: 2 });
+add('Build Assigned Issue Bodies', 'n8n-nodes-base.code', [7360, 120], { jsCode: code('build-bodies.js') }, { typeVersion: 2 });
+add('Validate Final Assignment', 'n8n-nodes-base.code', [7420, 120], { jsCode: code('validate-final-assignment.js') }, { typeVersion: 2 });
 add('Plan and Topological Sort', 'n8n-nodes-base.code', [7300, 120], { jsCode: code('plan-toposort.js') }, { typeVersion: 2 });
 equalsIf('Dry Run?', [7520, 120], '={{ $json.automationMode }}', 'dry-run');
 add('Exact Dry-Run Preview', 'n8n-nodes-base.code', [7740, 20], { jsCode: code('dry-run-summary.js') }, { typeVersion: 2 });
@@ -297,7 +311,7 @@ connect('Classroom - List CourseWork Initial', 'Attach Initial Classroom Respons
 connect('Attach Initial Classroom Response', 'Parse Initial CourseWork');
 connect('Parse Initial CourseWork', 'CourseWork Found Initial?');
 connect('CourseWork Found Initial?', 'Inspect Materials', 0);
-connect('CourseWork Found Initial?', 'Wait 30 Minutes Once', 1);
+connect('CourseWork Found Initial?', 'Build No Activity Summary', 1);
 connect('Wait 30 Minutes Once', 'Increment Retry');
 connect('Increment Retry', 'Classroom - List CourseWork Retry');
 connect('Classroom - List CourseWork Retry', 'Attach Retry Classroom Response');
@@ -305,7 +319,7 @@ connect('Attach Retry Classroom Response', 'Parse Retry CourseWork');
 connect('Parse Retry CourseWork', 'CourseWork Found Retry?');
 connect('CourseWork Found Retry?', 'Inspect Materials', 0);
 connect('CourseWork Found Retry?', 'Build No Activity Summary', 1);
-connect('Build No Activity Summary', 'Notify No Activity?');
+// No coursework is a clean terminal preview; no notifications or LLM calls.
 connect('Notify No Activity?', 'Gmail - Send No Activity Alert', 0);
 connect('Inspect Materials', 'Starter ZIP Found?');
 connect('Starter ZIP Found?', 'Drive - Starter Metadata', 0);
@@ -327,8 +341,12 @@ connect('GitHub - Search Course Week', 'GitHub - Open Pull Requests');
 connect('GitHub - Open Pull Requests', 'GitHub - Labels');
 connect('GitHub - Labels', 'GitHub - Tree');
 connect('GitHub - Tree', 'GitHub - README');
-connect('GitHub - README', 'Build Context & Dedup');
-connect('Build Context & Dedup', 'Needs Manual Review?');
+connect('GitHub - README', 'Prepare Repository Content Requests');
+connect('Prepare Repository Content Requests', 'GitHub - Repository Content');
+connect('GitHub - Repository Content', 'Collect Repository Contents');
+connect('Collect Repository Contents', 'Build Context & Dedup');
+connect('Build Context & Dedup', 'Observe Processed Registry');
+connect('Observe Processed Registry', 'Needs Manual Review?');
 connect('Needs Manual Review?', 'Build Manual Review Alert', 0);
 connect('Needs Manual Review?', 'Existing Set Complete?', 1);
 connect('Build Manual Review Alert', 'Notify Manual Review?');
@@ -351,7 +369,10 @@ connect('Validator Internal - Qwen?', 'Prepare GLM Fallback', 1);
 connect('GLM Plan Valid?', 'Validator Internal - GLM?', 1);
 connect('Validator Internal - GLM?', 'Fail Validator - Invalid Plan', 0);
 connect('Validator Internal - GLM?', 'Fail Closed - Invalid Plan', 1);
-connect('Plan and Topological Sort', 'Dry Run?');
+connect('Expand Personal Requirements', 'Plan and Topological Sort');
+connect('Plan and Topological Sort', 'Build Assigned Issue Bodies');
+connect('Build Assigned Issue Bodies', 'Validate Final Assignment');
+connect('Validate Final Assignment', 'Dry Run?');
 connect('Dry Run?', 'Exact Dry-Run Preview', 0);
 connect('Dry Run?', 'Missing Labels?', 1);
 connect('Missing Labels?', 'Prepare Missing Labels', 0);

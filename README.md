@@ -6,39 +6,17 @@ Automatización n8n self-hosted que lee actividades publicadas de Google Classro
 
 ```mermaid
 flowchart TD
-    SP[Schedule PWA\nlunes 09:10] --> C[Classroom API]
-    SD[Schedule DMI\nmartes 09:10] --> C
-    M[Manual Trigger\ncourse + week] --> C
-    C --> F{CourseWork semanal\nválido?}
-    F -->|no, intento 1| W[Wait 30 min]
-    W --> R[Único retry 09:40]
-    R --> F2{Encontrado?}
-    F2 -->|no| A[Alerta / fin]
-    F -->|sí| CW[Normalizar CourseWork]
-    F2 -->|sí| CW
-    CW --> MAT[Inspeccionar materials]
-    MAT -->|ZIP| DM[Drive metadata + canDownload]
-    DM --> DZ[Descargar alt=media]
-    DZ --> ZV[Validar ZIP no confiable]
-    ZV --> ZX[Extraer + inventario]
-    MAT -->|sin ZIP| SC[Starter found=false]
-    ZX --> GH[Contexto GitHub]
-    SC --> GH
-    GH --> ID[Deduplicar courseId + courseWorkId]
-    ID --> G[Gemini primario]
-    G -->|parse/schema inválido| GR[Gemini Repair una vez]
-    G -->|transport/provider error| Q[OpenRouter Qwen]
-    GR -->|válido| JS
-    GR -->|inválido/error| Q
-    Q -->|inválido/error| Z[OpenRouter GLM]
-    G -->|válido| JS[JSON Schema + reglas + DAG]
-    Q -->|válido| JS
-    Z -->|válido| JS
-    Z -->|inválido/error| FC[Fail closed]
-    JS --> DR{dry-run/live}
-    DR -->|dry-run| P[Preview exacta]
-    DR -->|live| I[Labels + Issues secuenciales]
-    I --> V[Verificar conjunto]
+    M[Manual] --> C[Classroom: todas las páginas]
+    S[Schedule PWA / DMI] --> C
+    C --> R[Registry histórico por courseId + courseWorkId]
+    R --> P{Actividad pendiente?}
+    P -->|No| N[no_pending_coursework: sin LLM]
+    P -->|Sí| G[Starter + contenido actual del repositorio]
+    G --> L[Plan y validadores IA existentes]
+    L --> E[Gap con cobertura verificable + evidencia personal]
+    E --> A[Asignación por capacidad y peso]
+    A --> V[Dependencias + Team Coverage]
+    V --> D[Preview dry-run]
 ```
 
 El LLM se invoca sólo después de reunir tres fuentes:
@@ -51,16 +29,16 @@ El LLM se invoca sólo después de reunir tres fuentes:
 
 - PWA: lunes a las 09:10, `America/Mexico_City`.
 - DMI: martes a las 09:10, `America/Mexico_City`.
-- Si no hay actividad válida, espera 30 minutos y consulta una sola vez más.
+- Sin actividad pendiente, termina inmediatamente sin llamar al LLM.
 - No hay polling continuo ni `courses.list` semanal.
-- La consulta usa `PUBLISHED`, `updateTime desc`, `pageSize=5` y partial response.
+- La consulta pagina todos los `PUBLISHED`; el selector ordena por publicación/creación e ID estable, independientemente del orden de la API.
 - Los títulos `Semana 03`, `[Semana 03]` y variantes razonables se normalizan como `W03`.
 - Quiz, examen y recordatorio se excluyen antes del LLM.
 - Si la semana no es determinable, el flujo falla cerrado.
 
 ## Idempotencia
 
-GitHub es la fuente persistente principal. Cada Issue contiene:
+El registry histórico persiste en static data del workflow instalado, por curso e ID de actividad. GitHub permite verificar conjuntos ya procesados. Cada Issue conserva:
 
 ```html
 <!-- automation:classroom -->
@@ -113,7 +91,7 @@ asignada a `Draggodeidad`, sin dependencias y basada en datos reales del starter
 4. Inicia n8n con `docker compose up -d`.
 5. Importa primero `workflows/classroom-error-handler.json` y luego `workflows/classroom-to-github.json`.
 6. Asigna las credenciales nombradas en los nodos y selecciona el error workflow en Settings.
-7. Revisa [SCHEDULING.md](docs/SCHEDULING.md) y ejecuta los [dry-runs W03](docs/DRY-RUN-EXAMPLES.md).
+7. Revisa [SCHEDULING.md](docs/SCHEDULING.md) y ejecuta los [dry-runs de selección](docs/DRY-RUN-EXAMPLES.md).
 8. Conserva `AUTOMATION_MODE=dry-run`: la capa LLM incluye un bloqueo de revisión que fuerza dry-run. Retirarlo requiere una revisión posterior explícita.
 
 El workflow importado está inactivo intencionalmente y no contiene credenciales.
@@ -123,10 +101,10 @@ El workflow importado está inactivo intencionalmente y no contiene credenciales
 El nodo `Manual Request` contiene un objeto editable:
 
 ```js
-const request = { course: 'PWA', week: 3 };
+const request = { course: 'PWA', manualCourseWorkOverride: null, bootstrapHistorical: false };
 ```
 
-Cámbialo a `DMI` o a otra semana antes de ejecutar `Manual Trigger`. Esto no modifica los cron automáticos.
+Cámbialo a `DMI` para seleccionar pendientes de esa materia. Para probar un histórico, usa su ID en `manualCourseWorkOverride`, sólo en dry-run manual. Consulta [bootstrap y persistencia](docs/SCHEDULING.md).
 
 ## Variables principales
 
@@ -150,3 +128,9 @@ npm test
 - No reconcilia automáticamente cambios sustanciales de un CourseWork ya procesado.
 - Si dos ZIP tienen igual relevancia, no elige arbitrariamente: falla cerrado.
 - Gmail, cuando se habilita, es sólo salida de éxito/error/revisión.
+
+## Selección, cobertura y evidencia personal
+
+El fix y sus pruebas A–R están documentados en [SELECTION-ASSIGNMENT-REPORT.md](docs/SELECTION-ASSIGNMENT-REPORT.md). Julian recibe hard, medium y easy técnica; cada evidencia individual obligatoria tiene un propietario no delegable. Setup, entrega y evidencia personal no inflan la carga funcional.
+
+`EXISTS ≠ COMPLETE`: se descargan contenidos de hasta 20 archivos relevantes. Excluir un requisito como complete exige una revisión de cobertura vinculada al requisito, fuente, excerpt y SHA del blob actual. Sin esa revisión, el contenido existente queda por verificar; no se presenta como terminado. El formato y sus límites están en [COVERAGE-REVIEWS.md](docs/COVERAGE-REVIEWS.md).

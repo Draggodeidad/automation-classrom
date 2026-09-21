@@ -48,10 +48,12 @@ for (const issue of normalized) {
     const target = keyMap.get(dependency) || String(dependency || '').trim().toLowerCase();
     if (target === issue.key) {
       droppedDependencies.push({ issue: issue.key, dependency: target, reason: 'SELF_DEPENDENCY' });
+      cleaned.push(target);
       continue;
     }
     if (!validKeys.has(target)) {
       droppedDependencies.push({ issue: issue.key, dependency: target, reason: 'INVALID_DEPENDENCY' });
+      cleaned.push(target);
       continue;
     }
     if (seen.has(target)) continue;

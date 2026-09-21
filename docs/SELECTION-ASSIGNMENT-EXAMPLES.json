@@ -1,0 +1,302 @@
+{
+  "noPending": {
+    "course": "PWA",
+    "courseId": "course-test",
+    "triggerKind": "manual",
+    "automationMode": "dry-run",
+    "selectionStartedAt": "2026-09-20T00:00:00Z",
+    "classroomResponse": {
+      "courseWork": [
+        {
+          "id": "history-c",
+          "courseId": "course-test",
+          "title": "Semana 3",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-01T00:00:00Z",
+          "updateTime": "2026-09-01T00:00:00Z"
+        },
+        {
+          "id": "history-a",
+          "courseId": "course-test",
+          "title": "Semana 1",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-01T00:00:00Z",
+          "updateTime": "2026-09-01T00:00:00Z"
+        },
+        {
+          "id": "history-b",
+          "courseId": "course-test",
+          "title": "Semana 2",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-01T00:00:00Z",
+          "updateTime": "2026-09-01T00:00:00Z"
+        }
+      ]
+    },
+    "mode": "dry-run",
+    "mutationsPerformed": false,
+    "found": false,
+    "pendingCourseworkCount": 0,
+    "issuesThatWouldBeCreated": [],
+    "selectionMode": "pending_registry",
+    "cutoverAt": "2026-09-20T00:00:00Z",
+    "historicalCourseworkCount": 3,
+    "selectionOrder": "scheduledTime || creationTime ascending, courseWorkId ascending",
+    "executionResult": "no_pending_coursework"
+  },
+  "newCoursework": {
+    "course": "PWA",
+    "courseId": "course-test",
+    "triggerKind": "manual",
+    "automationMode": "dry-run",
+    "selectionStartedAt": "2026-09-20T00:00:00Z",
+    "classroomResponse": {
+      "courseWork": [
+        {
+          "id": "new-z",
+          "courseId": "course-test",
+          "title": "Semana 5",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-21T00:00:00Z",
+          "updateTime": "2026-09-21T00:00:00Z"
+        },
+        {
+          "id": "history-c",
+          "courseId": "course-test",
+          "title": "Semana 3",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-01T00:00:00Z",
+          "updateTime": "2026-09-01T00:00:00Z"
+        },
+        {
+          "id": "history-a",
+          "courseId": "course-test",
+          "title": "Semana 1",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-01T00:00:00Z",
+          "updateTime": "2026-09-01T00:00:00Z"
+        },
+        {
+          "id": "history-b",
+          "courseId": "course-test",
+          "title": "Semana 2",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-01T00:00:00Z",
+          "updateTime": "2026-09-01T00:00:00Z"
+        },
+        {
+          "id": "new-a",
+          "courseId": "course-test",
+          "title": "Semana 4",
+          "state": "PUBLISHED",
+          "creationTime": "2026-09-21T00:00:00Z",
+          "updateTime": "2026-09-21T00:00:00Z"
+        }
+      ]
+    },
+    "selectionMode": "pending_registry",
+    "cutoverAt": "2026-09-20T00:00:00Z",
+    "historicalCourseworkCount": 3,
+    "pendingCourseworkCount": 2,
+    "selectionOrder": "scheduledTime || creationTime ascending, courseWorkId ascending",
+    "found": true,
+    "executionResult": "coursework_found",
+    "courseWorkId": "new-a",
+    "courseWorkState": "pending",
+    "historicalStatus": "not_historical",
+    "week": 4,
+    "weekPadded": "04",
+    "assignmentTitle": "Semana 4",
+    "description": "",
+    "materials": [],
+    "alternateLink": null,
+    "creationTime": "2026-09-21T00:00:00Z",
+    "updateTime": "2026-09-21T00:00:00Z",
+    "dueAt": null,
+    "scheduledTime": null,
+    "maxPoints": null,
+    "workType": null
+  },
+  "partial": {
+    "key": "requirements",
+    "title": "Completar Completar requirements",
+    "type": "feature",
+    "priority": "medium",
+    "category": "documentation",
+    "difficulty": "medium",
+    "estimatedWeight": 2,
+    "risk": "medium",
+    "requiresCoding": false,
+    "requiresRepositoryKnowledge": false,
+    "requirementKind": "sourceRequirement",
+    "dependsOn": [],
+    "provenance": [
+      {
+        "claim": "Problema y contexto",
+        "source": "classroom",
+        "evidence": "classroom.description"
+      }
+    ],
+    "gapAnalysis": {
+      "status": "partial",
+      "summary": "Cobertura verificada 2/5; completar o verificar únicamente los requisitos pendientes.",
+      "evidence": [
+        "repository.path:docs/requirements.md"
+      ],
+      "requirementsChecked": [
+        {
+          "requirement": "Problema y contexto",
+          "satisfied": true,
+          "evidence": "repository.path:docs/requirements.md",
+          "excerpt": "El problema y contexto corresponden al registro de solicitudes. Los límites del sistema excluyen pagos. Los dos escenarios de usuario describen registro y consulta. Los RF detallan el registro obligatorio. Los RNF medibles exigen respuesta menor a 200 ms.",
+          "blobSha": "actual-blob-sha",
+          "reviewedBy": "fixture-reviewer",
+          "sourceEvidence": "classroom.description",
+          "sourceQuote": "Problema y contexto"
+        },
+        {
+          "requirement": "Límites del sistema",
+          "satisfied": true,
+          "evidence": "repository.path:docs/requirements.md",
+          "excerpt": "El problema y contexto corresponden al registro de solicitudes. Los límites del sistema excluyen pagos. Los dos escenarios de usuario describen registro y consulta. Los RF detallan el registro obligatorio. Los RNF medibles exigen respuesta menor a 200 ms.",
+          "blobSha": "actual-blob-sha",
+          "reviewedBy": "fixture-reviewer",
+          "sourceEvidence": "classroom.description",
+          "sourceQuote": "Límites del sistema"
+        },
+        {
+          "requirement": "Dos escenarios de usuario",
+          "satisfied": false,
+          "evidence": null,
+          "reason": "coverage_not_verified"
+        },
+        {
+          "requirement": "RF",
+          "satisfied": false,
+          "evidence": null,
+          "reason": "coverage_not_verified"
+        },
+        {
+          "requirement": "RNF medibles",
+          "satisfied": false,
+          "evidence": null,
+          "reason": "coverage_not_verified"
+        }
+      ],
+      "remainingRequirements": [
+        "Dos escenarios de usuario",
+        "RF",
+        "RNF medibles"
+      ]
+    },
+    "sections": {
+      "historiaUsuario": "Como integrante quiero completar los requisitos pendientes para satisfacer la actividad.",
+      "contexto": "La actividad requiere trabajo pendiente.",
+      "objetivoTecnico": [
+        "Dos escenarios de usuario",
+        "RF",
+        "RNF medibles"
+      ],
+      "alcance": [
+        "Dos escenarios de usuario",
+        "RF",
+        "RNF medibles"
+      ],
+      "fueraDeAlcance": [
+        "Problema y contexto",
+        "Límites del sistema"
+      ],
+      "archivosEsperados": [
+        "docs/requirements.md"
+      ],
+      "pasosSugeridos": [
+        "Dos escenarios de usuario",
+        "RF",
+        "RNF medibles"
+      ],
+      "criteriosAceptacion": [
+        "Dos escenarios de usuario",
+        "RF",
+        "RNF medibles"
+      ],
+      "pruebas": [
+        "Verificar: Dos escenarios de usuario",
+        "Verificar: RF",
+        "Verificar: RNF medibles"
+      ],
+      "dependencias": [],
+      "evidenciaIndividual": [
+        "Registrar resultado"
+      ],
+      "definitionOfDone": [
+        "Dos escenarios de usuario",
+        "RF",
+        "RNF medibles"
+      ]
+    },
+    "satisfiedDependencies": []
+  },
+  "mediumAssignment": [
+    {
+      "key": "easy-a",
+      "assignee": "osbaldoXxC",
+      "difficulty": "easy"
+    },
+    {
+      "key": "easy-b",
+      "assignee": "Draggodeidad",
+      "difficulty": "easy"
+    },
+    {
+      "key": "medium-a",
+      "assignee": "JulianDele",
+      "difficulty": "medium"
+    },
+    {
+      "key": "medium-b",
+      "assignee": "Draggodeidad",
+      "difficulty": "medium"
+    }
+  ],
+  "easyAssignment": [
+    {
+      "key": "easy-a",
+      "assignee": "JulianDele",
+      "difficulty": "easy"
+    },
+    {
+      "key": "easy-b",
+      "assignee": "Draggodeidad",
+      "difficulty": "easy"
+    },
+    {
+      "key": "easy-c",
+      "assignee": "osbaldoXxC",
+      "difficulty": "easy"
+    }
+  ],
+  "personalEvidence": [
+    {
+      "key": "evidence-osbaldoxxc",
+      "assignee": "osbaldoXxC",
+      "delegable": false,
+      "dependsOn": []
+    },
+    {
+      "key": "evidence-juliandele",
+      "assignee": "JulianDele",
+      "delegable": false,
+      "dependsOn": [
+        "feature-a"
+      ]
+    },
+    {
+      "key": "evidence-draggodeidad",
+      "assignee": "Draggodeidad",
+      "delegable": false,
+      "dependsOn": [
+        "feature-b"
+      ]
+    }
+  ]
+}

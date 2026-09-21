@@ -1,32 +1,22 @@
 const course = String($json.course || '').trim().toUpperCase();
 const config = {
-  PWA: {
-    courseId: $env.CLASSROOM_PWA_COURSE_ID,
-    repository: $env.PWA_REPOSITORY || 'Draggodeidad/pwa-utt',
-  },
-  DMI: {
-    courseId: $env.CLASSROOM_DMI_COURSE_ID,
-    repository: $env.DMI_REPOSITORY || 'Draggodeidad/campusops-dmi-team',
-  },
+  PWA: { courseId: $env.CLASSROOM_PWA_COURSE_ID, repository: $env.PWA_REPOSITORY || 'Draggodeidad/pwa-utt' },
+  DMI: { courseId: $env.CLASSROOM_DMI_COURSE_ID, repository: $env.DMI_REPOSITORY || 'Draggodeidad/campusops-dmi-team' },
 };
-if (!config[course]) throw new Error(`Materia no permitida: ${course || '(vacía)'}`);
-if (!config[course].courseId) throw new Error(`Falta CLASSROOM_${course}_COURSE_ID`);
-
-const manualWeek = $json.week === undefined || $json.week === null || $json.week === ''
-  ? null
-  : Number($json.week);
-if (manualWeek !== null && (!Number.isInteger(manualWeek) || manualWeek < 1 || manualWeek > 99)) {
-  throw new Error('La semana manual debe ser un entero entre 1 y 99');
+if (!config[course]?.courseId) throw new Error(`Falta configuración Classroom para ${course}`);
+if ($json.week != null) throw new Error('Usa manualCourseWorkOverride; la semana sólo es metadata.');
+const triggerKind = $json.triggerKind;
+if (!['manual', 'schedule'].includes(triggerKind)) throw new Error('Trigger desconocido');
+const manualCourseWorkOverride = String($json.manualCourseWorkOverride || '').trim() || null;
+if (manualCourseWorkOverride && (triggerKind !== 'manual' || String($env.AUTOMATION_MODE || 'dry-run') !== 'dry-run')) {
+  throw new Error('OVERRIDE_FORBIDDEN: sólo ejecución manual explícita en dry-run');
 }
-
-return [{
-  json: {
-    course,
-    courseId: String(config[course].courseId),
-    repository: config[course].repository,
-    requestedWeek: manualWeek,
-    triggerKind: $json.triggerKind || 'manual',
-    attempt: Number($json.attempt || 1),
-    automationMode: String($env.AUTOMATION_MODE || 'dry-run').toLowerCase(),
-  },
-}];
+if ($json.bootstrapHistorical && (triggerKind !== 'manual' || manualCourseWorkOverride)) {
+  throw new Error('BOOTSTRAP_FORBIDDEN: requiere ejecución manual sin override');
+}
+return [{ json: {
+  course, courseId: String(config[course].courseId), repository: config[course].repository,
+  triggerKind, attempt: Number($json.attempt || 1), manualCourseWorkOverride,
+  bootstrapHistorical: $json.bootstrapHistorical === true,
+  selectionStartedAt: new Date().toISOString(), automationMode: 'dry-run', mode: 'dry-run', mutationsPerformed: false,
+} }];
