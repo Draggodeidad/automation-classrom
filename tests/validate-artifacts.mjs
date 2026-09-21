@@ -10,6 +10,7 @@ const workflow = readJson('workflows/classroom-to-github.json');
 const errorWorkflow = readJson('workflows/classroom-error-handler.json');
 const schema = readJson('schemas/issue-plan.schema.json');
 const fixtures = readJson('tests/fixtures/coursework.json');
+const weekFrom = (title) => { const match = String(title || '').match(/(?:\[\s*)?semana\s*0*(\d{1,2})(?:\s*\])?/i); return match ? Number(match[1]) : null; };
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 
 async function runCode(relative, { json = {}, env = {}, binary = {}, buffers = {}, nodes = {}, runIndex, staticData = {} } = {}) {
@@ -125,7 +126,7 @@ for (const fixture of fixtures) {
     },
   });
   assert.equal(result.json.found, fixture.expected === 'process', fixture.case);
-  if (result.json.found) assert.equal(result.json.weekPadded, '03');
+  if (result.json.found) assert.equal(result.json.weekPadded, String(weekFrom(fixture.courseWork.title)).padStart(2, '0'), fixture.case);
 }
 
 const baseActivity = { course: 'PWA', week: 3, weekPadded: '03', materials: [] };

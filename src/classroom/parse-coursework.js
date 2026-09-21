@@ -12,7 +12,7 @@ const weekFrom = (title) => {
   return match ? Number(match[1]) : null;
 };
 const applicable = (cw) => cw.state === 'PUBLISHED' && weekFrom(cw.title) >= 1 && weekFrom(cw.title) <= 99 &&
-  !/\b(quiz|examen|recordatorio)\b/i.test(`${cw.title || ''}\n${cw.description || ''}`);
+  !/\b(quiz|examen|recordatorio)\b/i.test(`${cw.title || ''}`);
 for (const cw of rows) {
   if (!cw.id || String(cw.courseId) !== String(data.courseId)) throw new Error('CLASSROOM_INVALID_IDENTITY');
 }

@@ -1,7 +1,83 @@
 {
-  "id": "classroomDmiPwa2026",
   "name": "Classroom API to GitHub Issues - DMI and PWA",
   "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -92448,
+        3856
+      ],
+      "id": "d2a9a5bc-9569-401a-a99e-1040273044f0",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const e=$json.execution||{}; const t=$json.trigger||{}; const phase=e.lastNodeExecuted||'desconocida'; const message=e.error?.message||t.error?.message||'Error no especificado'; return [{json:{notificationSubject:'❌ Falló Classroom API → GitHub',notificationBody:`❌ No se pudo completar una ejecución\\n\\nFase: ${phase}\\nError: ${message}\\nEjecución: ${e.url||e.id||'sin URL'}\\n\\nGitHub no se modifica antes de completar todas las validaciones. Revisa la ejecución antes de reintentar.`}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -92240,
+        3856
+      ],
+      "id": "854677ca-03eb-406f-81a9-e3c549a58754",
+      "name": "Build Error Summary"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d477db52-5ec7-4d64-8584-122895f5609a",
+              "leftValue": "={{ String($env.NOTIFICATIONS_ENABLED || 'false').toLowerCase() === 'true' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -92016,
+        3856
+      ],
+      "id": "694182d8-a03c-4cdf-941e-e8cb953e287c",
+      "name": "Notifications Enabled?"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
+        "subject": "={{ $json.notificationSubject }}",
+        "message": "={{ $json.notificationBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -91792,
+        3808
+      ],
+      "id": "f84a5b24-b887-4a25-873c-c783657ea4c6",
+      "name": "Gmail - Send Error Summary",
+      "webhookId": "9f8af939-3604-4637-96cc-09d0048d1a77"
+    },
     {
       "parameters": {
         "rule": {
@@ -16,10 +92,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -2600,
-        -260
+        -111952,
+        2352
       ],
-      "id": "87eb359d-495f-4528-9f39-a63b070f47c9",
+      "id": "f396abb1-d800-4d28-89ea-1bf0868c4bf9",
       "name": "Schedule PWA Monday 09:10"
     },
     {
@@ -29,10 +105,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2380,
-        -260
+        -111744,
+        2352
       ],
-      "id": "380816f2-36d8-49ea-859a-7d7c02c3c0cb",
+      "id": "45f32caa-0b7f-49b8-87be-2b383b8ec5c7",
       "name": "Route PWA"
     },
     {
@@ -49,10 +125,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -2600,
-        -80
+        -111952,
+        2528
       ],
-      "id": "91255ca9-23c2-48df-9b16-c677f569b7d5",
+      "id": "29ce88f4-9a88-4d17-bbfe-6653c892fae5",
       "name": "Schedule DMI Tuesday 09:10"
     },
     {
@@ -62,10 +138,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2380,
-        -80
+        -111744,
+        2528
       ],
-      "id": "e74ac977-285a-47ae-9013-4e3741c5aee1",
+      "id": "0dc7d7b7-0a60-49ff-8805-45a85d7a32fa",
       "name": "Route DMI"
     },
     {
@@ -73,23 +149,23 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -2600,
-        120
+        -111952,
+        2736
       ],
-      "id": "d686d12a-3075-40cd-b20b-3d600553f095",
+      "id": "5a524862-f5ba-49cb-ac06-2ff33afb17a5",
       "name": "Manual Trigger"
     },
     {
       "parameters": {
-        "jsCode": "// Selección normal por registry. Override histórico sólo en dry-run manual.\nconst request = { course: 'PWA', manualCourseWorkOverride: null, bootstrapHistorical: false };\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];"
+        "jsCode": "// Selección normal por registry. Override histórico sólo en dry-run manual.\nconst request = {\n  course: 'PWA',\n  manualCourseWorkOverride: '876697244636',\n  bootstrapHistorical: false\n};\nreturn [{ json: { ...request, triggerKind: 'manual', attempt: 1 } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2380,
-        120
+        -111744,
+        2736
       ],
-      "id": "b27e5d99-2481-45fa-8837-1d5334a38c59",
+      "id": "1e947f06-3389-4f54-b4aa-38089a5ea454",
       "name": "Manual Request"
     },
     {
@@ -99,10 +175,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2160,
-        -80
+        -111520,
+        2528
       ],
-      "id": "bf084c71-d316-4b72-8c77-3b28dba9cd8f",
+      "id": "c4449171-1111-4907-a236-4c2a79555a06",
       "name": "Prepare Classroom Request"
     },
     {
@@ -113,17 +189,14 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           },
           "pagination": {
             "pagination": {
-              "paginationMode": "updateAParameterInEachRequest",
               "parameters": {
                 "parameters": [
                   {
-                    "type": "qs",
                     "name": "pageToken",
                     "value": "={{ $response.body.nextPageToken || \"\" }}"
                   }
@@ -131,8 +204,7 @@
               },
               "paginationCompleteWhen": "other",
               "completeExpression": "={{ !$response.body.nextPageToken }}",
-              "limitPagesFetched": true,
-              "maxRequests": 100
+              "limitPagesFetched": true
             }
           }
         }
@@ -140,13 +212,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -1940,
-        -80
+        -111296,
+        2528
       ],
-      "id": "067a8df0-1cb9-4821-b677-118d7d844f86",
+      "id": "4425027e-363d-4e89-bfde-361a02226c5b",
       "name": "Classroom - List CourseWork Initial",
       "credentials": {
         "oAuth2Api": {
+          "id": "nsEA1xyeapnFbLMk",
           "name": "Google Classroom and Drive OAuth2"
         }
       }
@@ -158,23 +231,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1720,
-        -80
+        -111072,
+        2528
       ],
-      "id": "f214a376-a4bf-47d2-981a-01eb3fca37ea",
+      "id": "177c77ed-ad04-48a2-afe3-fb166999225c",
       "name": "Attach Initial Classroom Response"
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nconst payload = data.classroomResponse?.body ?? data.classroomResponse ?? {};\nif (payload.nextPageToken) throw new Error('CLASSROOM_INCOMPLETE_SNAPSHOT: faltan páginas');\nconst rows = Array.isArray(payload.courseWork) ? payload.courseWork : [];\nconst globalState = $getWorkflowStaticData('global');\nconst saved = globalState.classroomRegistry?.[data.courseId];\nconst registry = saved ? JSON.parse(JSON.stringify(saved)) : null;\nconst override = data.manualCourseWorkOverride;\nif (override && (data.triggerKind !== 'manual' || data.automationMode !== 'dry-run')) throw new Error('OVERRIDE_FORBIDDEN');\nconst weekFrom = (title) => {\n  const match = String(title || '').match(/(?:\\[\\s*)?semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  return match ? Number(match[1]) : null;\n};\nconst applicable = (cw) => cw.state === 'PUBLISHED' && weekFrom(cw.title) >= 1 && weekFrom(cw.title) <= 99 &&\n  !/\\b(quiz|examen|recordatorio)\\b/i.test(`${cw.title || ''}`);\nfor (const cw of rows) {\n  if (!cw.id || String(cw.courseId) !== String(data.courseId)) throw new Error('CLASSROOM_INVALID_IDENTITY');\n}\nconst noWork = (extra) => [{ json: { ...data, mode: 'dry-run', automationMode: 'dry-run', mutationsPerformed: false,\n  found: false, pendingCourseworkCount: 0, issuesThatWouldBeCreated: [], ...extra } }];\nif (data.bootstrapHistorical) {\n  if (registry) throw new Error('BOOTSTRAP_ALREADY_EXISTS: no se permite mover el cutover');\n  const cutoverAt = data.selectionStartedAt || new Date().toISOString();\n  const entries = Object.fromEntries(rows.map(cw => [String(cw.id), {\n    courseWorkId: String(cw.id), state: 'ignored_historical', reason: 'present_before_automation_cutover',\n    title: cw.title, observedAt: cutoverAt,\n  }]));\n  return noWork({ executionResult: 'no_pending_coursework', selectionMode: 'historical_bootstrap_preview',\n    historicalCourseworkCount: rows.length, cutoverAt, registryPersisted: false,\n    proposedRegistry: { version: 1, courseId: data.courseId, cutoverAt, entries } });\n}\nif (!registry && !override) return noWork({ executionResult: 'historical_bootstrap_required',\n  selectionMode: 'bootstrap_required', historicalCourseworkCount: 0, registryPersisted: false });\nif (registry && (registry.version !== 1 || !Number.isFinite(Date.parse(registry.cutoverAt)) || !registry.entries)) {\n  throw new Error('REGISTRY_INVALID');\n}\nconst allowedStates = new Set(['ignored_historical', 'pending', 'processing', 'processed', 'failed', 'skipped', 'superseded']);\nif (registry) for (const [id, entry] of Object.entries(registry.entries)) {\n  if (entry.courseWorkId !== id || !allowedStates.has(entry.state)) throw new Error('REGISTRY_INVALID');\n}\nconst entries = registry?.entries || {};\nconst candidates = rows.filter(applicable).filter(cw => {\n  if (override) return String(cw.id) === override;\n  const state = entries[cw.id]?.state;\n  return !state || state === 'pending' || state === 'failed';\n});\n// Creation/publication time ascending; never updateTime. Stable ID breaks ties.\nconst timestamp = cw => {\n  for (const value of [cw.scheduledTime, cw.creationTime]) {\n    const time = Date.parse(value || '');\n    if (Number.isFinite(time)) return time;\n  }\n  return Number.MAX_SAFE_INTEGER;\n};\ncandidates.sort((a, b) => timestamp(a) - timestamp(b) || (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0));\nif (!override && registry) for (const cw of candidates) {\n  entries[cw.id] ||= { courseWorkId: String(cw.id), state: 'pending', reason: 'new_id_after_bootstrap', observedAt: new Date().toISOString() };\n}\n// n8n persists static data only in successful published trigger executions; manual previews remain read-only.\nif (!override && registry && data.triggerKind === 'schedule') {\n  globalState.classroomRegistry[data.courseId] = registry;\n}\nconst selection = {\n  selectionMode: override ? 'manual_test_override' : 'pending_registry', cutoverAt: registry?.cutoverAt || null,\n  historicalCourseworkCount: Object.values(entries).filter(x => x.state === 'ignored_historical').length,\n  pendingCourseworkCount: override ? 0 : candidates.length,\n  selectionOrder: 'scheduledTime || creationTime ascending, courseWorkId ascending',\n};\nif (!candidates.length) {\n  if (override) throw new Error('OVERRIDE_NOT_APPLICABLE_OR_NOT_FOUND');\n  return noWork({ ...selection, executionResult: 'no_pending_coursework' });\n}\nconst cw = candidates[0];\nconst week = weekFrom(cw.title);\nconst dueAt = cw.dueDate ? `${cw.dueDate.year}-${String(cw.dueDate.month).padStart(2,'0')}-${String(cw.dueDate.day).padStart(2,'0')}` +\n  (cw.dueTime ? `T${String(cw.dueTime.hours || 0).padStart(2,'0')}:${String(cw.dueTime.minutes || 0).padStart(2,'0')}:00` : '') : null;\nreturn [{ json: { ...data, ...selection, found: true, executionResult: 'coursework_found',\n  courseWorkId: String(cw.id), courseWorkState: entries[cw.id]?.state || 'pending',\n  historicalStatus: entries[cw.id]?.state === 'ignored_historical' ? 'ignored_historical' : 'not_historical',\n  week, weekPadded: String(week).padStart(2,'0'), assignmentTitle: String(cw.title || '').trim(),\n  description: String(cw.description || '').slice(0,30000), materials: cw.materials || [],\n  alternateLink: cw.alternateLink || null, creationTime: cw.creationTime || null, updateTime: cw.updateTime || null,\n  dueAt, scheduledTime: cw.scheduledTime || null, maxPoints: cw.maxPoints ?? null, workType: cw.workType || null,\n} }];"
+        "jsCode": "const data = $json;\nconst payload = data.classroomResponse?.body ?? data.classroomResponse ?? {};\nif (payload.nextPageToken) throw new Error('CLASSROOM_INCOMPLETE_SNAPSHOT: faltan páginas');\nconst rows = Array.isArray(payload.courseWork) ? payload.courseWork : [];\nconst globalState = $getWorkflowStaticData('global');\nconst saved = globalState.classroomRegistry?.[data.courseId];\nconst registry = saved ? JSON.parse(JSON.stringify(saved)) : null;\nconst override = data.manualCourseWorkOverride;\nif (override && (data.triggerKind !== 'manual' || data.automationMode !== 'dry-run')) throw new Error('OVERRIDE_FORBIDDEN');\nconst weekFrom = (title) => {\n  const match = String(title || '').match(/(?:\\[\\s*)?semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  return match ? Number(match[1]) : null;\n};\nconst applicable = (cw) => cw.state === 'PUBLISHED' && weekFrom(cw.title) >= 1 && weekFrom(cw.title) <= 99 &&\n  !/\\b(quiz|examen|recordatorio)\\b/i.test(`${cw.title || ''}\\n${cw.description || ''}`);\nfor (const cw of rows) {\n  if (!cw.id || String(cw.courseId) !== String(data.courseId)) throw new Error('CLASSROOM_INVALID_IDENTITY');\n}\nconst noWork = (extra) => [{ json: { ...data, mode: 'dry-run', automationMode: 'dry-run', mutationsPerformed: false,\n  found: false, pendingCourseworkCount: 0, issuesThatWouldBeCreated: [], ...extra } }];\nif (data.bootstrapHistorical) {\n  if (registry) throw new Error('BOOTSTRAP_ALREADY_EXISTS: no se permite mover el cutover');\n  const cutoverAt = data.selectionStartedAt || new Date().toISOString();\n  const entries = Object.fromEntries(rows.map(cw => [String(cw.id), {\n    courseWorkId: String(cw.id), state: 'ignored_historical', reason: 'present_before_automation_cutover',\n    title: cw.title, observedAt: cutoverAt,\n  }]));\n  return noWork({ executionResult: 'no_pending_coursework', selectionMode: 'historical_bootstrap_preview',\n    historicalCourseworkCount: rows.length, cutoverAt, registryPersisted: false,\n    proposedRegistry: { version: 1, courseId: data.courseId, cutoverAt, entries } });\n}\nif (!registry && !override) return noWork({ executionResult: 'historical_bootstrap_required',\n  selectionMode: 'bootstrap_required', historicalCourseworkCount: 0, registryPersisted: false });\nif (registry && (registry.version !== 1 || !Number.isFinite(Date.parse(registry.cutoverAt)) || !registry.entries)) {\n  throw new Error('REGISTRY_INVALID');\n}\nconst allowedStates = new Set(['ignored_historical', 'pending', 'processing', 'processed', 'failed', 'skipped', 'superseded']);\nif (registry) for (const [id, entry] of Object.entries(registry.entries)) {\n  if (entry.courseWorkId !== id || !allowedStates.has(entry.state)) throw new Error('REGISTRY_INVALID');\n}\nconst entries = registry?.entries || {};\nconst candidates = rows.filter(applicable).filter(cw => {\n  if (override) return String(cw.id) === override;\n  const state = entries[cw.id]?.state;\n  return !state || state === 'pending' || state === 'failed';\n});\n// Creation/publication time ascending; never updateTime. Stable ID breaks ties.\nconst timestamp = cw => {\n  for (const value of [cw.scheduledTime, cw.creationTime]) {\n    const time = Date.parse(value || '');\n    if (Number.isFinite(time)) return time;\n  }\n  return Number.MAX_SAFE_INTEGER;\n};\ncandidates.sort((a, b) => timestamp(a) - timestamp(b) || (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0));\nif (!override && registry) for (const cw of candidates) {\n  entries[cw.id] ||= { courseWorkId: String(cw.id), state: 'pending', reason: 'new_id_after_bootstrap', observedAt: new Date().toISOString() };\n}\n// n8n persists static data only in successful published trigger executions; manual previews remain read-only.\nif (!override && registry && data.triggerKind === 'schedule') {\n  globalState.classroomRegistry[data.courseId] = registry;\n}\nconst selection = {\n  selectionMode: override ? 'manual_test_override' : 'pending_registry', cutoverAt: registry?.cutoverAt || null,\n  historicalCourseworkCount: Object.values(entries).filter(x => x.state === 'ignored_historical').length,\n  pendingCourseworkCount: override ? 0 : candidates.length,\n  selectionOrder: 'scheduledTime || creationTime ascending, courseWorkId ascending',\n};\nif (!candidates.length) {\n  if (override) throw new Error('OVERRIDE_NOT_APPLICABLE_OR_NOT_FOUND');\n  return noWork({ ...selection, executionResult: 'no_pending_coursework' });\n}\nconst cw = candidates[0];\nconst week = weekFrom(cw.title);\nconst dueAt = cw.dueDate ? `${cw.dueDate.year}-${String(cw.dueDate.month).padStart(2,'0')}-${String(cw.dueDate.day).padStart(2,'0')}` +\n  (cw.dueTime ? `T${String(cw.dueTime.hours || 0).padStart(2,'0')}:${String(cw.dueTime.minutes || 0).padStart(2,'0')}:00` : '') : null;\nreturn [{ json: { ...data, ...selection, found: true, executionResult: 'coursework_found',\n  courseWorkId: String(cw.id), courseWorkState: entries[cw.id]?.state || 'pending',\n  historicalStatus: entries[cw.id]?.state === 'ignored_historical' ? 'ignored_historical' : 'not_historical',\n  week, weekPadded: String(week).padStart(2,'0'), assignmentTitle: String(cw.title || '').trim(),\n  description: String(cw.description || '').slice(0,30000), materials: cw.materials || [],\n  alternateLink: cw.alternateLink || null, creationTime: cw.creationTime || null, updateTime: cw.updateTime || null,\n  dueAt, scheduledTime: cw.scheduledTime || null, maxPoints: cw.maxPoints ?? null, workType: cw.workType || null,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1500,
-        -80
+        -110864,
+        2528
       ],
-      "id": "bd77f291-607c-4cbd-ba2a-f82e5819177d",
+      "id": "dbce451e-f3f2-43b8-8c17-c1e95039f697",
       "name": "Parse Initial CourseWork"
     },
     {
@@ -205,10 +278,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1280,
-        -80
+        -110640,
+        2528
       ],
-      "id": "eb3b028b-e99d-43b3-a01e-3c176fbe00c4",
+      "id": "e3c5a4d5-a8ba-4d94-9393-fbd1be04490c",
       "name": "CourseWork Found Initial?"
     },
     {
@@ -219,11 +292,12 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        -1060,
-        100
+        -110416,
+        2720
       ],
-      "id": "6be3d0eb-70e4-44b6-9087-cb3eab99f4d3",
-      "name": "Wait 30 Minutes Once"
+      "id": "b7e2d98f-952a-4a74-899f-85922f03f312",
+      "name": "Wait 30 Minutes Once",
+      "webhookId": "73b8636a-c1bf-4903-924b-ff2750af12ab"
     },
     {
       "parameters": {
@@ -232,10 +306,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -840,
-        100
+        -110192,
+        2720
       ],
-      "id": "d6b72e4e-0ab1-4d55-8b41-368b5e4b3440",
+      "id": "e4cf3c1b-1442-4b06-b8b8-e608dad75772",
       "name": "Increment Retry"
     },
     {
@@ -246,17 +320,14 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           },
           "pagination": {
             "pagination": {
-              "paginationMode": "updateAParameterInEachRequest",
               "parameters": {
                 "parameters": [
                   {
-                    "type": "qs",
                     "name": "pageToken",
                     "value": "={{ $response.body.nextPageToken || \"\" }}"
                   }
@@ -264,8 +335,7 @@
               },
               "paginationCompleteWhen": "other",
               "completeExpression": "={{ !$response.body.nextPageToken }}",
-              "limitPagesFetched": true,
-              "maxRequests": 100
+              "limitPagesFetched": true
             }
           }
         }
@@ -273,13 +343,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -620,
-        100
+        -109984,
+        2720
       ],
-      "id": "83763589-260f-4599-9b0e-4a0131709120",
+      "id": "f854bd60-79f7-40e5-9ba9-27265670f658",
       "name": "Classroom - List CourseWork Retry",
       "credentials": {
         "oAuth2Api": {
+          "id": "nsEA1xyeapnFbLMk",
           "name": "Google Classroom and Drive OAuth2"
         }
       }
@@ -291,23 +362,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -400,
-        100
+        -109760,
+        2720
       ],
-      "id": "ef54a224-ec44-41b1-b097-ed2df188038b",
+      "id": "00d284aa-d4f1-4623-bc2d-01550d2b346b",
       "name": "Attach Retry Classroom Response"
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nconst payload = data.classroomResponse?.body ?? data.classroomResponse ?? {};\nif (payload.nextPageToken) throw new Error('CLASSROOM_INCOMPLETE_SNAPSHOT: faltan páginas');\nconst rows = Array.isArray(payload.courseWork) ? payload.courseWork : [];\nconst globalState = $getWorkflowStaticData('global');\nconst saved = globalState.classroomRegistry?.[data.courseId];\nconst registry = saved ? JSON.parse(JSON.stringify(saved)) : null;\nconst override = data.manualCourseWorkOverride;\nif (override && (data.triggerKind !== 'manual' || data.automationMode !== 'dry-run')) throw new Error('OVERRIDE_FORBIDDEN');\nconst weekFrom = (title) => {\n  const match = String(title || '').match(/(?:\\[\\s*)?semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  return match ? Number(match[1]) : null;\n};\nconst applicable = (cw) => cw.state === 'PUBLISHED' && weekFrom(cw.title) >= 1 && weekFrom(cw.title) <= 99 &&\n  !/\\b(quiz|examen|recordatorio)\\b/i.test(`${cw.title || ''}`);\nfor (const cw of rows) {\n  if (!cw.id || String(cw.courseId) !== String(data.courseId)) throw new Error('CLASSROOM_INVALID_IDENTITY');\n}\nconst noWork = (extra) => [{ json: { ...data, mode: 'dry-run', automationMode: 'dry-run', mutationsPerformed: false,\n  found: false, pendingCourseworkCount: 0, issuesThatWouldBeCreated: [], ...extra } }];\nif (data.bootstrapHistorical) {\n  if (registry) throw new Error('BOOTSTRAP_ALREADY_EXISTS: no se permite mover el cutover');\n  const cutoverAt = data.selectionStartedAt || new Date().toISOString();\n  const entries = Object.fromEntries(rows.map(cw => [String(cw.id), {\n    courseWorkId: String(cw.id), state: 'ignored_historical', reason: 'present_before_automation_cutover',\n    title: cw.title, observedAt: cutoverAt,\n  }]));\n  return noWork({ executionResult: 'no_pending_coursework', selectionMode: 'historical_bootstrap_preview',\n    historicalCourseworkCount: rows.length, cutoverAt, registryPersisted: false,\n    proposedRegistry: { version: 1, courseId: data.courseId, cutoverAt, entries } });\n}\nif (!registry && !override) return noWork({ executionResult: 'historical_bootstrap_required',\n  selectionMode: 'bootstrap_required', historicalCourseworkCount: 0, registryPersisted: false });\nif (registry && (registry.version !== 1 || !Number.isFinite(Date.parse(registry.cutoverAt)) || !registry.entries)) {\n  throw new Error('REGISTRY_INVALID');\n}\nconst allowedStates = new Set(['ignored_historical', 'pending', 'processing', 'processed', 'failed', 'skipped', 'superseded']);\nif (registry) for (const [id, entry] of Object.entries(registry.entries)) {\n  if (entry.courseWorkId !== id || !allowedStates.has(entry.state)) throw new Error('REGISTRY_INVALID');\n}\nconst entries = registry?.entries || {};\nconst candidates = rows.filter(applicable).filter(cw => {\n  if (override) return String(cw.id) === override;\n  const state = entries[cw.id]?.state;\n  return !state || state === 'pending' || state === 'failed';\n});\n// Creation/publication time ascending; never updateTime. Stable ID breaks ties.\nconst timestamp = cw => {\n  for (const value of [cw.scheduledTime, cw.creationTime]) {\n    const time = Date.parse(value || '');\n    if (Number.isFinite(time)) return time;\n  }\n  return Number.MAX_SAFE_INTEGER;\n};\ncandidates.sort((a, b) => timestamp(a) - timestamp(b) || (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0));\nif (!override && registry) for (const cw of candidates) {\n  entries[cw.id] ||= { courseWorkId: String(cw.id), state: 'pending', reason: 'new_id_after_bootstrap', observedAt: new Date().toISOString() };\n}\n// n8n persists static data only in successful published trigger executions; manual previews remain read-only.\nif (!override && registry && data.triggerKind === 'schedule') {\n  globalState.classroomRegistry[data.courseId] = registry;\n}\nconst selection = {\n  selectionMode: override ? 'manual_test_override' : 'pending_registry', cutoverAt: registry?.cutoverAt || null,\n  historicalCourseworkCount: Object.values(entries).filter(x => x.state === 'ignored_historical').length,\n  pendingCourseworkCount: override ? 0 : candidates.length,\n  selectionOrder: 'scheduledTime || creationTime ascending, courseWorkId ascending',\n};\nif (!candidates.length) {\n  if (override) throw new Error('OVERRIDE_NOT_APPLICABLE_OR_NOT_FOUND');\n  return noWork({ ...selection, executionResult: 'no_pending_coursework' });\n}\nconst cw = candidates[0];\nconst week = weekFrom(cw.title);\nconst dueAt = cw.dueDate ? `${cw.dueDate.year}-${String(cw.dueDate.month).padStart(2,'0')}-${String(cw.dueDate.day).padStart(2,'0')}` +\n  (cw.dueTime ? `T${String(cw.dueTime.hours || 0).padStart(2,'0')}:${String(cw.dueTime.minutes || 0).padStart(2,'0')}:00` : '') : null;\nreturn [{ json: { ...data, ...selection, found: true, executionResult: 'coursework_found',\n  courseWorkId: String(cw.id), courseWorkState: entries[cw.id]?.state || 'pending',\n  historicalStatus: entries[cw.id]?.state === 'ignored_historical' ? 'ignored_historical' : 'not_historical',\n  week, weekPadded: String(week).padStart(2,'0'), assignmentTitle: String(cw.title || '').trim(),\n  description: String(cw.description || '').slice(0,30000), materials: cw.materials || [],\n  alternateLink: cw.alternateLink || null, creationTime: cw.creationTime || null, updateTime: cw.updateTime || null,\n  dueAt, scheduledTime: cw.scheduledTime || null, maxPoints: cw.maxPoints ?? null, workType: cw.workType || null,\n} }];"
+        "jsCode": "const data = $json;\nconst payload = data.classroomResponse?.body ?? data.classroomResponse ?? {};\nif (payload.nextPageToken) throw new Error('CLASSROOM_INCOMPLETE_SNAPSHOT: faltan páginas');\nconst rows = Array.isArray(payload.courseWork) ? payload.courseWork : [];\nconst globalState = $getWorkflowStaticData('global');\nconst saved = globalState.classroomRegistry?.[data.courseId];\nconst registry = saved ? JSON.parse(JSON.stringify(saved)) : null;\nconst override = data.manualCourseWorkOverride;\nif (override && (data.triggerKind !== 'manual' || data.automationMode !== 'dry-run')) throw new Error('OVERRIDE_FORBIDDEN');\nconst weekFrom = (title) => {\n  const match = String(title || '').match(/(?:\\[\\s*)?semana\\s*0*(\\d{1,2})(?:\\s*\\])?/i);\n  return match ? Number(match[1]) : null;\n};\nconst applicable = (cw) => cw.state === 'PUBLISHED' && weekFrom(cw.title) >= 1 && weekFrom(cw.title) <= 99 &&\n  !/\\b(quiz|examen|recordatorio)\\b/i.test(`${cw.title || ''}\\n${cw.description || ''}`);\nfor (const cw of rows) {\n  if (!cw.id || String(cw.courseId) !== String(data.courseId)) throw new Error('CLASSROOM_INVALID_IDENTITY');\n}\nconst noWork = (extra) => [{ json: { ...data, mode: 'dry-run', automationMode: 'dry-run', mutationsPerformed: false,\n  found: false, pendingCourseworkCount: 0, issuesThatWouldBeCreated: [], ...extra } }];\nif (data.bootstrapHistorical) {\n  if (registry) throw new Error('BOOTSTRAP_ALREADY_EXISTS: no se permite mover el cutover');\n  const cutoverAt = data.selectionStartedAt || new Date().toISOString();\n  const entries = Object.fromEntries(rows.map(cw => [String(cw.id), {\n    courseWorkId: String(cw.id), state: 'ignored_historical', reason: 'present_before_automation_cutover',\n    title: cw.title, observedAt: cutoverAt,\n  }]));\n  return noWork({ executionResult: 'no_pending_coursework', selectionMode: 'historical_bootstrap_preview',\n    historicalCourseworkCount: rows.length, cutoverAt, registryPersisted: false,\n    proposedRegistry: { version: 1, courseId: data.courseId, cutoverAt, entries } });\n}\nif (!registry && !override) return noWork({ executionResult: 'historical_bootstrap_required',\n  selectionMode: 'bootstrap_required', historicalCourseworkCount: 0, registryPersisted: false });\nif (registry && (registry.version !== 1 || !Number.isFinite(Date.parse(registry.cutoverAt)) || !registry.entries)) {\n  throw new Error('REGISTRY_INVALID');\n}\nconst allowedStates = new Set(['ignored_historical', 'pending', 'processing', 'processed', 'failed', 'skipped', 'superseded']);\nif (registry) for (const [id, entry] of Object.entries(registry.entries)) {\n  if (entry.courseWorkId !== id || !allowedStates.has(entry.state)) throw new Error('REGISTRY_INVALID');\n}\nconst entries = registry?.entries || {};\nconst candidates = rows.filter(applicable).filter(cw => {\n  if (override) return String(cw.id) === override;\n  const state = entries[cw.id]?.state;\n  return !state || state === 'pending' || state === 'failed';\n});\n// Creation/publication time ascending; never updateTime. Stable ID breaks ties.\nconst timestamp = cw => {\n  for (const value of [cw.scheduledTime, cw.creationTime]) {\n    const time = Date.parse(value || '');\n    if (Number.isFinite(time)) return time;\n  }\n  return Number.MAX_SAFE_INTEGER;\n};\ncandidates.sort((a, b) => timestamp(a) - timestamp(b) || (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0));\nif (!override && registry) for (const cw of candidates) {\n  entries[cw.id] ||= { courseWorkId: String(cw.id), state: 'pending', reason: 'new_id_after_bootstrap', observedAt: new Date().toISOString() };\n}\n// n8n persists static data only in successful published trigger executions; manual previews remain read-only.\nif (!override && registry && data.triggerKind === 'schedule') {\n  globalState.classroomRegistry[data.courseId] = registry;\n}\nconst selection = {\n  selectionMode: override ? 'manual_test_override' : 'pending_registry', cutoverAt: registry?.cutoverAt || null,\n  historicalCourseworkCount: Object.values(entries).filter(x => x.state === 'ignored_historical').length,\n  pendingCourseworkCount: override ? 0 : candidates.length,\n  selectionOrder: 'scheduledTime || creationTime ascending, courseWorkId ascending',\n};\nif (!candidates.length) {\n  if (override) throw new Error('OVERRIDE_NOT_APPLICABLE_OR_NOT_FOUND');\n  return noWork({ ...selection, executionResult: 'no_pending_coursework' });\n}\nconst cw = candidates[0];\nconst week = weekFrom(cw.title);\nconst dueAt = cw.dueDate ? `${cw.dueDate.year}-${String(cw.dueDate.month).padStart(2,'0')}-${String(cw.dueDate.day).padStart(2,'0')}` +\n  (cw.dueTime ? `T${String(cw.dueTime.hours || 0).padStart(2,'0')}:${String(cw.dueTime.minutes || 0).padStart(2,'0')}:00` : '') : null;\nreturn [{ json: { ...data, ...selection, found: true, executionResult: 'coursework_found',\n  courseWorkId: String(cw.id), courseWorkState: entries[cw.id]?.state || 'pending',\n  historicalStatus: entries[cw.id]?.state === 'ignored_historical' ? 'ignored_historical' : 'not_historical',\n  week, weekPadded: String(week).padStart(2,'0'), assignmentTitle: String(cw.title || '').trim(),\n  description: String(cw.description || '').slice(0,30000), materials: cw.materials || [],\n  alternateLink: cw.alternateLink || null, creationTime: cw.creationTime || null, updateTime: cw.updateTime || null,\n  dueAt, scheduledTime: cw.scheduledTime || null, maxPoints: cw.maxPoints ?? null, workType: cw.workType || null,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -180,
-        100
+        -109536,
+        2720
       ],
-      "id": "4df1b6ed-17b1-40f1-bf94-a54ace54204b",
+      "id": "00be298c-c06d-40b2-a32a-72d176e6853c",
       "name": "Parse Retry CourseWork"
     },
     {
@@ -338,10 +409,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        40,
-        100
+        -109312,
+        2720
       ],
-      "id": "7a69e60d-1f67-4504-8f40-46e1f343674d",
+      "id": "d6f7b5ae-035b-4aa7-91cc-230579159003",
       "name": "CourseWork Found Retry?"
     },
     {
@@ -351,10 +422,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        260,
-        260
+        -109104,
+        2880
       ],
-      "id": "aaf0fe62-d09b-4a30-8f4c-f66dd8ff10ce",
+      "id": "5fbdfd99-bdf9-4566-ac59-aa5a61b35a37",
       "name": "Build No Activity Summary"
     },
     {
@@ -385,15 +456,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        480,
-        260
+        -108896,
+        2880
       ],
-      "id": "6f6e77a8-669a-4256-9191-061535c32d80",
+      "id": "9133f2f3-1a32-430c-a9c8-d4937fe6a7a4",
       "name": "Notify No Activity?"
     },
     {
       "parameters": {
-        "operation": "send",
         "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
         "subject": "={{ $json.notificationSubject }}",
         "message": "={{ $json.notificationBody }}",
@@ -404,16 +474,12 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        700,
-        220
+        -108656,
+        2832
       ],
-      "id": "e165bbef-a122-4388-b509-69d9d65d43b6",
+      "id": "91cc5720-b6e3-4161-a162-da93876f352e",
       "name": "Gmail - Send No Activity Alert",
-      "credentials": {
-        "gmailOAuth2": {
-          "name": "Gmail notifications (optional)"
-        }
-      }
+      "webhookId": "d731895c-03df-4c4c-a01e-485b73e46c17"
     },
     {
       "parameters": {
@@ -422,10 +488,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        260,
-        -80
+        -109104,
+        2528
       ],
-      "id": "9089d0e3-cd02-4603-8be2-6260ab29fc4c",
+      "id": "d2f193d3-be0f-4018-9497-b101ed2450e0",
       "name": "Inspect Materials"
     },
     {
@@ -456,10 +522,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        480,
-        -80
+        -108880,
+        2528
       ],
-      "id": "e651169a-f008-4813-9d8e-87bdc2ec3257",
+      "id": "4407a162-4804-46d9-8b7e-4de61e4d1554",
       "name": "Starter ZIP Found?"
     },
     {
@@ -469,10 +535,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        700,
-        40
+        -108656,
+        2656
       ],
-      "id": "f6afd3e2-1fc3-4677-bcb0-b06fa477a4ad",
+      "id": "c8abb20c-460f-4694-a156-ac345e0dc1ac",
       "name": "No Starter Context"
     },
     {
@@ -483,8 +549,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -492,13 +557,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        700,
-        -200
+        -108656,
+        2416
       ],
-      "id": "ed377c43-d3bf-49ac-b28f-2d72f21b70d9",
+      "id": "0206de76-4c2e-4597-8bef-a632b2f48bd4",
       "name": "Drive - Starter Metadata",
       "credentials": {
         "oAuth2Api": {
+          "id": "nsEA1xyeapnFbLMk",
           "name": "Google Classroom and Drive OAuth2"
         }
       }
@@ -510,10 +576,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        920,
-        -200
+        -108432,
+        2416
       ],
-      "id": "96eea4aa-8cf6-4e11-8310-bf137c267c1e",
+      "id": "9f0b1bc2-96ff-4824-80b0-bc5d0ddb85c2",
       "name": "Attach Drive Metadata"
     },
     {
@@ -523,10 +589,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1140,
-        -200
+        -108224,
+        2416
       ],
-      "id": "65a18dc0-c10e-4317-841d-043e1654531a",
+      "id": "fd0ef069-c838-4693-ada6-1e8a67531985",
       "name": "Validate Drive File"
     },
     {
@@ -537,9 +603,7 @@
         "options": {
           "response": {
             "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data",
-              "neverError": false
+              "responseFormat": "file"
             }
           }
         }
@@ -547,13 +611,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        1360,
-        -200
+        -108000,
+        2416
       ],
-      "id": "12c3e73e-f7ef-4abb-821c-9de7043b55e9",
+      "id": "8cfffa21-9584-49a2-baa8-1f6509674657",
       "name": "Drive - Download Starter ZIP",
       "credentials": {
         "oAuth2Api": {
+          "id": "nsEA1xyeapnFbLMk",
           "name": "Google Classroom and Drive OAuth2"
         }
       }
@@ -565,10 +630,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1580,
-        -200
+        -107776,
+        2416
       ],
-      "id": "c733fb20-0eff-4485-903a-6d4b4a80ba4a",
+      "id": "e920ea78-f436-4144-bc2d-5ab1308ca5ad",
       "name": "Attach Download Context"
     },
     {
@@ -578,24 +643,21 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1800,
-        -200
+        -107552,
+        2416
       ],
-      "id": "2805ca3c-ef09-4cd9-8221-936a8f515307",
+      "id": "af28cc49-0aa5-4a84-bf70-f3b0b3a6bd2a",
       "name": "Validate ZIP Security"
     },
     {
-      "parameters": {
-        "binaryPropertyName": "data",
-        "outputPrefix": "file_"
-      },
+      "parameters": {},
       "type": "n8n-nodes-base.compression",
       "typeVersion": 1.1,
       "position": [
-        2020,
-        -200
+        -107344,
+        2416
       ],
-      "id": "849a6fb2-2e5d-4b10-a04d-871d2af1db16",
+      "id": "9444b40c-594f-49fb-8562-2965ad24b0a3",
       "name": "Extract Starter ZIP"
     },
     {
@@ -605,10 +667,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2240,
-        -200
+        -107120,
+        2416
       ],
-      "id": "156b5e08-6054-49fe-8aed-c0be757d186b",
+      "id": "254ea4b8-fda0-4363-b434-fdb66c6b859c",
       "name": "Inspect Starter"
     },
     {
@@ -618,10 +680,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2460,
-        -80
+        -106896,
+        2528
       ],
-      "id": "8f822158-f373-4dbb-b4a2-68c085c5e542",
+      "id": "02b49c47-3c62-4641-b017-75a3c55e6d36",
       "name": "Activity Context"
     },
     {
@@ -645,8 +707,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -654,13 +715,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2680,
-        -80
+        -106672,
+        2528
       ],
-      "id": "eda72977-29e0-4364-82a2-a8542eb239c2",
+      "id": "a9caabb3-2e10-4bb2-8a74-d71cbd83455d",
       "name": "GitHub - Repository",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -686,8 +748,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -695,13 +756,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        2900,
-        -80
+        -106464,
+        2528
       ],
-      "id": "eae598c9-7748-4c15-8127-b1a229a216f9",
+      "id": "9567d80b-ed1f-48a0-b085-a66c4705243e",
       "name": "GitHub - Recent Issues",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -727,8 +789,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -736,13 +797,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3120,
-        -80
+        -106240,
+        2528
       ],
-      "id": "7f993bca-edce-44d8-b3bb-c63eaa247cac",
+      "id": "27aea8b6-5f45-418d-862f-58388ba39d0c",
       "name": "GitHub - Search CourseWork ID",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -768,8 +830,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -777,13 +838,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3340,
-        -80
+        -106016,
+        2528
       ],
-      "id": "c57e872b-dccb-4d89-9dde-96442c37d6e7",
+      "id": "eaaff93c-797a-4ed7-a983-abda9e49bdfe",
       "name": "GitHub - Search Course Week",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -809,8 +871,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -818,13 +879,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3560,
-        -80
+        -105792,
+        2528
       ],
-      "id": "5f548342-5a63-4648-ab96-b2486708fa3f",
+      "id": "2f51d082-c961-41f9-97af-9ceb6493ae36",
       "name": "GitHub - Open Pull Requests",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -850,8 +912,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -859,13 +920,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3780,
-        -80
+        -105584,
+        2528
       ],
-      "id": "7c7c5e63-a39a-49b8-97b6-60d897a53b4d",
+      "id": "9421af2e-991e-45b1-8af1-478c5c05d199",
       "name": "GitHub - Labels",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -900,13 +962,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        4000,
-        -80
+        -105360,
+        2528
       ],
-      "id": "78287213-f8a3-4753-b920-70dfd8b06e33",
+      "id": "39352258-be5b-4ed1-aae4-8cac218ae0a3",
       "name": "GitHub - Tree",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -941,13 +1004,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        4220,
-        -80
+        -105136,
+        2528
       ],
-      "id": "725b4ca4-7b17-4104-8182-a6c470d13c07",
+      "id": "a22cedee-8e5f-4c93-8ddf-72320be86bb9",
       "name": "GitHub - README",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -959,10 +1023,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4260,
-        -80
+        -105104,
+        2528
       ],
-      "id": "ac0525da-ed79-4108-a907-499220c682aa",
+      "id": "6fff821b-b498-4921-a0be-dcb003f63dce",
       "name": "Prepare Repository Content Requests"
     },
     {
@@ -995,13 +1059,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        4300,
-        -80
+        -105056,
+        2528
       ],
-      "id": "2104c769-606a-41b7-b793-c79e50ed8569",
+      "id": "ffe20cd9-0179-4328-916b-3986d386c96b",
       "name": "GitHub - Repository Content",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -1013,10 +1078,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4360,
-        -80
+        -104992,
+        2528
       ],
-      "id": "d80f485a-8d76-400e-aa45-a60339cc414a",
+      "id": "6e3ae61a-740c-4d70-8c3e-22df7fb2835d",
       "name": "Collect Repository Contents"
     },
     {
@@ -1026,10 +1091,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4440,
-        -80
+        -104912,
+        2528
       ],
-      "id": "0e9e3325-e06e-46a0-93bc-a3afeeb5bf60",
+      "id": "41e9e6bc-fe10-4d2f-8963-4e9dbbb83958",
       "name": "Build Context & Dedup"
     },
     {
@@ -1039,10 +1104,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4540,
-        -80
+        -104816,
+        2528
       ],
-      "id": "bbdac297-c928-42e0-a3b1-71548fdf38f9",
+      "id": "de2044b6-8d87-48cb-ab7e-31db0f164dff",
       "name": "Observe Processed Registry"
     },
     {
@@ -1073,10 +1138,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        4660,
-        -80
+        -104704,
+        2528
       ],
-      "id": "fb6ccf23-9653-4a3f-ba31-5fba00a96147",
+      "id": "bc327b0d-f79d-4683-a4c9-c36240de3109",
       "name": "Needs Manual Review?"
     },
     {
@@ -1086,10 +1151,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4880,
-        -240
+        -104480,
+        2368
       ],
-      "id": "461c2b7f-49a0-44cb-a62d-5d7080e2e076",
+      "id": "dda097f5-a024-4fdf-aa74-8cd77d44c62a",
       "name": "Build Manual Review Alert"
     },
     {
@@ -1120,15 +1185,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        5100,
-        -240
+        -104256,
+        2368
       ],
-      "id": "0ce8aadb-0dcc-4c5d-af3a-9738886b18b1",
+      "id": "f507cbb4-e2a8-4a3b-b0c7-0f131f5346b2",
       "name": "Notify Manual Review?"
     },
     {
       "parameters": {
-        "operation": "send",
         "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
         "subject": "={{ $json.notificationSubject }}",
         "message": "={{ $json.notificationBody }}",
@@ -1139,16 +1203,12 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        5320,
-        -280
+        -104032,
+        2336
       ],
-      "id": "59084660-e26a-4a5f-8805-93564c4fe358",
+      "id": "06b2ab1b-2b26-4258-b56f-1ab0ad53c494",
       "name": "Gmail - Send Manual Review Alert",
-      "credentials": {
-        "gmailOAuth2": {
-          "name": "Gmail notifications (optional)"
-        }
-      }
+      "webhookId": "47d5818d-e44a-4590-bb77-c4f6fff8fb06"
     },
     {
       "parameters": {
@@ -1178,10 +1238,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        4880,
-        20
+        -104480,
+        2640
       ],
-      "id": "b11f85a7-ee5f-4430-8193-0d68270b5563",
+      "id": "007d590f-67c1-4271-9a2b-7a2047743f54",
       "name": "Existing Set Complete?"
     },
     {
@@ -1191,10 +1251,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5100,
-        -20
+        -104256,
+        2592
       ],
-      "id": "11bee401-c9db-4c2d-b80d-3efe6319efd9",
+      "id": "87267317-7769-40dd-a8f5-3b1315a10229",
       "name": "Build Reconcile Summary"
     },
     {
@@ -1225,15 +1285,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        5320,
-        -20
+        -104032,
+        2592
       ],
-      "id": "e0a90abd-c14c-44bc-b8c7-3194cac4a474",
+      "id": "456f1e74-7042-4e7b-b9d4-655f2a899114",
       "name": "Notify Reconcile?"
     },
     {
       "parameters": {
-        "operation": "send",
         "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
         "subject": "={{ $json.notificationSubject }}",
         "message": "={{ $json.notificationBody }}",
@@ -1244,16 +1303,12 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        5540,
-        -60
+        -103824,
+        2560
       ],
-      "id": "b8bb3353-47b3-4973-8f92-95247b14938f",
+      "id": "b2c8a21b-5a68-45e7-9556-853b536f360f",
       "name": "Gmail - Send Reconcile Summary",
-      "credentials": {
-        "gmailOAuth2": {
-          "name": "Gmail notifications (optional)"
-        }
-      }
+      "webhookId": "219dbab9-1ded-45eb-a773-eecfdd92ddb4"
     },
     {
       "parameters": {
@@ -1262,10 +1317,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5100,
-        160
+        -104256,
+        2768
       ],
-      "id": "93b66546-64ff-4bcd-80f4-04d39d014cbc",
+      "id": "897576c3-7e92-4bf7-b8e3-4b93dc9eb270",
       "name": "LLM Request"
     },
     {
@@ -1275,10 +1330,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5100,
-        160
+        -104256,
+        2768
       ],
-      "id": "cca383b9-f68e-4da0-b6ad-51fd388b9edc",
+      "id": "8affe1d0-fe70-48f5-ba82-721ff97e4710",
       "name": "Gemini Adapter"
     },
     {
@@ -1300,30 +1355,31 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json.llmPayload }}",
         "options": {
-          "timeout": 120000,
           "response": {
             "response": {
               "fullResponse": true,
               "neverError": true
             }
-          }
+          },
+          "timeout": 120000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        5320,
-        160
+        -104032,
+        2768
       ],
-      "id": "98512d4d-d54a-458d-83ed-080ce22924b3",
+      "id": "38180914-e008-42b6-a8ba-036709f3be2f",
       "name": "Gemini - Plan",
+      "retryOnFail": false,
       "credentials": {
         "httpHeaderAuth": {
+          "id": "5OiqqsPMP0djEEpW",
           "name": "Gemini API Key"
         }
       },
-      "onError": "continueRegularOutput",
-      "retryOnFail": false
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1332,10 +1388,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5540,
-        160
+        -103824,
+        2768
       ],
-      "id": "c7203e12-0909-4258-aa78-06edec081077",
+      "id": "cfd66103-b659-4973-8470-b2e64a631c45",
       "name": "Normalize AI Response"
     },
     {
@@ -1345,10 +1401,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5760,
-        160
+        -103600,
+        2768
       ],
-      "id": "b0f3354e-d2e0-4880-bedf-4f9d75baba11",
+      "id": "da3fa9a5-7fb2-4352-8c41-508b7d324611",
       "name": "Parse Structured Plan"
     },
     {
@@ -1358,10 +1414,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5980,
-        160
+        -103376,
+        2768
       ],
-      "id": "0971f934-4b15-4ddd-97d2-9c726c0e7020",
+      "id": "6e9b0887-0431-48a6-a5a8-679094e290b6",
       "name": "Apply Gap Analysis"
     },
     {
@@ -1371,10 +1427,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6140,
-        160
+        -103216,
+        2768
       ],
-      "id": "12296527-a112-4f68-9be4-5f95cfd80bd8",
+      "id": "a61b8bfa-f2fb-435f-a927-01aab16307db",
       "name": "Enforce Operational Issues"
     },
     {
@@ -1384,10 +1440,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6300,
-        160
+        -103056,
+        2768
       ],
-      "id": "8d75250d-1552-41f0-b8b1-4fbb1f4f0f05",
+      "id": "ff99079d-6b3e-43b8-ab69-25451aaf28eb",
       "name": "Normalize Titles & Keys & Dependencies"
     },
     {
@@ -1397,10 +1453,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6460,
-        160
+        -102896,
+        2768
       ],
-      "id": "18a8249f-9121-43f6-a7c8-b5d156f045fe",
+      "id": "37e6dd79-448f-486c-8fb4-8afb9697301c",
       "name": "Build GitHub Issue Bodies"
     },
     {
@@ -1410,10 +1466,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6640,
-        160
+        -102720,
+        2768
       ],
-      "id": "d63f2bb1-7b47-4d7a-a550-c90b1d4b9e3a",
+      "id": "159d21a3-e0e1-4aba-9f0d-0d5458577cfd",
       "name": "Validate Final Plan"
     },
     {
@@ -1444,10 +1500,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        6860,
-        160
+        -102496,
+        2768
       ],
-      "id": "200cab79-71da-4b66-bad5-f06cd65f3a1d",
+      "id": "1e7104b7-3bfb-416e-9427-f0fd49611555",
       "name": "Plan Valid?"
     },
     {
@@ -1478,10 +1534,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7080,
-        300
+        -102272,
+        2912
       ],
-      "id": "f8434363-145d-46cb-93df-474a4220ab77",
+      "id": "02b3f6d5-67cd-4a87-b3aa-c7e26fcf7109",
       "name": "Gemini Repair Required?"
     },
     {
@@ -1491,10 +1547,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4880,
-        500
+        -104480,
+        3120
       ],
-      "id": "01147b8d-34cd-4538-9777-380fbe7c2eae",
+      "id": "50bdf17a-04f8-438d-bed3-5612bc5cf0da",
       "name": "Prepare Gemini Repair"
     },
     {
@@ -1504,10 +1560,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5100,
-        500
+        -104256,
+        3120
       ],
-      "id": "639aa66c-fe17-4e72-81aa-3bc2a4b34ab6",
+      "id": "43b1cdfc-811d-49df-bfc1-59f95fde4da6",
       "name": "Gemini Repair Adapter"
     },
     {
@@ -1529,30 +1585,31 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json.llmPayload }}",
         "options": {
-          "timeout": 120000,
           "response": {
             "response": {
               "fullResponse": true,
               "neverError": true
             }
-          }
+          },
+          "timeout": 120000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        5320,
-        500
+        -104032,
+        3120
       ],
-      "id": "24650560-a5e6-4bdb-bfdc-d9fe85714541",
+      "id": "b3d10a67-4c08-4f45-86ce-3855edcbf687",
       "name": "Gemini - Repair Once",
+      "retryOnFail": false,
       "credentials": {
         "httpHeaderAuth": {
+          "id": "5OiqqsPMP0djEEpW",
           "name": "Gemini API Key"
         }
       },
-      "onError": "continueRegularOutput",
-      "retryOnFail": false
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1561,10 +1618,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5540,
-        500
+        -103824,
+        3120
       ],
-      "id": "dd515dfc-f7c0-459a-ac7b-fc0137854fae",
+      "id": "452ecc3a-747b-4f88-8c93-025768773be8",
       "name": "Normalize AI Response - Repair"
     },
     {
@@ -1574,10 +1631,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5720,
-        500
+        -103632,
+        3120
       ],
-      "id": "13b9a10e-6e21-4740-8707-e313155fd2d3",
+      "id": "5769bfb4-29d6-42c0-a349-1dce02fc98f0",
       "name": "Parse Structured Plan - Repair"
     },
     {
@@ -1587,10 +1644,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5900,
-        500
+        -103456,
+        3120
       ],
-      "id": "a46b107c-5488-4a83-92e2-0f6837102a10",
+      "id": "10693669-619e-45cf-9049-24756fbf62d4",
       "name": "Apply Gap Analysis - Repair"
     },
     {
@@ -1600,10 +1657,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6080,
-        500
+        -103280,
+        3120
       ],
-      "id": "dcdbea82-7026-4e80-b55b-d697a362609c",
+      "id": "682c33c0-784b-4c1e-9e4f-8fa04cbeb49f",
       "name": "Enforce Operational Issues - Repair"
     },
     {
@@ -1613,10 +1670,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6260,
-        500
+        -103104,
+        3120
       ],
-      "id": "d1e732f4-dd03-4e46-a9a6-577ea33e10e1",
+      "id": "13a450d9-1278-4c40-a567-e71a1b97ad56",
       "name": "Normalize Titles & Keys & Dependencies - Repair"
     },
     {
@@ -1626,10 +1683,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6440,
-        500
+        -102912,
+        3120
       ],
-      "id": "31db2d3b-bc7d-47bd-b5ee-bd7a8d83fc50",
+      "id": "d5514cab-b9c3-43d3-87d9-b84381919a57",
       "name": "Build GitHub Issue Bodies - Repair"
     },
     {
@@ -1639,10 +1696,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6620,
-        500
+        -102736,
+        3120
       ],
-      "id": "5e5cab95-c6f3-4648-98af-2d0dd3a9c27d",
+      "id": "d72d4c57-c68c-409a-81cb-86c21c244294",
       "name": "Validate Final Plan - Repair"
     },
     {
@@ -1673,10 +1730,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        6860,
-        500
+        -102496,
+        3120
       ],
-      "id": "509be902-dd87-4b03-b790-81a661eaeb79",
+      "id": "50fd271f-f0ab-44b3-9f29-fea3d42b5046",
       "name": "Repair Plan Valid?"
     },
     {
@@ -1686,10 +1743,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4880,
-        840
+        -104480,
+        3456
       ],
-      "id": "8e77a78a-0896-4257-84f4-83d2d6a4e1ed",
+      "id": "d006c100-22e8-465d-8761-840c75215fe3",
       "name": "Prepare OpenRouter Fallback"
     },
     {
@@ -1699,10 +1756,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5100,
-        840
+        -104256,
+        3456
       ],
-      "id": "11047f03-13be-464c-ae53-9b759f99cada",
+      "id": "0516c792-8aa3-44a0-a87e-85773b8e5ba3",
       "name": "Qwen Adapter"
     },
     {
@@ -1724,30 +1781,31 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json.llmPayload }}",
         "options": {
-          "timeout": 120000,
           "response": {
             "response": {
               "fullResponse": true,
               "neverError": true
             }
-          }
+          },
+          "timeout": 120000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        5320,
-        840
+        -104032,
+        3456
       ],
-      "id": "4c97759f-98de-4d56-9871-5377fcdfb8aa",
+      "id": "e1bf21a9-11ba-4eae-8a26-155048d0e87a",
       "name": "OpenRouter - Chat Completion",
+      "retryOnFail": false,
       "credentials": {
         "httpHeaderAuth": {
-          "name": "OpenRouter API Key"
+          "id": "fWgKjf3HBMFCV8XW",
+          "name": "Header Auth account"
         }
       },
-      "onError": "continueRegularOutput",
-      "retryOnFail": false
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1756,10 +1814,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5540,
-        840
+        -103824,
+        3456
       ],
-      "id": "030b714c-0760-4b8e-b96b-c36679737dd6",
+      "id": "4439d2f7-8e1d-4311-a10a-7d8c302f6fd6",
       "name": "Normalize AI Response - Qwen"
     },
     {
@@ -1769,10 +1827,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5720,
-        840
+        -103632,
+        3456
       ],
-      "id": "b8f6f5c8-fe9f-4c70-be00-7146cb9ce41f",
+      "id": "2a6efceb-266e-42b5-9d36-832a87cce79a",
       "name": "Parse Structured Plan - Qwen"
     },
     {
@@ -1782,10 +1840,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5900,
-        840
+        -103456,
+        3456
       ],
-      "id": "ad45eb79-314e-46b0-985c-c6929c8e9b5a",
+      "id": "d55ac063-2153-4b88-ad7a-4c39a6b8a65c",
       "name": "Apply Gap Analysis - Qwen"
     },
     {
@@ -1795,10 +1853,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6080,
-        840
+        -103280,
+        3456
       ],
-      "id": "b8db38b3-5357-49ea-bba1-c6f3a33884d3",
+      "id": "83d86f44-4ac2-4227-9bfb-2ff6a9cc1b2a",
       "name": "Enforce Operational Issues - Qwen"
     },
     {
@@ -1808,10 +1866,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6260,
-        840
+        -103104,
+        3456
       ],
-      "id": "bb6c1561-60d6-454d-9397-3c4e0e50ab9d",
+      "id": "42505297-241c-4edb-b025-124ef7af425f",
       "name": "Normalize Titles & Keys & Dependencies - Qwen"
     },
     {
@@ -1821,10 +1879,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6440,
-        840
+        -102912,
+        3456
       ],
-      "id": "bf590c3a-8b8e-4ec5-b41c-9c4cd97da43a",
+      "id": "3c627be0-a9f9-4221-ac8d-6b34fa257a0c",
       "name": "Build GitHub Issue Bodies - Qwen"
     },
     {
@@ -1834,10 +1892,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6620,
-        840
+        -102736,
+        3456
       ],
-      "id": "39d79d09-c0dc-41dd-94a7-6c382d97819f",
+      "id": "27e6b33b-5da8-4172-b10e-c97563242730",
       "name": "Validate Final Plan - Qwen"
     },
     {
@@ -1868,10 +1926,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        6860,
-        840
+        -102496,
+        3456
       ],
-      "id": "0a098d60-a514-4ba5-91b6-44e7795ebaab",
+      "id": "8a0d84a2-5bfd-4f3b-897a-ce716d38d32f",
       "name": "Qwen Plan Valid?"
     },
     {
@@ -1881,10 +1939,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4880,
-        1180
+        -104480,
+        3792
       ],
-      "id": "8cab12c8-7184-4eea-9fd2-96f747f630c5",
+      "id": "c33c9734-6abf-40f0-b9d6-347436e08124",
       "name": "Prepare GLM Fallback"
     },
     {
@@ -1894,10 +1952,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5100,
-        1180
+        -104256,
+        3792
       ],
-      "id": "f26252f1-1e2c-4d05-bb9d-98a29b4c84d9",
+      "id": "7dfdaeff-d9d3-4b9b-a773-815bdde37bb2",
       "name": "GLM Adapter"
     },
     {
@@ -1919,30 +1977,31 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json.llmPayload }}",
         "options": {
-          "timeout": 120000,
           "response": {
             "response": {
               "fullResponse": true,
               "neverError": true
             }
-          }
+          },
+          "timeout": 120000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        5320,
-        1180
+        -104032,
+        3792
       ],
-      "id": "bafbdcdc-95f6-49db-a9e5-fa6d85b02882",
+      "id": "1cecc299-e002-4f53-a74b-818e3337813c",
       "name": "OpenRouter - GLM",
+      "retryOnFail": false,
       "credentials": {
         "httpHeaderAuth": {
-          "name": "OpenRouter API Key"
+          "id": "fWgKjf3HBMFCV8XW",
+          "name": "Header Auth account"
         }
       },
-      "onError": "continueRegularOutput",
-      "retryOnFail": false
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1951,10 +2010,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5540,
-        1180
+        -103824,
+        3792
       ],
-      "id": "0bc1b622-fceb-41a1-9e62-c0fccd921062",
+      "id": "423bb7b5-3cc6-47ab-816f-ea9817a61e0d",
       "name": "Normalize AI Response - GLM"
     },
     {
@@ -1964,10 +2023,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5720,
-        1180
+        -103632,
+        3792
       ],
-      "id": "5109d833-859b-4c0f-b4ea-4297214aee8e",
+      "id": "5b7f4083-5ee1-4fd9-9e11-44d972a2e4b6",
       "name": "Parse Structured Plan - GLM"
     },
     {
@@ -1977,10 +2036,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5900,
-        1180
+        -103456,
+        3792
       ],
-      "id": "b343b5a6-a627-4bd5-b58e-bcfb15e25dbb",
+      "id": "aed54978-5424-4a5a-b73d-bd0e89a5115b",
       "name": "Apply Gap Analysis - GLM"
     },
     {
@@ -1990,10 +2049,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6080,
-        1180
+        -103280,
+        3792
       ],
-      "id": "867b335f-03e8-40dd-b6c9-3af921d5d401",
+      "id": "ae2a18e8-a864-48d2-929c-4e62a5eefaed",
       "name": "Enforce Operational Issues - GLM"
     },
     {
@@ -2003,10 +2062,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6260,
-        1180
+        -103104,
+        3792
       ],
-      "id": "a795a249-6aa1-4bdf-b9fa-1b1b0b9e3866",
+      "id": "245b5ed5-a163-4694-8d2d-c3c38626aec0",
       "name": "Normalize Titles & Keys & Dependencies - GLM"
     },
     {
@@ -2016,10 +2075,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6440,
-        1180
+        -102912,
+        3792
       ],
-      "id": "8e2fd4ad-5648-4bcb-8952-44df26d2fe0d",
+      "id": "c4212d73-ff4f-4aa0-90ed-9266ac345aa2",
       "name": "Build GitHub Issue Bodies - GLM"
     },
     {
@@ -2029,10 +2088,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6620,
-        1180
+        -102736,
+        3792
       ],
-      "id": "8d53c8ce-05c9-41f1-b676-85922b560963",
+      "id": "9b376c5e-e621-4347-9162-11ef3bac83dc",
       "name": "Validate Final Plan - GLM"
     },
     {
@@ -2063,10 +2122,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        6860,
-        1180
+        -102496,
+        3792
       ],
-      "id": "1c7d0652-fa30-4e19-a2cf-dc12839f65c4",
+      "id": "0cc9fc3e-5d00-4966-8279-366697663b88",
       "name": "GLM Plan Valid?"
     },
     {
@@ -2076,10 +2135,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7080,
-        1320
+        -102272,
+        3936
       ],
-      "id": "a5e77402-0548-46ad-bf8e-6ef33c7b60e4",
+      "id": "ee6b7aee-ea59-49ea-b65c-1f6579953e33",
       "name": "Fail Closed - Invalid Plan"
     },
     {
@@ -2110,10 +2169,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7300,
-        460
+        -102064,
+        3072
       ],
-      "id": "31c1d7ca-c14d-4895-9f08-74a4fd306a7b",
+      "id": "e933b4f0-1873-4865-a827-09ee013ca2b9",
       "name": "Validator Internal?"
     },
     {
@@ -2144,10 +2203,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7300,
-        800
+        -102064,
+        3408
       ],
-      "id": "14444e95-ea1a-447d-9019-cbd88ac4f5ad",
+      "id": "781b5f49-898d-41ab-8e1e-a602f494d628",
       "name": "Validator Internal - Repair?"
     },
     {
@@ -2178,10 +2237,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7300,
-        1140
+        -102064,
+        3760
       ],
-      "id": "fcce19fe-04a2-4594-86e5-2d86ce7d11ce",
+      "id": "82369ca1-6ce6-4022-8722-88c123a6a10e",
       "name": "Validator Internal - Qwen?"
     },
     {
@@ -2212,10 +2271,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7300,
-        1480
+        -102064,
+        4096
       ],
-      "id": "57bf93de-9ef1-44a0-94fd-4fd3ebf1e662",
+      "id": "2543da11-ab4a-4919-a318-4ccef67b82c7",
       "name": "Validator Internal - GLM?"
     },
     {
@@ -2225,10 +2284,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7080,
-        1620
+        -102272,
+        4240
       ],
-      "id": "8184c230-dc08-41d0-945f-e78d79881739",
+      "id": "24145e69-6cde-43bc-b68e-dc51a531f261",
       "name": "Fail Validator - Invalid Plan"
     },
     {
@@ -2238,10 +2297,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7160,
-        120
+        -102192,
+        2736
       ],
-      "id": "3955fb23-cc6f-4102-b3ae-b6e1e7d15b84",
+      "id": "dd5d911a-7bc6-4079-8b2d-8f9219401d2a",
       "name": "Expand Personal Requirements"
     },
     {
@@ -2251,10 +2310,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7360,
-        120
+        -102000,
+        2736
       ],
-      "id": "7ad4ef21-ba39-4373-9afa-2a46338f047b",
+      "id": "fb60b174-6476-459c-93b8-b0f4d47c0ddf",
       "name": "Build Assigned Issue Bodies"
     },
     {
@@ -2264,10 +2323,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7420,
-        120
+        -101936,
+        2736
       ],
-      "id": "5c0a3aa2-1e8a-4bf1-8b62-7d412709451f",
+      "id": "1cefacb8-c099-4c38-a5ed-62aa23ae1a14",
       "name": "Validate Final Assignment"
     },
     {
@@ -2277,10 +2336,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7300,
-        120
+        -102064,
+        2736
       ],
-      "id": "ffe44adc-6e11-48af-b7a6-b912509bb8b6",
+      "id": "d4502fed-6af5-4bb6-b504-11c19e0f5f96",
       "name": "Plan and Topological Sort"
     },
     {
@@ -2310,10 +2369,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7520,
-        120
+        -101840,
+        2736
       ],
-      "id": "2625bcd8-ac46-4575-8d9b-6ab1bd6f22bb",
+      "id": "4330d57a-6f87-44a6-a499-bfe182a1cb6c",
       "name": "Dry Run?"
     },
     {
@@ -2323,10 +2382,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7740,
-        20
+        -101616,
+        2640
       ],
-      "id": "93cfbc7d-6a3f-4385-9a46-3e9436a85237",
+      "id": "fb240fc1-211d-45c3-9ec4-13926b82b67d",
       "name": "Exact Dry-Run Preview"
     },
     {
@@ -2357,10 +2416,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        7740,
-        200
+        -101616,
+        2816
       ],
-      "id": "f26c99fe-44dc-45f0-8515-189626295ca7",
+      "id": "828874f1-a820-44db-9718-1412eb93ddde",
       "name": "Missing Labels?"
     },
     {
@@ -2370,10 +2429,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7960,
-        160
+        -101392,
+        2768
       ],
-      "id": "c0426661-e2ce-4627-b339-ba9d130054eb",
+      "id": "8ad86f43-f634-415e-a080-7ee6fc27b24d",
       "name": "Prepare Missing Labels"
     },
     {
@@ -2401,8 +2460,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -2410,13 +2468,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        8180,
-        160
+        -101184,
+        2768
       ],
-      "id": "9526fe2f-ab95-48fb-94fb-43d9ac3e1693",
+      "id": "f2acdfcb-1310-44c3-8b8c-35e80b3b28f8",
       "name": "GitHub - Create Missing Label",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -2428,10 +2487,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        8400,
-        240
+        -100960,
+        2848
       ],
-      "id": "0c8c1532-0d25-4c62-9c46-f1833de7e717",
+      "id": "5496cbf1-9ffb-4cd2-ae81-c744d745b127",
       "name": "Continue After Labels"
     },
     {
@@ -2441,24 +2500,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        8620,
-        240
+        -100736,
+        2848
       ],
-      "id": "a30f9028-fb4a-4dcf-a91f-fa55abdf46a0",
+      "id": "769985ed-1db3-4078-af84-18b6a1faf288",
       "name": "Prepare Issue Queue"
     },
     {
       "parameters": {
-        "batchSize": 1,
         "options": {}
       },
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        8840,
-        240
+        -100512,
+        2848
       ],
-      "id": "469641ac-a951-440a-b9f8-fe56adfed037",
+      "id": "2abc983b-d241-4e40-9b6b-6f86c49d4c35",
       "name": "Loop Issues Sequentially"
     },
     {
@@ -2468,10 +2526,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        9060,
-        340
+        -100304,
+        2960
       ],
-      "id": "774878a3-7031-4c57-8b5b-cfa853b800f5",
+      "id": "3b792557-0434-4a41-b5ee-cb2cbfd0f9ab",
       "name": "Resolve Dependencies"
     },
     {
@@ -2495,8 +2553,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -2504,13 +2561,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        9280,
-        340
+        -100080,
+        2960
       ],
-      "id": "076092ce-461e-49ac-89d0-3c512106c69d",
+      "id": "d580b930-3919-4489-bad4-0ae09d630a64",
       "name": "GitHub - Recheck Issue Key",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -2522,10 +2580,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        9500,
-        340
+        -99856,
+        2960
       ],
-      "id": "805fe09a-5f5c-4fb0-b1ac-ab86a37cdb17",
+      "id": "4ff35b80-0f35-418e-9ad1-85bdbec61edd",
       "name": "Apply Issue Recheck"
     },
     {
@@ -2556,10 +2614,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        9720,
-        340
+        -99632,
+        2960
       ],
-      "id": "17551ad7-040b-49b9-8ac0-a9345f415fc5",
+      "id": "16766842-1c9b-4e4a-82fb-c5e570ed3732",
       "name": "Issue Already Exists?"
     },
     {
@@ -2587,8 +2645,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -2596,13 +2653,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        9940,
-        260
+        -99424,
+        2880
       ],
-      "id": "9b26f6c7-dc05-4683-baeb-8628c1f4b8e6",
+      "id": "0d13bf89-754d-4b31-a485-386542a71e7f",
       "name": "GitHub - Reconcile Existing Issue",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -2614,10 +2672,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        10160,
-        260
+        -99200,
+        2880
       ],
-      "id": "d03341a5-3329-4366-890a-c75d26a1688b",
+      "id": "566dde7e-8f07-4d7f-bfae-24593c7c05d8",
       "name": "Record Existing Issue"
     },
     {
@@ -2645,8 +2703,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -2654,13 +2711,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        9940,
-        420
+        -99424,
+        3040
       ],
-      "id": "1f309021-2f3a-4267-b3f0-d2f69bd621b6",
+      "id": "7ab4aedf-7b77-41e1-b8f9-d10b638ca008",
       "name": "GitHub - Create Issue",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -2672,10 +2730,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        10160,
-        420
+        -99200,
+        3040
       ],
-      "id": "26623d3e-a674-40b3-964e-354d0fa036ca",
+      "id": "d54c5837-ba2d-4d6c-b4ad-d50ab8b57421",
       "name": "Record Created Issue"
     },
     {
@@ -2699,8 +2757,7 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true,
-              "neverError": false
+              "fullResponse": true
             }
           }
         }
@@ -2708,13 +2765,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        9060,
-        80
+        -100304,
+        2688
       ],
-      "id": "56c55692-28d1-4717-afbf-ca362a5ffc92",
+      "id": "76f21bd4-1f30-4fcb-b6f7-e81268212164",
       "name": "GitHub - Verify Complete Set",
       "credentials": {
         "githubApi": {
+          "id": "VEKmC90jJHL8TPVT",
           "name": "GitHub account"
         }
       }
@@ -2726,10 +2784,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        9280,
-        80
+        -100080,
+        2688
       ],
-      "id": "959d8fff-1e9d-4427-b55a-e10702d5b54b",
+      "id": "c029adac-a35e-4118-8159-b6d5c950f24f",
       "name": "Verify Complete Set"
     },
     {
@@ -2739,10 +2797,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        9500,
-        80
+        -99856,
+        2688
       ],
-      "id": "ea405d5a-1fa0-433d-aa1a-a1a03fd5af83",
+      "id": "182695dd-ef5f-49d7-8387-0355f6dbcbab",
       "name": "Build Success Summary"
     },
     {
@@ -2773,15 +2831,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        9720,
-        80
+        -99632,
+        2688
       ],
-      "id": "a8c49fda-28a6-4dc7-bef0-9c34f2386ecf",
+      "id": "35daf119-010d-4d2a-a9c0-4d211f450c27",
       "name": "Notify Success?"
     },
     {
       "parameters": {
-        "operation": "send",
         "sendTo": "={{ $env.NOTIFICATION_EMAIL }}",
         "subject": "={{ $json.notificationSubject }}",
         "message": "={{ $json.notificationBody }}",
@@ -2792,20 +2849,49 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        9940,
-        40
+        -99424,
+        2656
       ],
-      "id": "5cdf270c-6937-4df4-9e88-3c371f21af80",
+      "id": "2a5bdfe6-a5de-43a4-a422-4060a98dfe5f",
       "name": "Gmail - Send Success Summary",
-      "credentials": {
-        "gmailOAuth2": {
-          "name": "Gmail notifications (optional)"
-        }
-      }
+      "webhookId": "1bf77ad6-8030-4452-b8db-0c3f1d111cfc"
     }
   ],
   "pinData": {},
   "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Error Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Summary": {
+      "main": [
+        [
+          {
+            "node": "Notifications Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notifications Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Error Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "LLM Request": {
       "main": [
         [
@@ -4267,15 +4353,19 @@
   "active": false,
   "settings": {
     "executionOrder": "v1",
+    "binaryMode": "separate",
     "timezone": "America/Mexico_City",
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
     "saveDataErrorExecution": "all",
     "saveDataSuccessExecution": "none"
   },
-  "versionId": "10000000-0000-4000-8000-000000000002",
+  "versionId": "83f79516-af30-4c2a-906c-e52e5bcb69f1",
   "meta": {
-    "templateCredsSetupCompleted": false
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b84fb18cde9d7ee2978b75da2d1e5657816f4bbbd6a85b800cb5b58cbf49561d"
   },
+  "nodeGroups": [],
+  "id": "bq8dzXRRSYkueHsn",
   "tags": []
 }
